@@ -19,7 +19,7 @@ Example how to automatically select and connect to a supported eID card, and
 read the authentication certificate:
 
     const auto cardInfo = autoSelectSupportedCard();
-    std::cout << "Reader" << cardInfo->reader().name << "has supported card"
+    std::cout << "Reader " << cardInfo->reader().name << " has supported card "
                     << cardInfo->eid().name();
 
     const auto certificateBytes = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);

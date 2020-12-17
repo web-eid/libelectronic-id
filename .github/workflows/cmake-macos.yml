@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 env:
   BUILD_TYPE: RelWithDebInfo
+  OPENSSL_ROOT_DIR: /usr/local/opt/openssl
 
 jobs:
   build:
@@ -16,7 +17,9 @@ jobs:
         submodules: recursive
 
     - name: Install libraries
-      run: brew install web-eid/gtest/gtest
+      run: |
+        brew install web-eid/gtest/gtest
+        ln -sf /usr/local/Cellar/openssl@1.1/1.1.1* /usr/local/opt/openssl
 
     - name: Create build directory
       run: mkdir build
