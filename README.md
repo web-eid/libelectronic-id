@@ -1,6 +1,6 @@
 # libelectronic-id
 
-![European Regional Development Fund](https://github.com/e-gov/RIHA-Frontend/raw/master/logo/EU/EU.png)
+![European Regional Development Fund](https://github.com/open-eid/DigiDoc4-Client/blob/master/client/images/EL_Regionaalarengu_Fond.png)
 
 C++ library for performing cryptographic operations with electronic identification (eID) cards.
 
