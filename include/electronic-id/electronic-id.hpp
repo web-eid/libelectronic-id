@@ -166,6 +166,18 @@ class Pkcs11Error : public Error
     using Error::Error;
 };
 
+/** Smart card was not present in its slot at the time that a PKCS#11 function was invoked. */
+class Pkcs11TokenNotPresent : public Error
+{
+    using Error::Error;
+};
+
+/** Smart card was removed from its slot during the execution of a PKCS#11 function. */
+class Pkcs11TokenRemoved : public Error
+{
+    using Error::Error;
+};
+
 /** Communicates why auto-select failed to the caller. */
 class AutoSelectFailed : public Error
 {
