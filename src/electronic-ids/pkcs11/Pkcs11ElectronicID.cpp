@@ -97,6 +97,15 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              -1,
          }},
+        {electronic_id::Pkcs11ElectronicIDType::HrvEID,
+         {
+             "Croatian eID (PKCS#11)", // name
+             electronic_id::ElectronicID::Type::HrvEID, // type
+             "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so", // path
+
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         }},
 };
 
 const electronic_id::Pkcs11ElectronicIDModule&
