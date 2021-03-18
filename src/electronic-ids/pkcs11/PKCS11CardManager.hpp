@@ -307,8 +307,13 @@ private:
                                    std::string(apiFunction) + ": token not recognized", file, line,
                                    function);
         case CKR_TOKEN_NOT_PRESENT:
-            THROW_WITH_CALLER_INFO(Pkcs11Error, std::string(apiFunction) + ": token not present",
-                                   file, line, function);
+            THROW_WITH_CALLER_INFO(Pkcs11TokenNotPresent,
+                                   std::string(apiFunction) + ": token not present", file, line,
+                                   function);
+        case CKR_DEVICE_REMOVED:
+            THROW_WITH_CALLER_INFO(Pkcs11TokenRemoved,
+                                   std::string(apiFunction) + ": token was removed", file, line,
+                                   function);
         default:
             THROW_WITH_CALLER_INFO(Pkcs11Error,
                                    std::string(apiFunction) + " failed with return code "
