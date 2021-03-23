@@ -26,6 +26,8 @@
 
 #include <map>
 
+using namespace std::string_literals;
+
 #ifdef _WIN32
 #undef UNICODE
 #include <Shlobj.h>
@@ -38,19 +40,32 @@
 namespace
 {
 
-std::string lithuanianPKCS11Path(bool v2)
-{
 #ifdef _WIN32
+std::wstring programFilesPath()
+{
     PWSTR programFiles = 0;
     SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &programFiles);
     std::wstring path = programFiles;
     CoTaskMemFree(programFiles);
-    path += v2 ? L"\\PWPW\\pwpw-card-pkcs11.dll" : L"\\Softemia\\mcard\\mcard-pkcs11.dll";
-    int len = WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), nullptr, 0, nullptr,
-                                  nullptr);
+    return path;
+}
+
+std::string wstringToString(std::wstring s)
+{
+    int len =
+        WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), nullptr, 0, nullptr, nullptr);
     std::string out(size_t(len), 0);
-    WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), &out[0], len, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), &out[0], len, nullptr, nullptr);
     return out;
+}
+#endif
+
+std::string lithuanianPKCS11ModulePath(bool v2)
+{
+#ifdef _WIN32
+    auto path = programFilesPath();
+    path += v2 ? L"\\PWPW\\pwpw-card-pkcs11.dll" : L"\\Softemia\\mcard\\mcard-pkcs11.dll";
+    return wstringToString(path);
 #elif defined(__APPLE__)
     static const std::string path1("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
     static const std::string path2("/Library/mCard/lib/mcard-pkcs11.so");
@@ -63,15 +78,27 @@ std::string lithuanianPKCS11Path(bool v2)
 #endif
 }
 
+std::string croatianPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return wstringToString(programFilesPath()
+                           + L"\\AKD\\eID Middleware\\pkcs11\\AkdEidPkcs11_64.dll"s);
+#elif defined __APPLE__
+    return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so"s; // NB! Not tested.
+#else // Linux
+    return "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so"s;
+#endif
+}
+
 const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11ElectronicIDModule>
     SUPPORTED_PKCS11_MODULES = {
         // EstEIDIDEMIAV1 configuration is here only for testing,
         // it is not enabled in getElectronicID().
         {electronic_id::Pkcs11ElectronicIDType::EstEIDIDEMIAV1,
          {
-             "EstEID IDEMIA v1 (PKCS#11)", // name
+             "EstEID IDEMIA v1 (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::EstEID, // type
-             "opensc-pkcs11.so", // path
+             "opensc-pkcs11.so"s, // path
 
              electronic_id::JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -79,9 +106,9 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEIDv2,
          {
-             "Lithuanian eID (PKCS#11)", // name
+             "Lithuanian eID (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::LitEID, // type
-             lithuanianPKCS11Path(true), // path
+             lithuanianPKCS11ModulePath(true), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -89,23 +116,22 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEIDv3,
          {
-             "Lithuanian eID (PKCS#11)", // name
+             "Lithuanian eID (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::LitEID, // type
-             lithuanianPKCS11Path(false), // path
+             lithuanianPKCS11ModulePath(false), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              -1,
          }},
         {electronic_id::Pkcs11ElectronicIDType::HrvEID,
-         {
-             "Croatian eID (PKCS#11)", // name
-             electronic_id::ElectronicID::Type::HrvEID, // type
-             "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so", // path
+         {"Croatian eID (PKCS#11)"s, // name
+          electronic_id::ElectronicID::Type::HrvEID, // type
+          croatianPkcs11ModulePath(), // path
 
-             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-         }},
+          electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+          electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+          3}},
 };
 
 const electronic_id::Pkcs11ElectronicIDModule&
