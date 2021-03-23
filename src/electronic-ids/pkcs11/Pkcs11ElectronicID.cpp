@@ -26,8 +26,42 @@
 
 #include <map>
 
+#ifdef _WIN32
+#undef UNICODE
+#include <Shlobj.h>
+#include <Shlwapi.h>
+#include <Knownfolders.h>
+#else
+#include <unistd.h>
+#endif
+
 namespace
 {
+
+std::string lithuanianPKCS11Path() {
+#ifdef _WIN32
+    PWSTR programFilesX86 = 0;
+    SHGetKnownFolderPath(FOLDERID_ProgramFilesX86, 0, nullptr, &programFilesX86);
+    std::wstring path = programFilesX86;
+    CoTaskMemFree(programFilesX86);
+    if (PathFileExistsW((path + L"\\PWPW\\pwpw-card-pkcs11.dll").c_str()))
+        path += L"\\PWPW\\pwpw-card-pkcs11.dll";
+    else
+        path += L"\\CryptoTech\\CryptoCard\\CCPkiP11.dll";
+    int len = WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), nullptr, 0, nullptr, nullptr);
+    std::string out(size_t(len), 0);
+    WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), &out[0], len, nullptr, nullptr);
+    return out;
+#elif defined(__APPLE__)
+    static const std::string path1("/Library/Security/tokend/CCSuite.tokend/Contents/Frameworks/libccpkip11.dylib");
+    static const std::string path2("/Library/PWPW-Card/pwpw-card-pkcs11.so");
+    return access(path1.c_str(), F_OK) == 0 ? path1 : path2;
+#else
+    static const std::string path1("/usr/lib64/pwpw-card-pkcs11.so");
+    static const std::string path2("/usr/lib/pwpw-card-pkcs11.so");
+    return access(path1.c_str(), F_OK) == 0 ? path1 : path2;
+#endif
+}
 
 const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11ElectronicIDModule>
     SUPPORTED_PKCS11_MODULES = {
@@ -46,7 +80,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          {
              "Lithuanian eID (PKCS#11)", // name
              electronic_id::ElectronicID::Type::LitEID, // type
-             "pwpw-card-pkcs11.so", // path
+             lithuanianPKCS11Path(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms

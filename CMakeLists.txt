@@ -47,6 +47,7 @@ target_link_libraries(${PROJECT_NAME}
   pcsc-cpp
   ${CMAKE_DL_LIBS}
   OpenSSL::Crypto
+  $<$<C_COMPILER_ID:MSVC>:Shlwapi>
 )
 
 # Common compile options.
