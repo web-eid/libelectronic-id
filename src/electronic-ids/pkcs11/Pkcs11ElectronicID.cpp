@@ -25,9 +25,57 @@
 #include "../common.hpp"
 
 #include <map>
+#ifdef _WIN32
+#undef UNICODE
+#include <Shlobj.h>
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi")
+#include <Knownfolders.h>
+#endif
+
+using namespace std::string_literals;
 
 namespace
 {
+
+#ifdef _WIN32
+const std::string programFilesPath(KNOWNFOLDERID programFilesId, const std::wstring& subPath)
+{
+    PWSTR programFiles = 0;
+    SHGetKnownFolderPath(programFilesId, 0, nullptr, &programFiles);
+    std::wstring path = programFiles + subPath;
+    CoTaskMemFree(programFiles);
+    int len = WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), nullptr, 0, nullptr, nullptr);
+    std::string out(size_t(len), 0);
+    WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), &out[0], len, nullptr, nullptr);
+    return out;
+}
+#endif
+
+const std::string croatianEidPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return programFilesPath(FOLDERID_ProgramFilesX64,
+                            L"\\AKD\\eID Middleware\\pkcs11\\AkdEidPkcs11_64.dll"s);
+#elif defined __APPLE__
+    return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so"s; // FIXME: not tested
+#else // Linux
+    return "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so"s;
+#endif
+}
+
+// TODO: needs more work to support Lithuanian CryptoTech CCPkiP11 cards. Do they have different
+// ATRs?
+const std::string lithuanianEidPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return programFilesPath(FOLDERID_ProgramFilesX86, L"\\PWPW\\pwpw-card-pkcs11.dll"s);
+#elif defined __APPLE__
+    return "/Library/PWPW-Card/pwpw-card-pkcs11.so"s;
+#else // Linux
+    return "pwpw-card-pkcs11.so"s;
+#endif
+}
 
 const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11ElectronicIDModule>
     SUPPORTED_PKCS11_MODULES = {
@@ -35,18 +83,27 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
         // it is not enabled in getElectronicID().
         {electronic_id::Pkcs11ElectronicIDType::EstEIDIDEMIAV1,
          {
-             "EstEID IDEMIA v1 (PKCS#11)", // name
+             "EstEID IDEMIA v1 (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::EstEID, // type
-             "opensc-pkcs11.so", // path
+             "opensc-pkcs11.so"s, // path
 
              electronic_id::JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEID,
          {
-             "Lithuanian eID (PKCS#11)", // name
+             "Lithuanian eID (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::LitEID, // type
-             "pwpw-card-pkcs11.so", // path
+             lithuanianEidPkcs11ModulePath(), // path
+
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         }},
+        {electronic_id::Pkcs11ElectronicIDType::HrvEID,
+         {
+             "Croatian eID (PKCS#11)"s, // name
+             electronic_id::ElectronicID::Type::HrvEID, // type
+             croatianEidPkcs11ModulePath(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms

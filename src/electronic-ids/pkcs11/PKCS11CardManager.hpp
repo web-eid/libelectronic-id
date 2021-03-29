@@ -309,6 +309,17 @@ private:
         case CKR_TOKEN_NOT_PRESENT:
             THROW_WITH_CALLER_INFO(Pkcs11Error, std::string(apiFunction) + ": token not present",
                                    file, line, function);
+        case CKR_USER_NOT_LOGGED_IN: {
+            // Special case for C_Logout as it returns CKR_USER_NOT_LOGGED_IN with Croatian eID card
+            // when exiting sign().
+            const auto fn = std::string(apiFunction);
+            if (fn != "C_Logout") {
+                THROW_WITH_CALLER_INFO(Pkcs11Error,
+                                       fn + " failed with return code " + pcsc_cpp::int2hexstr(rv),
+                                       file, line, function);
+            };
+            break;
+        }
         default:
             THROW_WITH_CALLER_INFO(Pkcs11Error,
                                    std::string(apiFunction) + " failed with return code "
