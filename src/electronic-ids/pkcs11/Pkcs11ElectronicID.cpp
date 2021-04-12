@@ -40,10 +40,10 @@ namespace
 
 std::string lithuanianPKCS11Path() {
 #ifdef _WIN32
-    PWSTR programFilesX86 = 0;
-    SHGetKnownFolderPath(FOLDERID_ProgramFilesX86, 0, nullptr, &programFilesX86);
-    std::wstring path = programFilesX86;
-    CoTaskMemFree(programFilesX86);
+    PWSTR programFiles = 0;
+    SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &programFiles);
+    std::wstring path = programFiles;
+    CoTaskMemFree(programFiles);
     if (PathFileExistsW((path + L"\\PWPW\\pwpw-card-pkcs11.dll").c_str()))
         path += L"\\PWPW\\pwpw-card-pkcs11.dll";
     else
