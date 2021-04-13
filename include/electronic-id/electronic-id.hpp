@@ -119,7 +119,7 @@ private:
 
 /** Automatic card selection that either returns a card info pointer or throws
  * AutoSelectFailed. */
-CardInfo::ptr autoSelectSupportedCard();
+std::vector<CardInfo::ptr> availableSupportedCards();
 
 /** Base class for fatal errors in parameters or environment conditions that do not allow retrying.
  */
