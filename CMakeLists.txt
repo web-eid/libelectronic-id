@@ -86,7 +86,6 @@ target_link_libraries(${MOCK_TEST_EXE}
   ${PROJECT_NAME}
   pcsc-mock # this is available via libpcsc-cpp
   GTest::Main
-  OpenSSL::Crypto
 )
 
 add_test(${MOCK_TEST_EXE} ${MOCK_TEST_EXE})
@@ -106,5 +105,4 @@ target_link_libraries(${INTEGRATION_TEST_EXE}
   ${PROJECT_NAME}
   pcsc
   GTest::Main
-  OpenSSL::Crypto
 )

@@ -26,6 +26,8 @@
 
 #include "pcsc-cpp/pcsc-cpp-utils.hpp"
 
+#include <algorithm>
+
 namespace electronic_id
 {
 
