@@ -38,7 +38,8 @@
 namespace
 {
 
-std::string lithuanianPKCS11Path() {
+std::string lithuanianPKCS11Path()
+{
 #ifdef _WIN32
     PWSTR programFiles = 0;
     SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &programFiles);
@@ -48,12 +49,14 @@ std::string lithuanianPKCS11Path() {
         path += L"\\PWPW\\pwpw-card-pkcs11.dll";
     else
         path += L"\\CryptoTech\\CryptoCard\\CCPkiP11.dll";
-    int len = WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), nullptr, 0, nullptr, nullptr);
+    int len = WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), nullptr, 0, nullptr,
+                                  nullptr);
     std::string out(size_t(len), 0);
     WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), &out[0], len, nullptr, nullptr);
     return out;
 #elif defined(__APPLE__)
-    static const std::string path1("/Library/Security/tokend/CCSuite.tokend/Contents/Frameworks/libccpkip11.dylib");
+    static const std::string path1(
+        "/Library/Security/tokend/CCSuite.tokend/Contents/Frameworks/libccpkip11.dylib");
     static const std::string path2("/Library/PWPW-Card/pwpw-card-pkcs11.so");
     return access(path1.c_str(), F_OK) == 0 ? path1 : path2;
 #else
