@@ -20,6 +20,7 @@
  * SOFTWARE.
  */
 
+#include "../common/selectcard.hpp"
 #include "../common/verify.hpp"
 
 #include "gtest/gtest.h"

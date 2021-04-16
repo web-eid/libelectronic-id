@@ -11,7 +11,7 @@ add_library(${PROJECT_NAME}
   STATIC
   include/${PROJECT_NAME}/${PROJECT_NAME}.hpp
   include/${PROJECT_NAME}/enums.hpp
-  src/autoSelectSupportedCard.cpp
+  src/availableSupportedCards.cpp
   src/${PROJECT_NAME}.cpp
   src/electronic-ids/common.hpp
   src/electronic-ids/common.cpp
@@ -69,6 +69,7 @@ find_package(GTest REQUIRED)
 set(MOCK_TEST_EXE lib${PROJECT_NAME}-test-mock)
 
 add_executable(${MOCK_TEST_EXE}
+  tests/common/selectcard.hpp
   tests/common/verify.hpp
   tests/mock/atrs.hpp
   tests/mock/select-certificate-script.hpp
@@ -95,6 +96,7 @@ add_test(${MOCK_TEST_EXE} ${MOCK_TEST_EXE})
 set(INTEGRATION_TEST_EXE lib${PROJECT_NAME}-test-integration)
 
 add_executable(${INTEGRATION_TEST_EXE}
+  tests/common/selectcard.hpp
   tests/common/verify.hpp
   tests/integration/test-get-certificate.cpp
   tests/integration/test-authenticate.cpp

@@ -20,6 +20,8 @@
  * SOFTWARE.
  */
 
+#include "../common/selectcard.hpp"
+
 #include "electronic-id/electronic-id.hpp"
 
 #include "gtest/gtest.h"

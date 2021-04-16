@@ -117,8 +117,8 @@ private:
     ElectronicID::ptr _eid;
 };
 
-/** Automatic card selection that either returns a card info pointer or throws
- * AutoSelectFailed. */
+/** Automatic card selection that either returns a vector of card info pointers with available
+ * supported cards or throws AutoSelectFailed. */
 std::vector<CardInfo::ptr> availableSupportedCards();
 
 /** Base class for fatal errors in parameters or environment conditions that do not allow retrying.
@@ -188,7 +188,6 @@ public:
         SINGLE_READER_NO_CARD,
         SINGLE_READER_UNSUPPORTED_CARD,
         MULTIPLE_READERS_NO_CARD,
-        MULTIPLE_SUPPORTED_CARDS,
         MULTIPLE_READERS_NO_SUPPORTED_CARD,
         SCARD_ERROR
     };
