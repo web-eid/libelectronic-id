@@ -20,11 +20,13 @@
  * SOFTWARE.
  */
 
+#include "../common/selectcard.hpp"
+#include "../common/verify.hpp"
+
 #include "electronic-id/electronic-id.hpp"
 
 #include "select-certificate-script.hpp"
 #include "atrs.hpp"
-#include "../common/verify.hpp"
 
 #include <gtest/gtest.h>
 

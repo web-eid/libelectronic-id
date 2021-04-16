@@ -42,8 +42,8 @@ std::vector<CardInfo::ptr> availableSupportedCards()
 {
     std::vector<pcsc_cpp::Reader> readers;
     try {
-        std::vector<CardInfo::ptr> list;
         readers = pcsc_cpp::listReaders();
+        std::vector<CardInfo::ptr> cards;
 
         if (readers.empty()) {
             throw AutoSelectFailed(AutoSelectFailed::Reason::NO_READERS);
@@ -56,7 +56,7 @@ std::vector<CardInfo::ptr> availableSupportedCards()
             }
             seenCard = true;
             if (isCardSupported(reader.cardAtr)) {
-                list.push_back(connectToCard(reader));
+                cards.push_back(connectToCard(reader));
             }
         }
 
@@ -66,13 +66,13 @@ std::vector<CardInfo::ptr> availableSupportedCards()
                                        : AutoSelectFailed::Reason::SINGLE_READER_NO_CARD);
         }
 
-        if (list.empty()) {
+        if (cards.empty()) {
             throw AutoSelectFailed(
                 readers.size() > 1 ? AutoSelectFailed::Reason::MULTIPLE_READERS_NO_SUPPORTED_CARD
                                    : AutoSelectFailed::Reason::SINGLE_READER_UNSUPPORTED_CARD);
         }
 
-        return list;
+        return cards;
 
     } catch (const pcsc_cpp::ScardServiceNotRunningError&) {
         throw AutoSelectFailed(AutoSelectFailed::Reason::SERVICE_NOT_RUNNING);
