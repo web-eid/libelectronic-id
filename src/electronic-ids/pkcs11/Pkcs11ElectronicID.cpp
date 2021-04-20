@@ -57,7 +57,7 @@ std::string lithuanianPKCS11Path()
 #elif defined(__APPLE__)
     static const std::string path1(
         "/Library/Security/tokend/CCSuite.tokend/Contents/Frameworks/libccpkip11.dylib");
-    static const std::string path2("/Library/PWPW-Card/pwpw-card-pkcs11.so");
+    static const std::string path2("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
     return access(path1.c_str(), F_OK) == 0 ? path1 : path2;
 #else
     static const std::string path1("/usr/lib64/pwpw-card-pkcs11.so");
