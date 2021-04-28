@@ -238,13 +238,13 @@ public:
     electronic_id::ElectronicID::Signature sign(const Token& token,
                                                 const std::vector<CK_BYTE>& hash,
                                                 electronic_id::HashAlgorithm hashAlgo,
-                                                const char* pin) const
+                                                const char* pin, size_t pinSize) const
     {
         CK_SESSION_HANDLE session = 0;
         C(OpenSession, token.slotID, CKF_SERIAL_SESSION, nullptr, nullptr, &session);
         auto closeSessionGuard = SCOPE_GUARD_SESSION(session, CloseSession);
 
-        C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pin ? strlen(pin) : 0));
+        C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pinSize));
         auto logoutSessionGuard = SCOPE_GUARD_SESSION(session, Logout);
 
         if (token.certID.empty()) {
