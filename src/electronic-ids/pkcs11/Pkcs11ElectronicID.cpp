@@ -150,7 +150,7 @@ pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_v
     validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
     const auto signature = manager.sign(authToken, hash, authSignatureAlgorithm().hashAlgorithm(),
-                                        reinterpret_cast<const char*>(pin.data()));
+                                        reinterpret_cast<const char*>(pin.data()), pin.size());
     return signature.first;
 }
 
@@ -171,8 +171,8 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
     validateSigningHash(*this, hashAlgo, hash);
 
     // TODO: add step for supported algo detection before sign(), see if () below.
-    const auto signature =
-        manager.sign(signingToken, hash, hashAlgo, reinterpret_cast<const char*>(pin.data()));
+    const auto signature = manager.sign(signingToken, hash, hashAlgo,
+                                        reinterpret_cast<const char*>(pin.data()), pin.size());
 
     if (!module.supportedSigningAlgorithms.count(signature.second)) {
         THROW(SmartCardChangeRequiredError,
