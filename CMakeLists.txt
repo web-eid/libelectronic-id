@@ -50,10 +50,6 @@ target_link_libraries(${PROJECT_NAME}
   $<$<C_COMPILER_ID:MSVC>:Shlwapi>
 )
 
-# Common compile options.
-
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 # libpcsc-cpp dependency.
 
 add_subdirectory(lib/libpcsc-cpp)
