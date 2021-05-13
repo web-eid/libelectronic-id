@@ -293,6 +293,7 @@ private:
         CK_RV rv = func(args...);
         switch (rv) {
         case CKR_OK:
+        case CKR_CRYPTOKI_ALREADY_INITIALIZED:
             break;
         case CKR_FUNCTION_CANCELED:
             throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_CANCEL);
