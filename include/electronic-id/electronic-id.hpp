@@ -188,8 +188,7 @@ public:
         SINGLE_READER_NO_CARD,
         SINGLE_READER_UNSUPPORTED_CARD,
         MULTIPLE_READERS_NO_CARD,
-        MULTIPLE_READERS_NO_SUPPORTED_CARD,
-        SCARD_ERROR
+        MULTIPLE_READERS_NO_SUPPORTED_CARD
     };
 
     explicit AutoSelectFailed(Reason r);
