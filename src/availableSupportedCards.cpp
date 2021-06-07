@@ -86,12 +86,7 @@ std::vector<CardInfo::ptr> availableSupportedCards()
         throw AutoSelectFailed(readers.size() > 1
                                    ? AutoSelectFailed::Reason::MULTIPLE_READERS_NO_CARD
                                    : AutoSelectFailed::Reason::SINGLE_READER_NO_CARD);
-    } catch (const pcsc_cpp::ScardError&) {
-        // FIXME: this must be removed, just a placeholder until error handling work lands in main
-        throw AutoSelectFailed(AutoSelectFailed::Reason::SCARD_ERROR);
     }
-    // TODO: can we handle ScardTransactionFailedError here (probably card removed during
-    // transaction)?
 }
 
 } // namespace electronic_id
