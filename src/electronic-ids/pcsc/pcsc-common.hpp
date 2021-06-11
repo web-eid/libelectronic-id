@@ -114,8 +114,8 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_vector::value_ty
     // (re-entered PIN is different) that only apply during PIN change, we treat them as unknown
     // errors here.
 
-    // Other unknown errors.
-    throw VerifyPinFailed(VerifyPinFailed::Status::UNKNOWN_ERROR, &response);
+    THROW(SmartCardError,
+          "Command VERIFY PIN failed with error " + pcsc_cpp::bytes2hexstr(response.toBytes()));
 }
 
 inline pcsc_cpp::byte_vector internalAuthenticate(pcsc_cpp::SmartCard& card,

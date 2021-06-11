@@ -212,9 +212,8 @@ public:
         INVALID_PIN_LENGTH,
         PIN_ENTRY_TIMEOUT,
         PIN_ENTRY_CANCEL,
-        // Retry not allowed starting from PIN_BLOCKED.
-        PIN_BLOCKED,
-        UNKNOWN_ERROR
+        // Retry not allowed in case of PIN_BLOCKED.
+        PIN_BLOCKED
     };
 
     explicit VerifyPinFailed(const Status s,
