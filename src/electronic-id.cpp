@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 The Web eID Project
+ * Copyright (c) Estonian Information System Authority
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -136,7 +136,7 @@ bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo)
     auto supported = supportedSigningAlgorithms();
     return std::any_of(
         supported.cbegin(), supported.cend(),
-        [hashAlgo](const SignatureAlgorithm& signAlgo) { return signAlgo == hashAlgo; });
+        [hashAlgo](SignatureAlgorithm signAlgo) { return signAlgo == hashAlgo; });
 }
 
 AutoSelectFailed::AutoSelectFailed(Reason r) :
