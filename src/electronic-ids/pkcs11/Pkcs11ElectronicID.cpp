@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 The Web eID Project
+ * Copyright (c) Estonian Information System Authority
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -171,7 +171,7 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
     validateSigningHash(*this, hashAlgo, hash);
 
     // TODO: add step for supported algo detection before sign(), see if () below.
-    const auto signature = manager.sign(signingToken, hash, hashAlgo,
+    auto signature = manager.sign(signingToken, hash, hashAlgo,
                                         reinterpret_cast<const char*>(pin.data()), pin.size());
 
     if (!module.supportedSigningAlgorithms.count(signature.second)) {
