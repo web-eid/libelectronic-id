@@ -108,7 +108,7 @@ EstEIDGemaltoV3_5_8::pinRetriesLeft(byte_vector::value_type pinReference) const
         THROW(SmartCardError,
               "Command READRECORD failed with error " + pcsc_cpp::bytes2hexstr(response.toBytes()));
     }
-    return {uint8_t(response.data[5]), 3};
+    return {uint8_t(response.data[5]), int8_t(3)};
 }
 
 } // namespace electronic_id

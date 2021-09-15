@@ -38,7 +38,7 @@ class ElectronicID
 public:
     using ptr = std::shared_ptr<ElectronicID>;
     using PinMinMaxLength = std::pair<size_t, size_t>;
-    using PinRetriesRemainingAndMax = std::pair<size_t, size_t>;
+    using PinRetriesRemainingAndMax = std::pair<uint8_t, int8_t>;
     using Signature = std::pair<pcsc_cpp::byte_vector, SignatureAlgorithm>;
 
     enum Type {
@@ -219,14 +219,14 @@ public:
 
     explicit VerifyPinFailed(const Status s,
                              const observer_ptr<pcsc_cpp::ResponseApdu> ra = nullptr,
-                             const uint8_t retries = 0);
+                             const int8_t retries = 0);
 
     Status status() const { return _status; }
     uint8_t retries() const { return _retries; }
 
 private:
     Status _status;
-    uint8_t _retries;
+    int8_t _retries;
 };
 
 } // namespace electronic_id

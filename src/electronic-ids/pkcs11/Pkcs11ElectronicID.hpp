@@ -42,6 +42,7 @@ struct Pkcs11ElectronicIDModule
 
     JsonWebSignatureAlgorithm authSignatureAlgorithm;
     std::set<SignatureAlgorithm> supportedSigningAlgorithms;
+    int8_t retryMax;
 };
 
 class Pkcs11ElectronicID : public ElectronicID

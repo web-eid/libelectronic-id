@@ -45,7 +45,7 @@ TEST(electronic_id_test, selectCertificateEstGEMALTO)
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 3u);
-    EXPECT_EQ(authRetriesLeft.second, 3u);
+    EXPECT_EQ(authRetriesLeft.second, 3);
 
     PcscMock::setApduScript(ESTEID_GEMALTO_V3_5_8_GET_SIGN_CERTIFICATE_AND_SIGNING);
     EXPECT_TRUE(cardInfo);
@@ -55,7 +55,7 @@ TEST(electronic_id_test, selectCertificateEstGEMALTO)
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 3u);
-    EXPECT_EQ(signingRetriesLeft.second, 3u);
+    EXPECT_EQ(signingRetriesLeft.second, 3);
 
     PcscMock::reset();
 }
@@ -73,7 +73,7 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 3u);
-    EXPECT_EQ(authRetriesLeft.second, 3u);
+    EXPECT_EQ(authRetriesLeft.second, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
@@ -94,7 +94,7 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 3u);
-    EXPECT_EQ(signingRetriesLeft.second, 3u);
+    EXPECT_EQ(signingRetriesLeft.second, 3);
 
     const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
@@ -121,7 +121,7 @@ TEST(electronic_id_test, selectCertificateFinV3)
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 5u);
-    EXPECT_EQ(authRetriesLeft.second, 5u);
+    EXPECT_EQ(authRetriesLeft.second, 5);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::PS256);
@@ -142,7 +142,7 @@ TEST(electronic_id_test, selectCertificateFinV3)
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 5u);
-    EXPECT_EQ(signingRetriesLeft.second, 5u);
+    EXPECT_EQ(signingRetriesLeft.second, 5);
 
     const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
@@ -169,7 +169,7 @@ TEST(electronic_id_test, selectCertificateLat_V1)
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 3u);
-    EXPECT_EQ(authRetriesLeft.second, 3u);
+    EXPECT_EQ(authRetriesLeft.second, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
@@ -190,7 +190,7 @@ TEST(electronic_id_test, selectCertificateLat_V1)
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 3u);
-    EXPECT_EQ(signingRetriesLeft.second, 3u);
+    EXPECT_EQ(signingRetriesLeft.second, 3);
 
     const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
@@ -217,7 +217,7 @@ TEST(electronic_id_test, selectCertificateLatV2)
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 3u);
-    EXPECT_EQ(authRetriesLeft.second, 3u);
+    EXPECT_EQ(authRetriesLeft.second, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
@@ -238,7 +238,7 @@ TEST(electronic_id_test, selectCertificateLatV2)
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 3u);
-    EXPECT_EQ(signingRetriesLeft.second, 3u);
+    EXPECT_EQ(signingRetriesLeft.second, 3);
 
     const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
