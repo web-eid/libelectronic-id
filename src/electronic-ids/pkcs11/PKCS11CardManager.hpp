@@ -125,9 +125,9 @@ public:
         std::string serialNumber;
         CK_SLOT_ID slotID;
         std::vector<CK_BYTE> cert, certID;
-        int retry;
+        uint8_t retry;
         bool pinpad;
-        CK_ULONG minPinLen, maxPinLen, retryCount;
+        CK_ULONG minPinLen, maxPinLen;
 
         electronic_id::CertificateType certificateType() const
         {
@@ -216,9 +216,6 @@ public:
                     (tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) > 0,
                     tokenInfo.ulMinPinLen,
                     tokenInfo.ulMaxPinLen,
-                    // Use pinRetryCount(0) as single source of truth for max retries when
-                    // initializing retryCount.
-                    pinRetryCount(0),
                 });
             }
 

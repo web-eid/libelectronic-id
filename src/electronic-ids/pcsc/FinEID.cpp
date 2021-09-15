@@ -179,7 +179,7 @@ FinEIDv3::pinRetriesLeft(byte_vector::value_type pinReference) const
         THROW(SmartCardError,
               "Command GET DATA failed with error " + pcsc_cpp::bytes2hexstr(response.toBytes()));
     }
-    return {uint8_t(response.data[20]), 5};
+    return {uint8_t(response.data[20]), int8_t(5)};
 }
 
 } // namespace electronic_id

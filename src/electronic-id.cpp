@@ -145,7 +145,7 @@ AutoSelectFailed::AutoSelectFailed(Reason r) :
 }
 
 VerifyPinFailed::VerifyPinFailed(const Status s, const observer_ptr<pcsc_cpp::ResponseApdu> ra,
-                                 const uint8_t r) :
+                                 const int8_t r) :
     Error(std::string("Verify PIN failed, status: ") + std::string(magic_enum::enum_name(s))
           + (ra ? ", response: " + pcsc_cpp::bytes2hexstr(ra->toBytes()) : "")),
     _status(s), _retries(r)

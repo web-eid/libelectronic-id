@@ -78,6 +78,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
 
              electronic_id::JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             3,
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEID,
          {
@@ -87,6 +88,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             -1,
          }},
 };
 
@@ -141,7 +143,7 @@ ElectronicID::PinMinMaxLength Pkcs11ElectronicID::authPinMinMaxLength() const
 
 ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::authPinRetriesLeft() const
 {
-    return {authToken.retry, authToken.maxPinLen};
+    return {authToken.retry, module.retryMax};
 }
 
 pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_vector& pin,
@@ -161,7 +163,7 @@ ElectronicID::PinMinMaxLength Pkcs11ElectronicID::signingPinMinMaxLength() const
 
 ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::signingPinRetriesLeft() const
 {
-    return {signingToken.retry, signingToken.retryCount};
+    return {signingToken.retry, module.retryMax};
 }
 
 ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::byte_vector& pin,
