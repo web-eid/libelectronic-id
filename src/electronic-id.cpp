@@ -134,9 +134,8 @@ ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo) const
 {
     auto supported = supportedSigningAlgorithms();
-    return std::any_of(
-        supported.cbegin(), supported.cend(),
-        [hashAlgo](SignatureAlgorithm signAlgo) { return signAlgo == hashAlgo; });
+    return std::any_of(supported.cbegin(), supported.cend(),
+                       [hashAlgo](SignatureAlgorithm signAlgo) { return signAlgo == hashAlgo; });
 }
 
 AutoSelectFailed::AutoSelectFailed(Reason r) :

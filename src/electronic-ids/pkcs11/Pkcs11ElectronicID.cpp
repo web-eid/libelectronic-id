@@ -161,7 +161,7 @@ ElectronicID::PinMinMaxLength Pkcs11ElectronicID::signingPinMinMaxLength() const
 
 ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::signingPinRetriesLeft() const
 {
-    return {signingToken.retry, signingToken.maxPinLen};
+    return {signingToken.retry, signingToken.retryCount};
 }
 
 ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::byte_vector& pin,
@@ -172,7 +172,7 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
 
     // TODO: add step for supported algo detection before sign(), see if () below.
     auto signature = manager.sign(signingToken, hash, hashAlgo,
-                                        reinterpret_cast<const char*>(pin.data()), pin.size());
+                                  reinterpret_cast<const char*>(pin.data()), pin.size());
 
     if (!module.supportedSigningAlgorithms.count(signature.second)) {
         THROW(SmartCardChangeRequiredError,

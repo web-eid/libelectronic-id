@@ -127,7 +127,7 @@ public:
         std::vector<CK_BYTE> cert, certID;
         int retry;
         bool pinpad;
-        CK_ULONG minPinLen, maxPinLen;
+        CK_ULONG minPinLen, maxPinLen, retryCount;
 
         electronic_id::CertificateType certificateType() const
         {
@@ -212,21 +212,11 @@ public:
                     slotID,
                     attribute(session, obj, CKA_VALUE),
                     attribute(session, obj, CKA_ID),
-                    [&tokenInfo] {
-                        if (tokenInfo.flags & CKF_USER_PIN_LOCKED) {
-                            return 0;
-                        }
-                        if (tokenInfo.flags & CKF_USER_PIN_FINAL_TRY) {
-                            return 1;
-                        }
-                        if (tokenInfo.flags & CKF_USER_PIN_COUNT_LOW) {
-                            return 2;
-                        }
-                        return 3;
-                    }(),
+                    pinCount(tokenInfo.flags),
                     (tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) > 0,
                     tokenInfo.ulMinPinLen,
                     tokenInfo.ulMaxPinLen,
+                    pinCount(0),
                 });
             }
 
@@ -244,7 +234,20 @@ public:
         C(OpenSession, token.slotID, CKF_SERIAL_SESSION, nullptr, nullptr, &session);
         auto closeSessionGuard = SCOPE_GUARD_SESSION(session, CloseSession);
 
-        C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pinSize));
+        try {
+            C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pinSize));
+        } catch (const VerifyPinFailed &e) {
+            if (e.status() != VerifyPinFailed::Status::RETRY_ALLOWED)
+                throw;
+            try {
+                CK_TOKEN_INFO tokenInfo;
+                C(GetTokenInfo, token.slotID, &tokenInfo);
+                throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, nullptr, pinCount(tokenInfo.flags));
+            } catch (const Pkcs11Error&) {
+                throw e;
+            }
+        }
+
         auto logoutSessionGuard = SCOPE_GUARD_SESSION(session, Logout);
 
         if (token.certID.empty()) {
@@ -350,6 +353,19 @@ private:
         C(FindObjectsFinal, session);
         objectHandle.resize(objectCount);
         return objectHandle;
+    }
+
+    uint8_t pinCount(CK_FLAGS flags) const {
+        if (flags & CKF_USER_PIN_LOCKED) {
+            return 0;
+        }
+        if (flags & CKF_USER_PIN_FINAL_TRY) {
+            return 1;
+        }
+        if (flags & CKF_USER_PIN_COUNT_LOW) {
+            return 2;
+        }
+        return 3;
     }
 
 #ifdef _WIN32
