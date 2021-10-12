@@ -212,11 +212,13 @@ public:
                     slotID,
                     attribute(session, obj, CKA_VALUE),
                     attribute(session, obj, CKA_ID),
-                    pinCount(tokenInfo.flags),
+                    pinRetryCount(tokenInfo.flags),
                     (tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) > 0,
                     tokenInfo.ulMinPinLen,
                     tokenInfo.ulMaxPinLen,
-                    pinCount(0),
+                    // Use pinRetryCount(0) as single source of truth for max retries when
+                    // initializing retryCount.
+                    pinRetryCount(0),
                 });
             }
 
@@ -236,13 +238,14 @@ public:
 
         try {
             C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pinSize));
-        } catch (const VerifyPinFailed &e) {
+        } catch (const VerifyPinFailed& e) {
             if (e.status() != VerifyPinFailed::Status::RETRY_ALLOWED)
                 throw;
             try {
                 CK_TOKEN_INFO tokenInfo;
                 C(GetTokenInfo, token.slotID, &tokenInfo);
-                throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, nullptr, pinCount(tokenInfo.flags));
+                throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, nullptr,
+                                      pinRetryCount(tokenInfo.flags));
             } catch (const Pkcs11Error&) {
                 throw e;
             }
@@ -290,8 +293,8 @@ public:
 
 private:
     template <typename Func, typename... Args>
-    void Call(const char* function, const char* file, int line, const char* apiFunction, Func func,
-              Args... args) const
+    static void Call(const char* function, const char* file, int line, const char* apiFunction,
+                     Func func, Args... args)
     {
         CK_RV rv = func(args...);
         switch (rv) {
@@ -355,7 +358,11 @@ private:
         return objectHandle;
     }
 
-    uint8_t pinCount(CK_FLAGS flags) const {
+    static uint8_t pinRetryCount(CK_FLAGS flags)
+    {
+        // As PKCS#11 does not provide an API for querying remaining PIN retries, we currently
+        // simply assume max retry count of 3, which is quite common. We might need to revisit this
+        // in the future once it becomes a problem.
         if (flags & CKF_USER_PIN_LOCKED) {
             return 0;
         }
