@@ -40,12 +40,14 @@ static void signing(const HashAlgorithm& hashAlgo)
     std::cout << "Selected card: " << cardInfo->eid().name() << std::endl;
 
     if (!cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo)) {
-        GTEST_SKIP() << "Card does not support hashing algorithm: " << std::string(hashAlgo);
+        std::string skip = "Card does not support hashing algorithm: " + std::string(hashAlgo);
+        GTEST_SUCCESS_(skip.c_str());
+        return;
     }
 
     byte_vector cert = cardInfo->eid().getCertificate(CertificateType::SIGNING);
 
-    GTEST_ASSERT_GE(cardInfo->eid().signingPinRetriesLeft().first, 0u);
+    GTEST_ASSERT_GE(cardInfo->eid().signingPinRetriesLeft().first, 0U);
 
     byte_vector pin;
     if (cardInfo->eid().name() == "EstEID Gemalto v3.5.8")
@@ -81,9 +83,9 @@ TEST(electronic_id_test, signing_SHA256)
 
 TEST(electronic_id_test, signing_SHA3_256)
 {
-#if OPENSSL_VERSION_NUMBER < 0x10101030L
+#if OPENSSL_VERSION_NUMBER >= 0x10101030L
     // https://github.com/openssl/openssl/commit/bf3797fe3b71d58791b20cf6bc2304284e7aaa85
-    GTEST_SKIP() << "This OpenSSL version does not support SHA3-* algorithm";
-#endif
+    // "This OpenSSL version does not support SHA3-* algorithm";
     signing(HashAlgorithm::SHA3_256);
+#endif
 }
