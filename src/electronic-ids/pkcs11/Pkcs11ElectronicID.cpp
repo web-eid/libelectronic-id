@@ -149,11 +149,23 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::authPinRetriesLeft()
 pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_vector& pin,
                                                           const pcsc_cpp::byte_vector& hash) const
 {
-    validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
+    try {
+        validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
-    const auto signature = manager.sign(authToken, hash, authSignatureAlgorithm().hashAlgorithm(),
-                                        reinterpret_cast<const char*>(pin.data()), pin.size());
-    return signature.first;
+        const auto signature =
+            manager.sign(authToken, hash, authSignatureAlgorithm().hashAlgorithm(),
+                         reinterpret_cast<const char*>(pin.data()), pin.size());
+        return signature.first;
+    } catch (const VerifyPinFailed& e) {
+        // Catch and rethrow the VerifyPinFailed error with -1 to inform the caller of the special
+        // case where the card does not return the remaining retry count. This is arguably a
+        // somewhat inelegant workaround caused by module.retryMax not being available inside
+        // PKCS11CardManager. We should eventually consider improving this.
+        if (e.status() == VerifyPinFailed::Status::RETRY_ALLOWED && module.retryMax == -1) {
+            throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, nullptr, -1);
+        }
+        throw;
+    }
 }
 
 ElectronicID::PinMinMaxLength Pkcs11ElectronicID::signingPinMinMaxLength() const
@@ -170,19 +182,27 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
                                                                const pcsc_cpp::byte_vector& hash,
                                                                const HashAlgorithm hashAlgo) const
 {
-    validateSigningHash(*this, hashAlgo, hash);
+    try {
+        validateSigningHash(*this, hashAlgo, hash);
 
-    // TODO: add step for supported algo detection before sign(), see if () below.
-    auto signature = manager.sign(signingToken, hash, hashAlgo,
-                                  reinterpret_cast<const char*>(pin.data()), pin.size());
+        // TODO: add step for supported algo detection before sign(), see if () below.
+        auto signature = manager.sign(signingToken, hash, hashAlgo,
+                                      reinterpret_cast<const char*>(pin.data()), pin.size());
 
-    if (!module.supportedSigningAlgorithms.count(signature.second)) {
-        THROW(SmartCardChangeRequiredError,
-              "Signature algorithm " + std::string(signature.second) + " is not supported by "
-                  + name());
+        if (!module.supportedSigningAlgorithms.count(signature.second)) {
+            THROW(SmartCardChangeRequiredError,
+                  "Signature algorithm " + std::string(signature.second) + " is not supported by "
+                      + name());
+        }
+
+        return signature;
+    } catch (const VerifyPinFailed& e) {
+        // Same issue as in signWithAuthKey().
+        if (e.status() == VerifyPinFailed::Status::RETRY_ALLOWED && module.retryMax == -1) {
+            throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, nullptr, -1);
+        }
+        throw;
     }
-
-    return signature;
 }
 
 } // namespace electronic_id
