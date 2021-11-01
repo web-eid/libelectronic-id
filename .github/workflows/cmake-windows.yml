@@ -21,7 +21,7 @@ jobs:
         vcpkgArguments: gtest:x64-windows openssl:x64-windows
         vcpkgTriplet: x64-windows
         vcpkgDirectory: ${{runner.workspace}}/vcpkg/
-        vcpkgGitCommitId: ec6fe06e8da05a8157dc8581fa96b36b571c1bd5
+        vcpkgGitCommitId: 9b064ff07b987c8f213fdbf4358122fd4fe38ef1
 
     - name: Create build directory
       run: mkdir build
