@@ -212,6 +212,7 @@ public:
         INVALID_PIN_LENGTH,
         PIN_ENTRY_TIMEOUT,
         PIN_ENTRY_CANCEL,
+        PIN_ENTRY_DISABLED,
         // Retry not allowed starting from PIN_BLOCKED.
         PIN_BLOCKED,
         UNKNOWN_ERROR
@@ -222,7 +223,7 @@ public:
                              const int8_t retries = 0);
 
     Status status() const { return _status; }
-    uint8_t retries() const { return _retries; }
+    int8_t retries() const { return _retries; }
 
 private:
     Status _status;

@@ -79,35 +79,35 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_vector::value_ty
 
     // NOTE: in case card-specific error handling logic is needed,
     // move response error handling to ElectronicID.getVerifyPinError().
-
+    constexpr auto toSW = [](pcsc_cpp::byte_vector::value_type sw1,
+                             pcsc_cpp::byte_vector::value_type sw2) { return sw1 << 8 | sw2; };
+    using Status = pcsc_cpp::ResponseApdu::Status;
+    switch (toSW(response.sw1, response.sw2)) {
     // Fail, retry allowed unless SW2 == 0xc0.
-    if (response.sw1 == pcsc_cpp::ResponseApdu::VERIFICATION_FAILED) {
-        if (response.sw2 == 0xc0) {
-            throw VerifyPinFailed(VerifyPinFailed::Status::PIN_BLOCKED, &response);
-        } else {
+    case toSW(Status::VERIFICATION_FAILED, 0xc0):
+        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_BLOCKED, &response);
+    // Fail, PIN pad PIN entry errors, retry allowed.
+    case toSW(Status::VERIFICATION_CANCELLED, 0x00):
+        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_TIMEOUT, &response);
+    case toSW(Status::VERIFICATION_CANCELLED, 0x01):
+        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_CANCEL, &response);
+    case toSW(Status::VERIFICATION_CANCELLED, 0x03):
+        throw VerifyPinFailed(VerifyPinFailed::Status::INVALID_PIN_LENGTH, &response);
+    case toSW(Status::VERIFICATION_CANCELLED, 0x04):
+        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_DISABLED, &response);
+    // Fail, invalid PIN length, retry allowed.
+    case toSW(Status::WRONG_LENGTH, 0x00):
+    case toSW(Status::WRONG_PARAMETERS, 0x80):
+        throw VerifyPinFailed(VerifyPinFailed::Status::INVALID_PIN_LENGTH, &response);
+    // Fail, retry not allowed.
+    case toSW(Status::COMMAND_NOT_ALLOWED, 0x83):
+        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_BLOCKED, &response);
+    default:
+        if (response.sw1 == Status::VERIFICATION_FAILED) {
             throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, &response,
                                   response.sw2 & 0x0f);
         }
-    }
-    // Fail, PIN pad PIN entry errors, retry allowed.
-    if (response.sw1 == pcsc_cpp::ResponseApdu::VERIFICATION_CANCELLED) {
-        switch (response.sw2) {
-        case 0x00:
-            throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_TIMEOUT, &response);
-        case 0x01:
-            throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_CANCEL, &response);
-        case 0x03:
-            throw VerifyPinFailed(VerifyPinFailed::Status::INVALID_PIN_LENGTH, &response);
-        }
-    }
-    // Fail, invalid PIN length, retry allowed.
-    if ((response.sw1 == pcsc_cpp::ResponseApdu::WRONG_LENGTH && response.sw2 == 0x00)
-        || (response.sw1 == pcsc_cpp::ResponseApdu::WRONG_PARAMETERS && response.sw2 == 0x80)) {
-        throw VerifyPinFailed(VerifyPinFailed::Status::INVALID_PIN_LENGTH, &response);
-    }
-    // Fail, retry not allowed.
-    if (response.sw1 == pcsc_cpp::ResponseApdu::COMMAND_NOT_ALLOWED && response.sw2 == 0x83) {
-        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_BLOCKED, &response);
+        break;
     }
 
     // There are other known response codes like 0x6985 (old and new are PIN same), 0x6402
