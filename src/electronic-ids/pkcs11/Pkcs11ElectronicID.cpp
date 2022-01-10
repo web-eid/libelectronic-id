@@ -38,31 +38,28 @@
 namespace
 {
 
-std::string lithuanianPKCS11Path()
+std::string lithuanianPKCS11Path(bool v2)
 {
 #ifdef _WIN32
     PWSTR programFiles = 0;
     SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &programFiles);
     std::wstring path = programFiles;
     CoTaskMemFree(programFiles);
-    if (PathFileExistsW((path + L"\\PWPW\\pwpw-card-pkcs11.dll").c_str()))
-        path += L"\\PWPW\\pwpw-card-pkcs11.dll";
-    else
-        path += L"\\CryptoTech\\CryptoCard\\CCPkiP11.dll";
+    path += v2 ? L"\\PWPW\\pwpw-card-pkcs11.dll" : L"\\Softemia\\mcard\\mcard-pkcs11.dll";
     int len = WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), nullptr, 0, nullptr,
                                   nullptr);
     std::string out(size_t(len), 0);
     WideCharToMultiByte(CP_UTF8, 0, path.data(), int(path.size()), &out[0], len, nullptr, nullptr);
     return out;
 #elif defined(__APPLE__)
-    static const std::string path1(
-        "/Library/Security/tokend/CCSuite.tokend/Contents/Frameworks/libccpkip11.dylib");
-    static const std::string path2("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
-    return access(path1.c_str(), F_OK) == 0 ? path1 : path2;
+    static const std::string path1("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
+    static const std::string path2("/Library/mCard/lib/mcard-pkcs11.so");
+    return v2 ? path1 : path2;
 #else
     static const std::string path1("/usr/lib64/pwpw-card-pkcs11.so");
     static const std::string path2("/usr/lib/pwpw-card-pkcs11.so");
-    return access(path1.c_str(), F_OK) == 0 ? path1 : path2;
+    static const std::string path3("/usr/lib/mcard-pkcs11.so");
+    return v2 ? (access(path1.c_str(), F_OK) == 0 ? path1 : path2) : path3;
 #endif
 }
 
@@ -80,11 +77,21 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              3,
          }},
-        {electronic_id::Pkcs11ElectronicIDType::LitEID,
+        {electronic_id::Pkcs11ElectronicIDType::LitEIDv2,
          {
              "Lithuanian eID (PKCS#11)", // name
              electronic_id::ElectronicID::Type::LitEID, // type
-             lithuanianPKCS11Path(), // path
+             lithuanianPKCS11Path(true), // path
+
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             -1,
+         }},
+        {electronic_id::Pkcs11ElectronicIDType::LitEIDv3,
+         {
+             "Lithuanian eID (PKCS#11)", // name
+             electronic_id::ElectronicID::Type::LitEID, // type
+             lithuanianPKCS11Path(false), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
