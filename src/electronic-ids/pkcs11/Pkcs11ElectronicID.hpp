@@ -31,7 +31,8 @@ namespace electronic_id
 
 enum class Pkcs11ElectronicIDType {
     EstEIDIDEMIAV1,
-    LitEID,
+    LitEIDv2,
+    LitEIDv3,
 };
 
 struct Pkcs11ElectronicIDModule
