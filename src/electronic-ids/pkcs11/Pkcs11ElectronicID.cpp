@@ -55,7 +55,7 @@ std::string wstringToString(std::wstring s)
     int len =
         WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), nullptr, 0, nullptr, nullptr);
     std::string out(size_t(len), 0);
-    WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), &out[0], len, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), out.data(), len, nullptr, nullptr);
     return out;
 }
 #endif
@@ -103,6 +103,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              3,
+             false,
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEIDv2,
          {
@@ -113,6 +114,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              -1,
+             false,
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEIDv3,
          {
@@ -123,15 +125,19 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              -1,
+             false,
          }},
         {electronic_id::Pkcs11ElectronicIDType::HrvEID,
-         {"Croatian eID (PKCS#11)"s, // name
-          electronic_id::ElectronicID::Type::HrvEID, // type
-          croatianPkcs11ModulePath(), // path
+         {
+             "Croatian eID (PKCS#11)"s, // name
+             electronic_id::ElectronicID::Type::HrvEID, // type
+             croatianPkcs11ModulePath(), // path
 
-          electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-          electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-          3}},
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             3,
+             true,
+         }},
 };
 
 const electronic_id::Pkcs11ElectronicIDModule&
