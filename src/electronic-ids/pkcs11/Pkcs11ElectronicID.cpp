@@ -41,13 +41,23 @@ namespace
 {
 
 #ifdef _WIN32
-std::wstring programFilesPath()
+std::wstring getKnownFolderPath(REFKNOWNFOLDERID knownFolderId)
 {
-    PWSTR programFiles = 0;
-    SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &programFiles);
-    std::wstring path = programFiles;
-    CoTaskMemFree(programFiles);
+    PWSTR knownFolder = 0;
+    SHGetKnownFolderPath(knownFolderId, 0, nullptr, &knownFolder);
+    std::wstring path = knownFolder;
+    CoTaskMemFree(knownFolder);
     return path;
+}
+
+inline std::wstring programFilesPath()
+{
+    return getKnownFolderPath(FOLDERID_ProgramFiles);
+}
+
+inline std::wstring system32Path()
+{
+    return getKnownFolderPath(FOLDERID_System);
 }
 
 std::string wstringToString(std::wstring s)
@@ -87,6 +97,17 @@ std::string croatianPkcs11ModulePath()
     return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so"s; // NB! Not tested.
 #else // Linux
     return "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so"s;
+#endif
+}
+
+std::string belgianPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return wstringToString(system32Path() + L"\\beidpkcs11.dll"s);
+#elif defined __APPLE__
+    return "/Library/Belgium Identity Card/Pkcs11/beid-pkcs11.bundle/Contents/MacOS/libbeidpkcs11.dylib"s;
+#else // Linux
+    return "/usr/lib/x86_64-linux-gnu/libbeidpkcs11.so.0"s;
 #endif
 }
 
@@ -138,6 +159,17 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              3,
              true,
          }},
+        {electronic_id::Pkcs11ElectronicIDType::BelEID,
+         {
+             "Belgian eID (PKCS#11)"s, // name
+             electronic_id::ElectronicID::Type::BelEID, // type
+             belgianPkcs11ModulePath(), // path
+
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             3,
+             true,
+         }},
 };
 
 const electronic_id::Pkcs11ElectronicIDModule&
@@ -169,7 +201,7 @@ Pkcs11ElectronicID::Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr _card,
         if (certType.isAuthentication()) {
             authToken = token;
             seenAuthToken = true;
-        } else {
+        } else if (certType.isSigning()) {
             signingToken = token;
             seenSigningToken = true;
         }

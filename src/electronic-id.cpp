@@ -99,6 +99,12 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS = {
          return std::make_unique<Pkcs11ElectronicID>(std::move(card),
                                                      Pkcs11ElectronicIDType::HrvEID);
      }},
+    // BelEid
+    {{0x3b, 0x98, 0x13, 0x40, 0x0a, 0xa5, 0x03, 0x01, 0x01, 0x01, 0xad, 0x13, 0x11},
+     [](SmartCard::ptr&& card) {
+         return std::make_unique<Pkcs11ElectronicID>(std::move(card),
+                                                     Pkcs11ElectronicIDType::BelEID);
+     }},
 };
 
 inline std::string byteVectorToHexString(const byte_vector& bytes)
