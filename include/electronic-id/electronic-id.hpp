@@ -47,6 +47,7 @@ public:
         LatEID,
         LitEID,
         HrvEID,
+        BelEID,
     };
 
     virtual ~ElectronicID() = default;

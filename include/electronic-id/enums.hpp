@@ -38,13 +38,9 @@ public:
     CertificateType() = default;
     constexpr CertificateType(const CertificateTypeEnum _value) : value(_value) {}
 
-    bool isAuthentication() const
-    {
-        if (value == NONE) {
-            throw std::logic_error("CertificateType::isAuthentication(): value cannot be NONE");
-        }
-        return value == AUTHENTICATION;
-    }
+    bool isAuthentication() const { return value == AUTHENTICATION; }
+
+    bool isSigning() const { return value == SIGNING; }
 
     operator std::string() const;
 
