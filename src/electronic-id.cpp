@@ -99,11 +99,18 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS = {
          return std::make_unique<Pkcs11ElectronicID>(std::move(card),
                                                      Pkcs11ElectronicIDType::HrvEID);
      }},
-    // BelEid
+    // BelEIDV1_7
     {{0x3b, 0x98, 0x13, 0x40, 0x0a, 0xa5, 0x03, 0x01, 0x01, 0x01, 0xad, 0x13, 0x11},
      [](SmartCard::ptr&& card) {
          return std::make_unique<Pkcs11ElectronicID>(std::move(card),
-                                                     Pkcs11ElectronicIDType::BelEID);
+                                                     Pkcs11ElectronicIDType::BelEIDV1_7);
+     }},
+    // BelEIDV1_8
+    {{0x3b, 0x7f, 0x96, 0x00, 0x00, 0x80, 0x31, 0x80, 0x65, 0xb0,
+      0x85, 0x04, 0x01, 0x20, 0x12, 0x0f, 0xff, 0x82, 0x90, 0x00},
+     [](SmartCard::ptr&& card) {
+         return std::make_unique<Pkcs11ElectronicID>(std::move(card),
+                                                     Pkcs11ElectronicIDType::BelEIDV1_8);
      }},
 };
 
