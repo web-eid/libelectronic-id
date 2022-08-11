@@ -159,14 +159,25 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              3,
              true,
          }},
-        {electronic_id::Pkcs11ElectronicIDType::BelEID,
+        {electronic_id::Pkcs11ElectronicIDType::BelEIDV1_7,
          {
-             "Belgian eID (PKCS#11)"s, // name
-             electronic_id::ElectronicID::Type::BelEID, // type
+             "Belgian eID v1.7 (PKCS#11)"s, // name
+             electronic_id::ElectronicID::Type::BelEIDV1_7, // type
              belgianPkcs11ModulePath(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             3,
+             true,
+         }},
+        {electronic_id::Pkcs11ElectronicIDType::BelEIDV1_8,
+         {
+             "Belgian eID v1.8 (PKCS#11)"s, // name
+             electronic_id::ElectronicID::Type::BelEIDV1_8, // type
+             belgianPkcs11ModulePath(), // path
+
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              3,
              true,
          }},
