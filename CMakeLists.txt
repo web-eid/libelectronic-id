@@ -15,6 +15,8 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}.cpp
   src/electronic-ids/common.hpp
   src/electronic-ids/common.cpp
+  src/electronic-ids/scope.hpp
+  src/electronic-ids/x509.hpp
   src/electronic-ids/pcsc/EIDIDEMIA.cpp
   src/electronic-ids/pcsc/EIDIDEMIA.hpp
   src/electronic-ids/pcsc/EstEIDGemalto.cpp
@@ -34,6 +36,12 @@ add_library(${PROJECT_NAME}
   src/electronic-ids/pkcs11/pkcs11.h
   src/electronic-ids/pkcs11/Pkcs11ElectronicID.cpp
   src/electronic-ids/pkcs11/Pkcs11ElectronicID.hpp
+  $<$<PLATFORM_ID:Windows>:
+    src/electronic-ids/ms-cryptoapi/listMsCryptoApiElectronicIDs.cpp
+    src/electronic-ids/ms-cryptoapi/listMsCryptoApiElectronicIDs.hpp
+    src/electronic-ids/ms-cryptoapi/MsCryptoApiElectronicID.cpp
+    src/electronic-ids/ms-cryptoapi/MsCryptoApiElectronicID.hpp
+  >
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -47,7 +55,7 @@ target_link_libraries(${PROJECT_NAME}
   pcsc-cpp
   ${CMAKE_DL_LIBS}
   OpenSSL::Crypto
-  $<$<C_COMPILER_ID:MSVC>:Shlwapi>
+  $<$<PLATFORM_ID:Windows>: Shlwapi Crypt32 Ncrypt>
 )
 
 # libpcsc-cpp dependency.

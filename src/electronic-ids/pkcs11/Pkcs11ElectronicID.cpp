@@ -208,7 +208,7 @@ Pkcs11ElectronicID::Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr _card,
     bool seenSigningToken = false;
 
     for (const auto& token : manager.tokens()) {
-        const auto certType = token.certificateType();
+        const auto certType = certificateType(token.cert);
         if (certType.isAuthentication()) {
             authToken = token;
             seenAuthToken = true;

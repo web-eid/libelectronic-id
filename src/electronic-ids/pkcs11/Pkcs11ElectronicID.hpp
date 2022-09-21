@@ -47,7 +47,7 @@ struct Pkcs11ElectronicIDModule
     const JsonWebSignatureAlgorithm authSignatureAlgorithm;
     const std::set<SignatureAlgorithm> supportedSigningAlgorithms;
     const int8_t retryMax;
-    const bool allowsUsingLettersInPin;
+    const bool allowsUsingLettersAndSpecialCharactersInPin;
 };
 
 class Pkcs11ElectronicID : public ElectronicID
@@ -56,7 +56,10 @@ public:
     Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr card, Pkcs11ElectronicIDType type);
 
 private:
-    bool allowsUsingLettersInPin() const override { return module.allowsUsingLettersInPin; }
+    bool allowsUsingLettersAndSpecialCharactersInPin() const override
+    {
+        return module.allowsUsingLettersAndSpecialCharactersInPin;
+    }
 
     pcsc_cpp::byte_vector getCertificate(const CertificateType type) const override;
 
