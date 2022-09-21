@@ -49,6 +49,9 @@ public:
         HrvEID,
         BelEIDV1_7,
         BelEIDV1_8,
+#ifdef _WIN32
+        MsCryptoApiEID,
+#endif
     };
 
     virtual ~ElectronicID() = default;
@@ -80,11 +83,21 @@ public:
                                          const HashAlgorithm hashAlgo) const = 0;
 
     // General functions.
-    virtual bool allowsUsingLettersInPin() const { return false; }
+    virtual bool allowsUsingLettersAndSpecialCharactersInPin() const
+    {
+        return false;
+    }
+    virtual bool providesExternalPinDialog() const
+    {
+        return false;
+    }
     virtual std::string name() const = 0;
     virtual Type type() const = 0;
 
-    virtual pcsc_cpp::SmartCard const& smartcard() const { return *card; }
+    virtual pcsc_cpp::SmartCard const& smartcard() const
+    {
+        return *card;
+    }
 
 protected:
     ElectronicID(pcsc_cpp::SmartCard::ptr _card) : card(std::move(_card)) {}
@@ -158,6 +171,12 @@ class SmartCardChangeRequiredError : public Error
     using Error::Error;
 };
 
+/** Attempt to perform an operation with a wrong certificate type. */
+class WrongCertificateTypeError : public Error
+{
+    using Error::Error;
+};
+
 /** Non-fatal error caused by the smart card services layer. */
 class SmartCardError : public Error
 {
@@ -181,6 +200,13 @@ class Pkcs11TokenRemoved : public Error
 {
     using Error::Error;
 };
+
+#ifdef _WIN32
+class MsCryptoApiError : public Error
+{
+    using Error::Error;
+};
+#endif
 
 /** Communicates why auto-select failed to the caller. */
 class AutoSelectFailed : public Error

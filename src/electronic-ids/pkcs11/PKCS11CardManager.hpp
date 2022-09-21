@@ -31,9 +31,8 @@
 #include "electronic-id/electronic-id.hpp"
 
 #include "../common.hpp"
-
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
+#include "../scope.hpp"
+#include "../x509.hpp"
 
 #include <cstring>
 #include <string>
@@ -48,10 +47,6 @@
 #endif
 
 #define C(API, ...) Call(__func__, __FILE__, __LINE__, "C_" #API, fl->C_##API, __VA_ARGS__)
-
-#define SCOPE_GUARD_EX(TYPE, DATA, FREE)                                                           \
-    std::unique_ptr<TYPE, decltype(&FREE)>(static_cast<TYPE*>(DATA), FREE)
-#define SCOPE_GUARD(TYPE, DATA) SCOPE_GUARD_EX(TYPE, DATA, TYPE##_free)
 
 // HANDLE is captured by copy into the lambda, so the auto* function argument is unused,
 // it is only required for satisfying std::unique_ptr constructor requirements.
@@ -128,59 +123,6 @@ public:
         uint8_t retry;
         bool pinpad;
         CK_ULONG minPinLen, maxPinLen;
-
-        electronic_id::CertificateType certificateType() const
-        {
-            const unsigned char* certPtr = cert.data();
-            auto x509 = SCOPE_GUARD(X509, d2i_X509(nullptr, &certPtr, long(cert.size())));
-            if (!x509) {
-                THROW(SmartCardChangeRequiredError,
-                      "Failed to create X509 object from certificate");
-            }
-            auto keyUsage = SCOPE_GUARD(ASN1_BIT_STRING, extension(x509.get(), NID_key_usage));
-            if (!keyUsage) {
-                THROW(SmartCardChangeRequiredError,
-                      "Failed to find key usage extension from certificate");
-            }
-
-            static const int KEY_USAGE_NON_REPUDIATION = 1;
-            if (ASN1_BIT_STRING_get_bit(keyUsage.get(), KEY_USAGE_NON_REPUDIATION)) {
-                return electronic_id::CertificateType::SIGNING;
-            }
-
-            static const int KEY_USAGE_DIGITAL_SIGNATURE = 0;
-            if (ASN1_BIT_STRING_get_bit(keyUsage.get(), KEY_USAGE_DIGITAL_SIGNATURE)) {
-                auto extKeyUsage =
-                    SCOPE_GUARD(EXTENDED_KEY_USAGE, extension(x509.get(), NID_ext_key_usage));
-                if (!extKeyUsage) {
-                    THROW(SmartCardChangeRequiredError,
-                          "Failed to find extended key usage extension from certificate");
-                }
-                if (hasClientAuthExtendedKeyUsage(extKeyUsage.get())) {
-                    return electronic_id::CertificateType::AUTHENTICATION;
-                }
-            }
-
-            return electronic_id::CertificateType::NONE;
-        }
-
-    private:
-        inline static void* extension(X509* x509, int nid)
-        {
-            return X509_get_ext_d2i(x509, nid, nullptr, nullptr);
-        }
-
-        inline static bool hasClientAuthExtendedKeyUsage(EXTENDED_KEY_USAGE* usage)
-        {
-
-            for (int i = 0; i < sk_ASN1_OBJECT_num(usage); ++i) {
-                ASN1_OBJECT* obj = sk_ASN1_OBJECT_value(usage, i);
-                if (OBJ_obj2nid(obj) == NID_client_auth) {
-                    return true;
-                }
-            }
-            return false;
-        }
     };
 
     std::vector<Token> tokens() const

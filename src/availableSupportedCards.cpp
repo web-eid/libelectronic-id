@@ -22,6 +22,10 @@
 
 #include "electronic-id/electronic-id.hpp"
 
+#ifdef _WIN32
+#include "electronic-ids/ms-cryptoapi/listMsCryptoApiElectronicIDs.hpp"
+#endif
+
 namespace
 {
 
@@ -45,11 +49,9 @@ std::vector<CardInfo::ptr> availableSupportedCards()
         readers = pcsc_cpp::listReaders();
         std::vector<CardInfo::ptr> cards;
 
-        if (readers.empty()) {
-            throw AutoSelectFailed(AutoSelectFailed::Reason::NO_READERS);
-        }
-
         auto seenCard = false;
+        // The list may be empty, but we cannot throw yet due to the listMsCryptoApiElectronicIDs()
+        // call in Windows.
         for (const auto& reader : readers) {
             if (!reader.isCardInserted()) {
                 continue;
@@ -60,8 +62,21 @@ std::vector<CardInfo::ptr> availableSupportedCards()
             }
         }
 
+#ifdef _WIN32
+        // In Windows, also include CryptoAPI tokens.
+        // Initially, CryptoAPI tokens will be included only if there are
+        // no tier 1 or 2 cards present.
+        if (cards.empty()) {
+            cards = listMsCryptoApiElectronicIDs();
+            if (!cards.empty()) {
+                seenCard = true;
+            }
+        }
+#endif
+
         if (!seenCard) {
-            throw AutoSelectFailed(readers.size() > 1
+            throw AutoSelectFailed(readers.empty() ? AutoSelectFailed::Reason::NO_READERS
+                                       : readers.size() > 1
                                        ? AutoSelectFailed::Reason::MULTIPLE_READERS_NO_CARD
                                        : AutoSelectFailed::Reason::SINGLE_READER_NO_CARD);
         }

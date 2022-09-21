@@ -42,6 +42,8 @@ public:
 
     bool isSigning() const { return value == SIGNING; }
 
+    constexpr bool operator==(const CertificateType other) const { return value == other.value; }
+    constexpr bool operator!=(const CertificateType other) const { return value != other.value; }
     operator std::string() const;
 
 private:
