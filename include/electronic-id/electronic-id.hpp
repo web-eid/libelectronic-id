@@ -112,7 +112,7 @@ private:
     ElectronicID& operator=(ElectronicID&&) = delete;
 };
 
-bool isCardSupported(const pcsc_cpp::byte_vector& atr);
+bool isCardATRSupported(const pcsc_cpp::byte_vector& atr);
 
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader);
 

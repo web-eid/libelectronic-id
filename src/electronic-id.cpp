@@ -143,7 +143,12 @@ const auto SUPPORTED_ALGORITHMS = std::map<std::string, HashAlgorithm> {
 namespace electronic_id
 {
 
-bool isCardSupported(const pcsc_cpp::byte_vector& atr)
+bool isCardATRSupported(const pcsc_cpp::byte_vector& atr)
+{
+    return SUPPORTED_ATRS.count(atr);
+}
+
+bool isCardAIDSupported(const pcsc_cpp::byte_vector& atr)
 {
     return SUPPORTED_ATRS.count(atr);
 }
@@ -154,7 +159,7 @@ ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
         const auto& eidConstructor = SUPPORTED_ATRS.at(reader.cardAtr);
         return eidConstructor(reader.connectToCard());
     } catch (const std::out_of_range&) {
-        // It should be verified that the card is supported with isCardSupported() before
+        // It should be verified that the card is supported with isCardATRSupported() before
         // calling getElectronicID(), so it is a programming error if out_of_range occurs here.
         THROW(ProgrammingError,
               "Card with ATR '" + byteVectorToHexString(reader.cardAtr) + "' is not supported");
