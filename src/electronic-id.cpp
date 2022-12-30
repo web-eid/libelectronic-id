@@ -118,6 +118,13 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS = {
      }},
 };
 
+const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_AIDS = {
+    // EXAMPLE:
+    // PIV FIPS  201-3
+    // {{0xa0, 0x00, 0x00, 0x03, 0x08, 0x00, 0x00, 0x10, 0x00, 0x01, 0x00},
+    //  [](SmartCard::ptr&& card) { return std::make_unique<PIV>(std::move(card)); }},
+};
+
 inline std::string byteVectorToHexString(const byte_vector& bytes)
 {
     std::ostringstream hexStringBuilder;
@@ -148,9 +155,10 @@ bool isCardATRSupported(const pcsc_cpp::byte_vector& atr)
     return SUPPORTED_ATRS.count(atr);
 }
 
-bool isCardAIDSupported(const pcsc_cpp::byte_vector& atr)
+bool isCardAIDSupported(const pcsc_cpp::Reader& reader)
 {
-    return SUPPORTED_ATRS.count(atr);
+    
+    return SUPPORTED_AIDS.count(atr);
 }
 
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)

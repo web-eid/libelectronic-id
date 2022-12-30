@@ -57,7 +57,7 @@ std::vector<CardInfo::ptr> availableSupportedCards()
                 continue;
             }
             seenCard = true;
-            if (isCardATRSupported(reader.cardAtr) || isCardAIDSupported(reader.)) {
+            if (isCardATRSupported(reader.cardAtr) || isCardAIDSupported(reader)) {
                 cards.push_back(connectToCard(reader));
             }
         }
