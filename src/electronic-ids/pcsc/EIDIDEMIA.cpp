@@ -25,6 +25,7 @@
 #include "pcsc-common.hpp"
 
 using namespace pcsc_cpp;
+using namespace electronic_id;
 
 namespace
 {
@@ -34,14 +35,13 @@ const byte_vector::value_type AUTH_PIN_REFERENCE = 0x01;
 
 } // namespace
 
-namespace electronic_id
-{
-
 byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
 {
-    const std::vector<byte_vector> SELECT_AID_AND_CERT_FILE = {
-        selectApplicationID().MAIN_AID,
-        type.isAuthentication() ? selectApplicationID().AUTH_AID : selectApplicationID().SIGN_AID,
+    transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
+    transmitApduWithExpectedResponse(*card,
+                                     type.isAuthentication() ? selectApplicationID().AUTH_AID
+                                                             : selectApplicationID().SIGN_AID);
+    const std::vector<byte_vector> SELECT_AID_AND_CERT_FILE {
         type.isAuthentication() ? selectCertificate().AUTH_CERT : selectCertificate().SIGN_CERT,
     };
     return electronic_id::getCertificate(*card, SELECT_AID_AND_CERT_FILE);
@@ -95,7 +95,7 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::signingPinRetriesLeftImpl() c
 
 const SelectApplicationIDCmds& EIDIDEMIA::selectApplicationID() const
 {
-    static const auto selectAppIDCmds = SelectApplicationIDCmds {
+    static const SelectApplicationIDCmds selectAppIDCmds {
         // Main AID.
         {0x00, 0xA4, 0x04, 0x00, 0x10, 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01,
          0x08, 0x00, 0x07, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x01, 0x00},
@@ -111,13 +111,19 @@ const SelectApplicationIDCmds& EIDIDEMIA::selectApplicationID() const
 
 const SelectCertificateCmds& EIDIDEMIA::selectCertificate() const
 {
-    static const auto selectCertCmds = SelectCertificateCmds {
+    static const SelectCertificateCmds selectCert1Cmds {
         // Authentication certificate.
         {0x00, 0xA4, 0x02, 0x0C, 0x02, 0x34, 0x01},
         // Signing certificate.
         {0x00, 0xA4, 0x02, 0x0C, 0x02, 0x34, 0x1F},
     };
-    return selectCertCmds;
+    static const SelectCertificateCmds selectCert2Cmds {
+        // Authentication certificate.
+        {0x00, 0xA4, 0x02, 0x0C, 0x02, 0x34, 0x02},
+        // Signing certificate.
+        {0x00, 0xA4, 0x02, 0x0C, 0x02, 0x34, 0x1E},
+    };
+    return isUpdated() ? selectCert2Cmds : selectCert1Cmds;
 }
 
 ElectronicID::PinRetriesRemainingAndMax
@@ -139,5 +145,3 @@ EIDIDEMIA::pinRetriesLeft(byte_vector::value_type pinReference) const
     }
     return {uint8_t(response.data[13]), uint8_t(response.data[10])};
 }
-
-} // namespace electronic_id

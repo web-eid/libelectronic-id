@@ -69,14 +69,14 @@ public:
         }
     }
 
-    void release() noexcept { execute_on_destruction = false; }
-
-private:
-    // The Rule of Five.
+    // The Rule of Five (C++ Core guidelines C.21).
     scope_exit(scope_exit const&) = delete;
     void operator=(scope_exit const&) = delete;
     scope_exit& operator=(scope_exit&&) = delete;
 
+    void release() noexcept { execute_on_destruction = false; }
+
+private:
     ExitFunction exit_function;
     bool execute_on_destruction {true};
 };

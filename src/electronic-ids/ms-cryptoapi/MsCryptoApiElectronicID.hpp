@@ -54,18 +54,14 @@ public:
         CertFreeCertificateContext(certContext);
     }
 
+    PCSC_CPP_DISABLE_COPY_MOVE(MsCryptoApiElectronicID);
+
     // The following placeholders are not used as the external PIN dialog manages PIN length
     // validation.
     static const int8_t PIN_RETRY_COUNT_PLACEHOLDER = -1;
     static const size_t PIN_LENGTH_PLACEHOLDER = 0;
 
 private:
-    // The rule of five.
-    MsCryptoApiElectronicID(MsCryptoApiElectronicID const&) = delete;
-    MsCryptoApiElectronicID(MsCryptoApiElectronicID&&) = delete;
-    void operator=(MsCryptoApiElectronicID const&) = delete;
-    MsCryptoApiElectronicID& operator=(MsCryptoApiElectronicID&&) = delete;
-
     // Use the external dialog provided by the CryptoAPI cryptographic service provider.
     bool providesExternalPinDialog() const override { return true; }
 

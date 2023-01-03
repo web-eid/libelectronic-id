@@ -30,9 +30,16 @@ namespace electronic_id
 class LatEIDIDEMIAV1 : public LatEIDIDEMIACommon
 {
 public:
-    LatEIDIDEMIAV1(pcsc_cpp::SmartCard::ptr _card) : LatEIDIDEMIACommon(std::move(_card)) {}
+    explicit LatEIDIDEMIAV1(pcsc_cpp::SmartCard::ptr _card) : LatEIDIDEMIACommon(std::move(_card))
+    {
+    }
 
 private:
+    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
+    {
+        return JsonWebSignatureAlgorithm::RS256;
+    }
+
     std::string name() const override { return "LatEID IDEMIA v1"; }
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;

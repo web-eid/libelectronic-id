@@ -30,12 +30,7 @@ namespace electronic_id
 class LatEIDIDEMIACommon : public EIDIDEMIA
 {
 protected:
-    LatEIDIDEMIACommon(pcsc_cpp::SmartCard::ptr _card) : EIDIDEMIA(std::move(_card)) {}
-
-    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
-    {
-        return JsonWebSignatureAlgorithm::RS256;
-    }
+    explicit LatEIDIDEMIACommon(pcsc_cpp::SmartCard::ptr _card) : EIDIDEMIA(std::move(_card)) {}
 
     PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
 

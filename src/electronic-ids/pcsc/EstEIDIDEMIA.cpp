@@ -27,18 +27,23 @@
 // ESTEID specification:
 // https://installer.id.ee/media/id2019/TD-ID1-Chip-App.pdf
 
-namespace electronic_id
-{
+using namespace electronic_id;
 
 const ManageSecurityEnvCmds& EstEIDIDEMIAV1::selectSecurityEnv() const
 {
-    static const auto selectSecurityEnvCmds = ManageSecurityEnvCmds {
+    static const ManageSecurityEnvCmds selectSecurityEnv1Cmds {
         // Activate authentication environment.
         {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x04, 0x84, 0x01, 0x81},
         // Activate signing environment.
         {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x54, 0x84, 0x01, 0x9f},
     };
-    return selectSecurityEnvCmds;
+    static const ManageSecurityEnvCmds selectSecurityEnv2Cmds {
+        // Activate authentication environment.
+        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x04, 0x84, 0x01, 0x82},
+        // Activate signing environment.
+        {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x64, 0x84, 0x01, 0x9e},
+    };
+    return isUpdated() ? selectSecurityEnv2Cmds : selectSecurityEnv1Cmds;
 }
 
 const std::set<SignatureAlgorithm>& EstEIDIDEMIAV1::supportedSigningAlgorithms() const
@@ -50,7 +55,7 @@ ElectronicID::Signature EstEIDIDEMIAV1::signWithSigningKeyImpl(const pcsc_cpp::b
                                                                const pcsc_cpp::byte_vector& hash,
                                                                const HashAlgorithm hashAlgo) const
 {
-    static const size_t ECDSA384_INPUT_LENGTH = 384 / 8;
+    static constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
     auto tmp = hash;
     if (tmp.size() < ECDSA384_INPUT_LENGTH) {
         // Zero-pad hashes that are shorter than SHA-384.
@@ -61,5 +66,3 @@ ElectronicID::Signature EstEIDIDEMIAV1::signWithSigningKeyImpl(const pcsc_cpp::b
     }
     return EIDIDEMIA::signWithSigningKeyImpl(pin, tmp, hashAlgo);
 }
-
-} // namespace electronic_id

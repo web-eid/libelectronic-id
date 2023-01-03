@@ -116,6 +116,8 @@ public:
 #endif
     }
 
+    PCSC_CPP_DISABLE_COPY_MOVE(PKCS11CardManager);
+
     struct Token
     {
         std::string label;
