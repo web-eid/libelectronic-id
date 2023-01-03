@@ -49,7 +49,7 @@ struct ManageSecurityEnvCmds
 class EIDIDEMIA : public PcscElectronicID
 {
 public:
-    EIDIDEMIA(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
+    explicit EIDIDEMIA(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
 
 protected:
     pcsc_cpp::byte_vector getCertificateImpl(const CertificateType type) const override;
@@ -76,6 +76,8 @@ protected:
     {
         return false;
     }
+
+    virtual bool isUpdated() const { return false; }
 };
 
 } // namespace electronic_id

@@ -30,15 +30,27 @@ namespace electronic_id
 class LatEIDIDEMIAV2 : public LatEIDIDEMIACommon
 {
 public:
-    LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card) : LatEIDIDEMIACommon(std::move(_card)) {}
+    explicit LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card);
+    ~LatEIDIDEMIAV2() override;
+    PCSC_CPP_DISABLE_COPY_MOVE(LatEIDIDEMIAV2);
+
+    bool isUpdated() const override;
 
 private:
+    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
+    {
+        return isUpdated() ? JsonWebSignatureAlgorithm::ES384 : JsonWebSignatureAlgorithm::RS256;
+    }
+
     std::string name() const override { return "LatEID IDEMIA v2"; }
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
     SignatureAlgorithm signingSignatureAlgorithm() const override { return SignatureAlgorithm::RS; }
 
     const ManageSecurityEnvCmds& selectSecurityEnv() const override;
+
+    struct Private;
+    std::unique_ptr<Private> data;
 };
 
 } // namespace electronic_id

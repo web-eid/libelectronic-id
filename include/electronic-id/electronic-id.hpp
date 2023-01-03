@@ -55,6 +55,7 @@ public:
     };
 
     virtual ~ElectronicID() = default;
+    PCSC_CPP_DISABLE_COPY_MOVE(ElectronicID);
 
     // Function for retrieving the authentication and signing certificates.
     virtual pcsc_cpp::byte_vector getCertificate(const CertificateType type) const = 0;
@@ -94,13 +95,6 @@ protected:
     ElectronicID(pcsc_cpp::SmartCard::ptr _card) : card(std::move(_card)) {}
 
     pcsc_cpp::SmartCard::ptr card;
-
-private:
-    // The rule of five (C++ Core guidelines C.21).
-    ElectronicID(const ElectronicID&) = delete;
-    ElectronicID& operator=(const ElectronicID&) = delete;
-    ElectronicID(ElectronicID&&) = delete;
-    ElectronicID& operator=(ElectronicID&&) = delete;
 };
 
 bool isCardSupported(const pcsc_cpp::byte_vector& atr);
