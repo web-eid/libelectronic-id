@@ -114,7 +114,7 @@ std::string belgianPkcs11ModulePath()
 const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11ElectronicIDModule>
     SUPPORTED_PKCS11_MODULES = {
         // EstEIDIDEMIAV1 configuration is here only for testing,
-        // it is not enabled in getElectronicID().
+        // it is not enabled in getElectronicIDbyATR().
         {electronic_id::Pkcs11ElectronicIDType::EstEIDIDEMIAV1,
          {
              "EstEID IDEMIA v1 (PKCS#11)"s, // name

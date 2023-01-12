@@ -155,22 +155,46 @@ bool isCardATRSupported(const pcsc_cpp::byte_vector& atr)
     return SUPPORTED_ATRS.count(atr);
 }
 
-bool isCardAIDSupported(const pcsc_cpp::Reader& reader)
+bool isCardAIDSupported(const pcsc_cpp::SmartCard& card)
 {
-    
-    return SUPPORTED_AIDS.count(atr);
+    for (const auto& aid_eid_pair : SUPPORTED_AIDS) {
+        const pcsc_cpp::CommandApdu SELECT_AID_HEADER {0x00, 0xA4, 0x04, 0x00};
+        const auto select_aid = pcsc_cpp::CommandApdu {SELECT_AID_HEADER, aid_eid_pair.first};
+
+        pcsc_cpp::ResponseApdu response;
+        response = card.transmit(select_aid);
+
+        if (response.isOK()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
+ElectronicID::ptr getElectronicIDbyATR(const pcsc_cpp::Reader& reader)
 {
     try {
         const auto& eidConstructor = SUPPORTED_ATRS.at(reader.cardAtr);
         return eidConstructor(reader.connectToCard());
     } catch (const std::out_of_range&) {
         // It should be verified that the card is supported with isCardATRSupported() before
-        // calling getElectronicID(), so it is a programming error if out_of_range occurs here.
+        // calling getElectronicIDbyATR(), so it is a programming error if out_of_range occurs here.
         THROW(ProgrammingError,
               "Card with ATR '" + byteVectorToHexString(reader.cardAtr) + "' is not supported");
+    }
+}
+
+ElectronicID::ptr getElectronicIDbyAID(const byte_vector aid, const pcsc_cpp::SmartCard::ptr card)
+{
+    try {
+        const auto& eidConstructor = SUPPORTED_AIDS.at(aid);
+        return eidConstructor(card);
+    } catch (const std::out_of_range&) {
+        // It should be verified that the card is supported with isCardAIDSupported() before
+        // calling getElectronicIDbyAID(), so it is a programming error if out_of_range occurs here.
+        THROW(ProgrammingError,
+              "Card with AID '" + byteVectorToHexString(aid) + "' is not supported");
     }
 }
 

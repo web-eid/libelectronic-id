@@ -31,9 +31,15 @@ namespace
 
 using namespace electronic_id;
 
-inline CardInfo::ptr connectToCard(const pcsc_cpp::Reader& reader)
+inline CardInfo::ptr connectToEIDByATR(const pcsc_cpp::Reader& reader)
 {
-    auto eid = getElectronicID(reader);
+    auto eid = getElectronicIDbyATR(reader);
+    return std::make_shared<CardInfo>(reader, eid);
+}
+
+inline CardInfo::ptr connectToEIDByAID(const pcsc_cpp::Reader& reader, const pcsc_cpp::SmartCard::ptr card)
+{
+    auto eid = getElectronicIDbyAID(card);
     return std::make_shared<CardInfo>(reader, eid);
 }
 
@@ -57,8 +63,14 @@ std::vector<CardInfo::ptr> availableSupportedCards()
                 continue;
             }
             seenCard = true;
-            if (isCardATRSupported(reader.cardAtr) || isCardAIDSupported(reader)) {
-                cards.push_back(connectToCard(reader));
+            if (isCardATRSupported(reader.cardAtr)) {
+                cards.push_back(connectToEIDByATR(reader));
+            } else {
+                pcsc_cpp::SmartCard::ptr card = reader.connectToCard();
+
+                if (isCardAIDSupported(card)) {
+                    cards.push_back(connectToEIDByAID(reader, card));
+                }
             }
         }
 
