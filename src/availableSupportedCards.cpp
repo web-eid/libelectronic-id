@@ -37,9 +37,9 @@ inline CardInfo::ptr connectToEIDByATR(const pcsc_cpp::Reader& reader)
     return std::make_shared<CardInfo>(reader, eid);
 }
 
-inline CardInfo::ptr connectToEIDByAID(const pcsc_cpp::Reader& reader, const pcsc_cpp::SmartCard::ptr card)
+inline CardInfo::ptr connectToEIDByAID(const pcsc_cpp::Reader& reader, pcsc_cpp::SmartCard::ptr card)
 {
-    auto eid = getElectronicIDbyAID(card);
+    auto eid = getElectronicIDbyAID(reader.cardAtr, card);
     return std::make_shared<CardInfo>(reader, eid);
 }
 
@@ -66,10 +66,10 @@ std::vector<CardInfo::ptr> availableSupportedCards()
             if (isCardATRSupported(reader.cardAtr)) {
                 cards.push_back(connectToEIDByATR(reader));
             } else {
-                pcsc_cpp::SmartCard::ptr card = reader.connectToCard();
+                pcsc_cpp::SmartCard::ptr card_ptr = reader.connectToCard();
 
-                if (isCardAIDSupported(card)) {
-                    cards.push_back(connectToEIDByAID(reader, card));
+                if (isCardAIDSupported(card_ptr)) {
+                    cards.push_back(connectToEIDByAID(reader, card_ptr));
                 }
             }
         }

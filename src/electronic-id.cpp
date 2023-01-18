@@ -155,13 +155,14 @@ bool isCardATRSupported(const pcsc_cpp::byte_vector& atr)
     return SUPPORTED_ATRS.count(atr);
 }
 
-bool isCardAIDSupported(const pcsc_cpp::SmartCard& card)
+bool isCardAIDSupported(const pcsc_cpp::SmartCard::ptr card_ptr)
 {
     for (const auto& aid_eid_pair : SUPPORTED_AIDS) {
         const pcsc_cpp::CommandApdu SELECT_AID_HEADER {0x00, 0xA4, 0x04, 0x00};
         const auto select_aid = pcsc_cpp::CommandApdu {SELECT_AID_HEADER, aid_eid_pair.first};
 
         pcsc_cpp::ResponseApdu response;
+        pcsc_cpp::SmartCard& card = *card_ptr;
         response = card.transmit(select_aid);
 
         if (response.isOK()) {
@@ -185,7 +186,7 @@ ElectronicID::ptr getElectronicIDbyATR(const pcsc_cpp::Reader& reader)
     }
 }
 
-ElectronicID::ptr getElectronicIDbyAID(const byte_vector aid, const pcsc_cpp::SmartCard::ptr card)
+ElectronicID::ptr getElectronicIDbyAID(const byte_vector& aid, pcsc_cpp::SmartCard::ptr card)
 {
     try {
         const auto& eidConstructor = SUPPORTED_AIDS.at(aid);

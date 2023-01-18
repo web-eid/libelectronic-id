@@ -113,9 +113,10 @@ private:
 };
 
 bool isCardATRSupported(const pcsc_cpp::byte_vector& atr);
+bool isCardAIDSupported(const pcsc_cpp::SmartCard::ptr& card);
 
 ElectronicID::ptr getElectronicIDbyATR(const pcsc_cpp::Reader& reader);
-ElectronicID::ptr getElectronicIDbyAID(const byte_vector aid, const pcsc_cpp::SmartCard::ptr card);
+ElectronicID::ptr getElectronicIDbyAID(const byte_vector aid, pcsc_cpp::SmartCard::ptr card);
 
 /** Aggregates reader and electronic ID objects for communicating with and inspecting the eID card.
  */
