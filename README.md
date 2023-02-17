@@ -37,8 +37,12 @@ See more examples in [tests](tests).
 
 ## Building Fedora
 
-    dnf install pcsc-lite-devel gtest-devel fedora-packager rpmdevtools 
-
+    dnf install pcsc-lite-devel gtest-devel fedora-packager rpmdevtools
+    mkdir build
+    cd build
+    cmake ..
+    cmake package
+    dnf install ./libelectronic-id*.rpm
 
 ## Testing
 
