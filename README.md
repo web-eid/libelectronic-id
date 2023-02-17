@@ -26,7 +26,7 @@ read the authentication certificate:
 
 See more examples in [tests](tests).
 
-## Building
+## Building Ubuntu
 
     apt install build-essential pkg-config cmake libgtest-dev valgrind libpcsclite-dev
     sudo bash -c 'cd /usr/src/googletest && cmake . && cmake --build . --target install'
@@ -34,6 +34,11 @@ See more examples in [tests](tests).
     cd build
     cmake .. # optionally with -DCMAKE_BUILD_TYPE=Debug
     cmake --build . # optionally with VERBOSE=1
+
+## Building Fedora
+
+    dnf install pcsc-lite-devel gtest-devel fedora-packager rpmdevtools 
+
 
 ## Testing
 

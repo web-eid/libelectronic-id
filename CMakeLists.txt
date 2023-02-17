@@ -5,6 +5,17 @@ endif()
 
 project(electronic-id)
 
+# Packaging
+set(CPACK_PACKAGE_VERSION ${VERSION})
+set(CPACK_GENERATOR "RPM" "DEB")
+set(CPACK_PACKAGE_NAME "libelectronic-id")
+set(CPACK_PACKAGE_RELEASE 1)
+set(CPACK_PACKAGE_CONTACT "Andrus Randveer")
+set(CPACK_PACKAGE_VENDOR "RIA")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}.${CMAKE_SYSTEM_PROCESSOR}")
+include(CPack)
+
 # The eid library itself.
 
 add_library(${PROJECT_NAME}
