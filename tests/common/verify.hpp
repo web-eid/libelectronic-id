@@ -30,19 +30,6 @@
 #define SCOPE_GUARD_EX(TYPE, DATA, FREE) std::unique_ptr<TYPE, decltype(&FREE)>(DATA, FREE)
 #define SCOPE_GUARD(TYPE, DATA) SCOPE_GUARD_EX(TYPE, DATA, TYPE##_free)
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-inline int ECDSA_SIG_set0(ECDSA_SIG* sig, BIGNUM* r, BIGNUM* s)
-{
-    if (!r || !s)
-        return 0;
-    BN_clear_free(sig->r);
-    BN_clear_free(sig->s);
-    sig->r = r;
-    sig->s = s;
-    return 1;
-}
-#endif
-
 inline pcsc_cpp::byte_vector ECconcatToASN1(const pcsc_cpp::byte_vector& data)
 {
     auto ecdsa = SCOPE_GUARD(ECDSA_SIG, ECDSA_SIG_new());
@@ -55,7 +42,7 @@ inline pcsc_cpp::byte_vector ECconcatToASN1(const pcsc_cpp::byte_vector& data)
     if (size < 1) {
         throw std::runtime_error("ECconcatToASN1: i2d_ECDSA_SIG() failed");
     }
-    pcsc_cpp::byte_vector result(size);
+    pcsc_cpp::byte_vector result(size_t(size), 0);
     unsigned char* p = result.data();
     if (i2d_ECDSA_SIG(ecdsa.get(), &p) != size) {
         throw std::runtime_error(

@@ -51,9 +51,9 @@ const byte_vector::value_type PIN_PADDING_CHAR = 0x00;
 const byte_vector::value_type AUTH_PIN_REFERENCE = 0x11;
 const byte_vector::value_type SIGNING_PIN_REFERENCE = 0x82;
 const byte_vector::value_type AUTH_KEY_REFERENCE = 0x01;
-// const byte_vector::value_type SIGNING_KEY_REFERENCE = 0x02; // RSA
+// const byte_vector::value_type SIGNING_KEY_REFERENCE = 0x02 // RSA
 const byte_vector::value_type SIGNING_KEY_REFERENCE = 0x03;
-// const byte_vector::value_type RSA_PKCS15_ALGO = 0x02;
+// const byte_vector::value_type RSA_PKCS15_ALGO = 0x02
 const byte_vector::value_type ECDSA_ALGO = 0x04;
 const byte_vector::value_type RSA_PSS_ALGO = 0x05;
 
