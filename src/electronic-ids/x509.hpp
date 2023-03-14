@@ -35,7 +35,7 @@ inline CertificateType certificateType(const pcsc_cpp::byte_vector& cert)
     }
     auto keyUsage = SCOPE_GUARD(ASN1_BIT_STRING, extension(x509.get(), NID_key_usage));
     if (!keyUsage) {
-        THROW(SmartCardChangeRequiredError, "Failed to find key usage extension from certificate");
+        return electronic_id::CertificateType::NONE;
     }
 
     static const int KEY_USAGE_NON_REPUDIATION = 1;
@@ -47,11 +47,7 @@ inline CertificateType certificateType(const pcsc_cpp::byte_vector& cert)
     if (ASN1_BIT_STRING_get_bit(keyUsage.get(), KEY_USAGE_DIGITAL_SIGNATURE)) {
         auto extKeyUsage =
             SCOPE_GUARD(EXTENDED_KEY_USAGE, extension(x509.get(), NID_ext_key_usage));
-        if (!extKeyUsage) {
-            THROW(SmartCardChangeRequiredError,
-                  "Failed to find extended key usage extension from certificate");
-        }
-        if (hasClientAuthExtendedKeyUsage(extKeyUsage.get())) {
+        if (extKeyUsage && hasClientAuthExtendedKeyUsage(extKeyUsage.get())) {
             return electronic_id::CertificateType::AUTHENTICATION;
         }
     }
