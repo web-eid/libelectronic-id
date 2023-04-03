@@ -41,8 +41,8 @@ public:
         ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()},
         certContext {certCtx}, certData {cert}, certType {cType},
         // TODO: SignatureAlgorithm::PS?
-        signatureAlgo {isRsa ? SignatureAlgorithm::RS : SignatureAlgorithm::ES}, key {k}, freeKey {
-                                                                                              freeK}
+        signatureAlgo {isRsa ? SignatureAlgorithm::RS : SignatureAlgorithm::ES}, key {k},
+        freeKey {freeK}
     {
     }
 

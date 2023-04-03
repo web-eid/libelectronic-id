@@ -26,88 +26,76 @@
 
 #include <map>
 
-using namespace std::string_literals;
-
 #ifdef _WIN32
 #undef UNICODE
 #include <Shlobj.h>
 #include <Shlwapi.h>
-#include <Knownfolders.h>
-#else
-#include <unistd.h>
 #endif
+
+using namespace std::string_literals;
+namespace fs = std::filesystem;
 
 namespace
 {
 
 #ifdef _WIN32
-std::wstring getKnownFolderPath(REFKNOWNFOLDERID knownFolderId)
+inline auto getKnownFolderPath(REFKNOWNFOLDERID knownFolderId)
 {
     PWSTR knownFolder = 0;
     SHGetKnownFolderPath(knownFolderId, 0, nullptr, &knownFolder);
-    std::wstring path = knownFolder;
+    fs::path path = knownFolder;
     CoTaskMemFree(knownFolder);
     return path;
 }
 
-inline std::wstring programFilesPath()
+inline auto programFilesPath()
 {
     return getKnownFolderPath(FOLDERID_ProgramFiles);
 }
 
-inline std::wstring system32Path()
+inline auto system32Path()
 {
     return getKnownFolderPath(FOLDERID_System);
 }
-
-std::string wstringToString(std::wstring s)
-{
-    int len =
-        WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), nullptr, 0, nullptr, nullptr);
-    std::string out(size_t(len), 0);
-    WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), out.data(), len, nullptr, nullptr);
-    return out;
-}
 #endif
 
-std::string lithuanianPKCS11ModulePath(bool v2)
+inline fs::path lithuanianPKCS11ModulePath(bool v2)
 {
 #ifdef _WIN32
     auto path = programFilesPath();
-    path += v2 ? L"\\PWPW\\pwpw-card-pkcs11.dll" : L"\\Softemia\\mcard\\mcard-pkcs11.dll";
-    return wstringToString(path);
+    return path / (v2 ? L"PWPW/pwpw-card-pkcs11.dll" : L"Softemia/mcard/mcard-pkcs11.dll");
 #elif defined(__APPLE__)
-    static const std::string path1("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
-    static const std::string path2("/Library/mCard/lib/mcard-pkcs11.so");
+    static const std::string_view path1("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
+    static const std::string_view path2("/Library/mCard/lib/mcard-pkcs11.so");
     return v2 ? path1 : path2;
 #else
-    static const std::string path1("/usr/lib64/pwpw-card-pkcs11.so");
-    static const std::string path2("/usr/lib/pwpw-card-pkcs11.so");
-    static const std::string path3("/usr/lib/mcard-pkcs11.so");
-    return v2 ? (access(path1.c_str(), F_OK) == 0 ? path1 : path2) : path3;
+    static const std::string_view path1("/usr/lib64/pwpw-card-pkcs11.so");
+    static const std::string_view path2("/usr/lib/pwpw-card-pkcs11.so");
+    static const std::string_view path3("/usr/lib/mcard-pkcs11.so");
+    return v2 ? (fs::exists(path1) ? path1 : path2) : path3;
 #endif
 }
 
-std::string croatianPkcs11ModulePath()
+inline fs::path croatianPkcs11ModulePath()
 {
 #ifdef _WIN32
-    return wstringToString(programFilesPath()
-                           + L"\\AKD\\eID Middleware\\pkcs11\\AkdEidPkcs11_64.dll"s);
+    return programFilesPath() / L"AKD/eID Middleware/pkcs11/AkdEidPkcs11_64.dll";
 #elif defined __APPLE__
-    return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so"s; // NB! Not tested.
+    return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so"; // NB! Not tested.
 #else // Linux
-    return "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so"s;
+    return "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so";
 #endif
 }
 
-std::string belgianPkcs11ModulePath()
+inline fs::path belgianPkcs11ModulePath()
 {
 #ifdef _WIN32
-    return wstringToString(system32Path() + L"\\beidpkcs11.dll"s);
+    return system32Path() / L"beidpkcs11.dll";
 #elif defined __APPLE__
-    return "/Library/Belgium Identity Card/Pkcs11/beid-pkcs11.bundle/Contents/MacOS/libbeidpkcs11.dylib"s;
+    return "/Library/Belgium Identity "
+           "Card/Pkcs11/beid-pkcs11.bundle/Contents/MacOS/libbeidpkcs11.dylib";
 #else // Linux
-    return "/usr/lib/x86_64-linux-gnu/libbeidpkcs11.so.0"s;
+    return "/usr/lib/x86_64-linux-gnu/libbeidpkcs11.so.0";
 #endif
 }
 
@@ -119,7 +107,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          {
              "EstEID IDEMIA v1 (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::EstEID, // type
-             "opensc-pkcs11.so"s, // path
+             fs::u8path("opensc-pkcs11.so").make_preferred(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -130,7 +118,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          {
              "Lithuanian eID (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::LitEID, // type
-             lithuanianPKCS11ModulePath(true), // path
+             lithuanianPKCS11ModulePath(true).make_preferred(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -141,7 +129,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          {
              "Lithuanian eID (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::LitEID, // type
-             lithuanianPKCS11ModulePath(false), // path
+             lithuanianPKCS11ModulePath(false).make_preferred(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -152,7 +140,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          {
              "Croatian eID (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::HrvEID, // type
-             croatianPkcs11ModulePath(), // path
+             croatianPkcs11ModulePath().make_preferred(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -163,7 +151,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          {
              "Belgian eID v1.7 (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::BelEIDV1_7, // type
-             belgianPkcs11ModulePath(), // path
+             belgianPkcs11ModulePath().make_preferred(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -174,7 +162,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
          {
              "Belgian eID v1.8 (PKCS#11)"s, // name
              electronic_id::ElectronicID::Type::BelEIDV1_8, // type
-             belgianPkcs11ModulePath(), // path
+             belgianPkcs11ModulePath().make_preferred(), // path
 
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms

@@ -83,21 +83,12 @@ public:
                                          const HashAlgorithm hashAlgo) const = 0;
 
     // General functions.
-    virtual bool allowsUsingLettersAndSpecialCharactersInPin() const
-    {
-        return false;
-    }
-    virtual bool providesExternalPinDialog() const
-    {
-        return false;
-    }
+    virtual bool allowsUsingLettersAndSpecialCharactersInPin() const { return false; }
+    virtual bool providesExternalPinDialog() const { return false; }
     virtual std::string name() const = 0;
     virtual Type type() const = 0;
 
-    virtual pcsc_cpp::SmartCard const& smartcard() const
-    {
-        return *card;
-    }
+    virtual pcsc_cpp::SmartCard const& smartcard() const { return *card; }
 
 protected:
     ElectronicID(pcsc_cpp::SmartCard::ptr _card) : card(std::move(_card)) {}
