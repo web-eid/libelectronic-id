@@ -38,6 +38,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <filesystem>
 #include <functional>
 
 #ifdef _WIN32
@@ -60,12 +61,12 @@ namespace electronic_id
 class PKCS11CardManager
 {
 public:
-    PKCS11CardManager(const std::string& module)
+    PKCS11CardManager(const std::filesystem::path& module)
     {
         CK_C_GetFunctionList C_GetFunctionList = nullptr;
         std::string error;
 #ifdef _WIN32
-        library = LoadLibraryA(module.c_str());
+        library = LoadLibraryW(module.c_str());
         if (library) {
             C_GetFunctionList = CK_C_GetFunctionList(GetProcAddress(library, "C_GetFunctionList"));
         } else {
@@ -88,7 +89,8 @@ public:
 
         if (!C_GetFunctionList) {
             THROW(SmartCardChangeRequiredError,
-                  "C_GetFunctionList loading failed for module '" + module + "', error " + error);
+                  "C_GetFunctionList loading failed for module '" + module.string() + "', error "
+                      + error);
         }
         Call(__func__, __FILE__, __LINE__, "C_GetFunctionList", C_GetFunctionList, &fl);
         if (!fl) {
@@ -120,7 +122,7 @@ public:
         std::string serialNumber;
         CK_SLOT_ID slotID;
         std::vector<CK_BYTE> cert, certID;
-        uint8_t retry;
+        int8_t retry;
         bool pinpad;
         CK_ULONG minPinLen, maxPinLen;
     };
@@ -129,7 +131,6 @@ public:
     {
         CK_ULONG slotCount = 0;
         C(GetSlotList, CK_BBOOL(CK_TRUE), nullptr, &slotCount);
-        // _log("slotCount = %i", slotCount);
         std::vector<CK_SLOT_ID> slotIDs(slotCount);
         C(GetSlotList, CK_BBOOL(CK_TRUE), slotIDs.data(), &slotCount);
 
@@ -139,7 +140,6 @@ public:
             try {
                 C(GetTokenInfo, slotID, &tokenInfo);
             } catch (const Pkcs11Error&) {
-                // _log("Failed to get slot info at SLOT ID %u '%s', skipping", slotID, e.what());
                 continue;
             }
             CK_SESSION_HANDLE session = 0;
@@ -238,6 +238,7 @@ private:
         CK_RV rv = func(args...);
         switch (rv) {
         case CKR_OK:
+        case CKR_CRYPTOKI_ALREADY_INITIALIZED:
             break;
         case CKR_FUNCTION_CANCELED:
             throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_CANCEL);
@@ -308,7 +309,7 @@ private:
         return objectHandle;
     }
 
-    static uint8_t pinRetryCount(CK_FLAGS flags)
+    static int8_t pinRetryCount(CK_FLAGS flags)
     {
         // As PKCS#11 does not provide an API for querying remaining PIN retries, we currently
         // simply assume max retry count of 3, which is quite common. We might need to revisit this

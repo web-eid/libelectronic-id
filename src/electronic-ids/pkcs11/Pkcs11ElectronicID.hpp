@@ -42,7 +42,7 @@ struct Pkcs11ElectronicIDModule
 {
     const std::string name;
     const ElectronicID::Type type;
-    const std::string path;
+    const std::filesystem::path path;
 
     const JsonWebSignatureAlgorithm authSignatureAlgorithm;
     const std::set<SignatureAlgorithm> supportedSigningAlgorithms;
