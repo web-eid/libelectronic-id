@@ -32,6 +32,7 @@
 #include <Shlwapi.h>
 #endif
 
+using namespace electronic_id;
 using namespace std::string_literals;
 namespace fs = std::filesystem;
 
@@ -62,8 +63,8 @@ inline auto system32Path()
 inline fs::path lithuanianPKCS11ModulePath(bool v2)
 {
 #ifdef _WIN32
-    auto path = programFilesPath();
-    return path / (v2 ? L"PWPW/pwpw-card-pkcs11.dll" : L"Softemia/mcard/mcard-pkcs11.dll");
+    return programFilesPath()
+        / (v2 ? L"PWPW/pwpw-card-pkcs11.dll" : L"Softemia/mcard/mcard-pkcs11.dll");
 #elif defined(__APPLE__)
     static const std::string_view path1("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
     static const std::string_view path2("/Library/mCard/lib/mcard-pkcs11.so");
@@ -99,93 +100,89 @@ inline fs::path belgianPkcs11ModulePath()
 #endif
 }
 
-const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11ElectronicIDModule>
-    SUPPORTED_PKCS11_MODULES = {
-        // EstEIDIDEMIAV1 configuration is here only for testing,
-        // it is not enabled in getElectronicID().
-        {electronic_id::Pkcs11ElectronicIDType::EstEIDIDEMIAV1,
-         {
-             "EstEID IDEMIA v1 (PKCS#11)"s, // name
-             electronic_id::ElectronicID::Type::EstEID, // type
-             fs::u8path("opensc-pkcs11.so").make_preferred(), // path
+const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS11_MODULES {
+    // EstEIDIDEMIAV1 configuration is here only for testing,
+    // it is not enabled in getElectronicID().
+    {Pkcs11ElectronicIDType::EstEIDIDEMIAV1,
+     {
+         "EstEID IDEMIA v1 (PKCS#11)"s, // name
+         ElectronicID::Type::EstEID, // type
+         fs::u8path("opensc-pkcs11.so").make_preferred(), // path
 
-             electronic_id::JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
-             electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-             3,
-             false,
-         }},
-        {electronic_id::Pkcs11ElectronicIDType::LitEIDv2,
-         {
-             "Lithuanian eID (PKCS#11)"s, // name
-             electronic_id::ElectronicID::Type::LitEID, // type
-             lithuanianPKCS11ModulePath(true).make_preferred(), // path
+         JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
+         ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         3,
+         false,
+     }},
+    {Pkcs11ElectronicIDType::LitEIDv2,
+     {
+         "Lithuanian eID (PKCS#11)"s, // name
+         ElectronicID::Type::LitEID, // type
+         lithuanianPKCS11ModulePath(true).make_preferred(), // path
 
-             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-             -1,
-             false,
-         }},
-        {electronic_id::Pkcs11ElectronicIDType::LitEIDv3,
-         {
-             "Lithuanian eID (PKCS#11)"s, // name
-             electronic_id::ElectronicID::Type::LitEID, // type
-             lithuanianPKCS11ModulePath(false).make_preferred(), // path
+         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         -1,
+         false,
+     }},
+    {Pkcs11ElectronicIDType::LitEIDv3,
+     {
+         "Lithuanian eID (PKCS#11)"s, // name
+         ElectronicID::Type::LitEID, // type
+         lithuanianPKCS11ModulePath(false).make_preferred(), // path
 
-             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-             -1,
-             false,
-         }},
-        {electronic_id::Pkcs11ElectronicIDType::HrvEID,
-         {
-             "Croatian eID (PKCS#11)"s, // name
-             electronic_id::ElectronicID::Type::HrvEID, // type
-             croatianPkcs11ModulePath().make_preferred(), // path
+         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         -1,
+         false,
+     }},
+    {Pkcs11ElectronicIDType::HrvEID,
+     {
+         "Croatian eID (PKCS#11)"s, // name
+         ElectronicID::Type::HrvEID, // type
+         croatianPkcs11ModulePath().make_preferred(), // path
 
-             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-             3,
-             true,
-         }},
-        {electronic_id::Pkcs11ElectronicIDType::BelEIDV1_7,
-         {
-             "Belgian eID v1.7 (PKCS#11)"s, // name
-             electronic_id::ElectronicID::Type::BelEIDV1_7, // type
-             belgianPkcs11ModulePath().make_preferred(), // path
+         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         3,
+         true,
+     }},
+    {Pkcs11ElectronicIDType::BelEIDV1_7,
+     {
+         "Belgian eID v1.7 (PKCS#11)"s, // name
+         ElectronicID::Type::BelEIDV1_7, // type
+         belgianPkcs11ModulePath().make_preferred(), // path
 
-             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-             3,
-             true,
-         }},
-        {electronic_id::Pkcs11ElectronicIDType::BelEIDV1_8,
-         {
-             "Belgian eID v1.8 (PKCS#11)"s, // name
-             electronic_id::ElectronicID::Type::BelEIDV1_8, // type
-             belgianPkcs11ModulePath().make_preferred(), // path
+         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         3,
+         true,
+     }},
+    // https://github.com/Fedict/eid-mw/wiki/Applet-1.8
+    {Pkcs11ElectronicIDType::BelEIDV1_8,
+     {
+         "Belgian eID v1.8 (PKCS#11)"s, // name
+         ElectronicID::Type::BelEIDV1_8, // type
+         belgianPkcs11ModulePath().make_preferred(), // path
 
-             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-             electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-             3,
-             true,
-         }},
+         JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
+         ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         3,
+         true,
+     }},
 };
 
-const electronic_id::Pkcs11ElectronicIDModule&
-getModule(electronic_id::Pkcs11ElectronicIDType eidType)
+const Pkcs11ElectronicIDModule& getModule(Pkcs11ElectronicIDType eidType)
 {
     try {
         return SUPPORTED_PKCS11_MODULES.at(eidType);
     } catch (const std::out_of_range&) {
-        THROW(electronic_id::ProgrammingError,
+        THROW(ProgrammingError,
               "Unknown Pkcs11ElectronicIDType enum value '" + std::to_string(int(eidType)) + "'");
     }
 }
 
 } // namespace
-
-namespace electronic_id
-{
 
 Pkcs11ElectronicID::Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr _card,
                                        Pkcs11ElectronicIDType type) :
@@ -283,5 +280,3 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
         throw;
     }
 }
-
-} // namespace electronic_id
