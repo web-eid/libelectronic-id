@@ -1,3 +1,3 @@
 [submodule "lib/libpcsc-cpp"]
 	path = lib/libpcsc-cpp
-	url = ../libpcsc-cpp
+	url = https://github.com/web-eid/libpcsc-cpp

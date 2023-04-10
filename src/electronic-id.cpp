@@ -118,6 +118,13 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS = {
      }},
 };
 
+const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_AIDS = {
+    // EXAMPLE:
+    // PIV FIPS  201-3
+    // {{0xa0, 0x00, 0x00, 0x03, 0x08, 0x00, 0x00, 0x10, 0x00, 0x01, 0x00},
+    //  [](SmartCard::ptr&& card) { return std::make_unique<PIV>(std::move(card)); }},
+};
+
 inline std::string byteVectorToHexString(const byte_vector& bytes)
 {
     std::ostringstream hexStringBuilder;
@@ -143,21 +150,51 @@ const auto SUPPORTED_ALGORITHMS = std::map<std::string, HashAlgorithm> {
 namespace electronic_id
 {
 
-bool isCardSupported(const pcsc_cpp::byte_vector& atr)
+bool isCardATRSupported(const pcsc_cpp::byte_vector& atr)
 {
     return SUPPORTED_ATRS.count(atr);
 }
 
-ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
+bool isCardAIDSupported(const pcsc_cpp::SmartCard& card)
+{
+    for (const auto& aid_eid_pair : SUPPORTED_AIDS) {
+        const pcsc_cpp::CommandApdu SELECT_AID_HEADER {0x00, 0xA4, 0x04, 0x00};
+        const auto select_aid = pcsc_cpp::CommandApdu {SELECT_AID_HEADER, aid_eid_pair.first};
+
+        pcsc_cpp::ResponseApdu response;
+        response = card.transmit(select_aid);
+
+        if (response.isOK()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+ElectronicID::ptr getElectronicIDbyATR(const pcsc_cpp::Reader& reader)
 {
     try {
         const auto& eidConstructor = SUPPORTED_ATRS.at(reader.cardAtr);
         return eidConstructor(reader.connectToCard());
     } catch (const std::out_of_range&) {
-        // It should be verified that the card is supported with isCardSupported() before
-        // calling getElectronicID(), so it is a programming error if out_of_range occurs here.
+        // It should be verified that the card is supported with isCardATRSupported() before
+        // calling getElectronicIDbyATR(), so it is a programming error if out_of_range occurs here.
         THROW(ProgrammingError,
               "Card with ATR '" + byteVectorToHexString(reader.cardAtr) + "' is not supported");
+    }
+}
+
+ElectronicID::ptr getElectronicIDbyAID(const byte_vector& aid, pcsc_cpp::SmartCard::ptr card)
+{
+    try {
+        const auto& eidConstructor = SUPPORTED_AIDS.at(aid);
+        return eidConstructor(std::move(card));
+    } catch (const std::out_of_range&) {
+        // It should be verified that the card is supported with isCardAIDSupported() before
+        // calling getElectronicIDbyAID(), so it is a programming error if out_of_range occurs here.
+        THROW(ProgrammingError,
+              "Card with AID '" + byteVectorToHexString(aid) + "' is not supported");
     }
 }
 
