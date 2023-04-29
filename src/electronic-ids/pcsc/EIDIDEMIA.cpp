@@ -32,6 +32,18 @@ namespace
 const byte_vector::value_type PIN_PADDING_CHAR = 0xFF;
 const byte_vector::value_type AUTH_PIN_REFERENCE = 0x01;
 
+template <typename F>
+struct ScopeExit
+{
+    explicit ScopeExit(F f) : f(std::move(f)) {}
+    ScopeExit(const ScopeExit&) = delete;
+    ScopeExit(ScopeExit&&) = delete;
+    ~ScopeExit() { f(); }
+    ScopeExit& operator=(const ScopeExit&) = delete;
+    ScopeExit& operator=(ScopeExit&&) = delete;
+    F f;
+};
+
 } // namespace
 
 namespace electronic_id
@@ -39,6 +51,12 @@ namespace electronic_id
 
 byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
 {
+    ScopeExit f([=] {
+        // Revert to AWP application.
+        if (!type.isAuthentication()) {
+            transmitApduWithExpectedResponse(*card, selectApplicationID().AUTH_AID);
+        }
+    });
     const std::vector<byte_vector> SELECT_AID_AND_CERT_FILE = {
         selectApplicationID().MAIN_AID,
         type.isAuthentication() ? selectApplicationID().AUTH_AID : selectApplicationID().SIGN_AID,
@@ -74,6 +92,10 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const byte_vector& pin
                                                           const byte_vector& hash,
                                                           const HashAlgorithm hashAlgo) const
 {
+    ScopeExit f([=] {
+        // Revert to AWP application.
+        transmitApduWithExpectedResponse(*card, selectApplicationID().AUTH_AID);
+    });
     // Select signing application and signing security environment.
     transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
     transmitApduWithExpectedResponse(*card, selectSecurityEnv().SIGN_ENV);
@@ -89,6 +111,10 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const byte_vector& pin
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::signingPinRetriesLeftImpl() const
 {
+    ScopeExit f([=] {
+        // Revert to AWP application.
+        transmitApduWithExpectedResponse(*card, selectApplicationID().AUTH_AID);
+    });
     transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
     return pinRetriesLeft(signingPinReference());
 }
