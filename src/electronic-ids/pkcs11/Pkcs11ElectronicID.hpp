@@ -48,6 +48,7 @@ struct Pkcs11ElectronicIDModule
     const std::set<SignatureAlgorithm> supportedSigningAlgorithms;
     const int8_t retryMax;
     const bool allowsUsingLettersAndSpecialCharactersInPin;
+    const bool providesExternalPinDialog;
 };
 
 class Pkcs11ElectronicID : public ElectronicID
@@ -60,6 +61,8 @@ private:
     {
         return module.allowsUsingLettersAndSpecialCharactersInPin;
     }
+
+    bool providesExternalPinDialog() const override { return module.providesExternalPinDialog; }
 
     pcsc_cpp::byte_vector getCertificate(const CertificateType type) const override;
 
