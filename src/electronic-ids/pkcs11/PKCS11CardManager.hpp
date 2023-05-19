@@ -37,9 +37,11 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 #include <filesystem>
 #include <functional>
+#include <mutex>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -61,42 +63,38 @@ namespace electronic_id
 class PKCS11CardManager
 {
 public:
-    PKCS11CardManager(const std::filesystem::path& module)
+    /**
+     * Returns a shared instance of PKCS11CardManager for a given PKCS#11 module.
+     *
+     * This method implements a "per-module singleton" pattern: for each distinct module path,
+     * only one instance of PKCS11CardManager is created. All subsequent requests for that
+     * module will return a shared pointer to the initially created instance.
+     *
+     * This function is thread-safe.
+     *
+     * @param module Path to the PKCS11 module.
+     * @return Shared pointer to the corresponding PKCS11CardManager.
+     */
+    static std::shared_ptr<PKCS11CardManager> instance(const std::filesystem::path& module)
     {
-        CK_C_GetFunctionList C_GetFunctionList = nullptr;
-        std::string error;
-#ifdef _WIN32
-        library = LoadLibraryW(module.c_str());
-        if (library) {
-            C_GetFunctionList = CK_C_GetFunctionList(GetProcAddress(library, "C_GetFunctionList"));
-        } else {
-            LPSTR msg = nullptr;
-            FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                               | FORMAT_MESSAGE_IGNORE_INSERTS,
-                           nullptr, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                           LPSTR(&msg), 0, nullptr);
-            error = msg;
-            LocalFree(msg);
-        }
-#else
-        library = dlopen(module.c_str(), RTLD_LOCAL | RTLD_NOW);
-        if (library) {
-            C_GetFunctionList = CK_C_GetFunctionList(dlsym(library, "C_GetFunctionList"));
-        } else {
-            error = dlerror();
-        }
-#endif
+        static std::mutex mutex;
+        static std::unordered_map<std::string, std::shared_ptr<PKCS11CardManager>> instances;
 
-        if (!C_GetFunctionList) {
-            THROW(SmartCardChangeRequiredError,
-                  "C_GetFunctionList loading failed for module '" + module.string() + "', error "
-                      + error);
+        // There is no std::hash for std::filesystem::path, use the string value.
+        // Note that two different path strings that refer to the same filesystem location
+        // will be treated as different keys (e.g. /path/to/module and /path/to/../to/module).
+        std::string moduleStr = module.string();
+
+        std::lock_guard<std::mutex> lock(mutex);
+
+        auto it = instances.find(moduleStr);
+        if (it != instances.end()) {
+            return it->second;
         }
-        Call(__func__, __FILE__, __LINE__, "C_GetFunctionList", C_GetFunctionList, &fl);
-        if (!fl) {
-            THROW(SmartCardChangeRequiredError, "C_GetFunctionList: CK_FUNCTION_LIST_PTR is null");
-        }
-        C(Initialize, nullptr);
+
+        auto newInstance = std::shared_ptr<PKCS11CardManager>(new PKCS11CardManager(module));
+        instances[moduleStr] = newInstance;
+        return newInstance;
     }
 
     ~PKCS11CardManager()
@@ -233,6 +231,44 @@ public:
     }
 
 private:
+    PKCS11CardManager(const std::filesystem::path& module)
+    {
+        CK_C_GetFunctionList C_GetFunctionList = nullptr;
+        std::string error;
+#ifdef _WIN32
+        library = LoadLibraryW(module.c_str());
+        if (library) {
+            C_GetFunctionList = CK_C_GetFunctionList(GetProcAddress(library, "C_GetFunctionList"));
+        } else {
+            LPSTR msg = nullptr;
+            FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                               | FORMAT_MESSAGE_IGNORE_INSERTS,
+                           nullptr, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                           LPSTR(&msg), 0, nullptr);
+            error = msg;
+            LocalFree(msg);
+        }
+#else
+        library = dlopen(module.c_str(), RTLD_LOCAL | RTLD_NOW);
+        if (library) {
+            C_GetFunctionList = CK_C_GetFunctionList(dlsym(library, "C_GetFunctionList"));
+        } else {
+            error = dlerror();
+        }
+#endif
+
+        if (!C_GetFunctionList) {
+            THROW(SmartCardChangeRequiredError,
+                  "C_GetFunctionList loading failed for module '" + module.string() + "', error "
+                      + error);
+        }
+        Call(__func__, __FILE__, __LINE__, "C_GetFunctionList", C_GetFunctionList, &fl);
+        if (!fl) {
+            THROW(SmartCardChangeRequiredError, "C_GetFunctionList: CK_FUNCTION_LIST_PTR is null");
+        }
+        C(Initialize, nullptr);
+    }
+
     template <typename Func, typename... Args>
     static void Call(const char* function, const char* file, int line, const char* apiFunction,
                      Func func, Args... args)
