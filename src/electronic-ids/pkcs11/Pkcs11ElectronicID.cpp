@@ -131,9 +131,9 @@ const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS1
          ElectronicID::Type::LitEID, // type
          lithuanianPKCS11ModulePath(false).make_preferred(), // path
 
-         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-         -1,
+         JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
+         ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         3,
          false,
      }},
     {Pkcs11ElectronicIDType::HrvEID,
@@ -187,12 +187,12 @@ const Pkcs11ElectronicIDModule& getModule(Pkcs11ElectronicIDType eidType)
 Pkcs11ElectronicID::Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr _card,
                                        Pkcs11ElectronicIDType type) :
     ElectronicID(std::move(_card)),
-    module(getModule(type)), manager(module.path)
+    module(getModule(type)), manager(PKCS11CardManager::instance(module.path))
 {
     bool seenAuthToken = false;
     bool seenSigningToken = false;
 
-    for (const auto& token : manager.tokens()) {
+    for (const auto& token : manager->tokens()) {
         const auto certType = certificateType(token.cert);
         if (certType.isAuthentication()) {
             authToken = token;
@@ -229,8 +229,8 @@ pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_v
         validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
         const auto signature =
-            manager.sign(authToken, hash, authSignatureAlgorithm().hashAlgorithm(),
-                         reinterpret_cast<const char*>(pin.data()), pin.size());
+            manager->sign(authToken, hash, authSignatureAlgorithm().hashAlgorithm(),
+                          reinterpret_cast<const char*>(pin.data()), pin.size());
         return signature.first;
     } catch (const VerifyPinFailed& e) {
         // Catch and rethrow the VerifyPinFailed error with -1 to inform the caller of the special
@@ -262,8 +262,8 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
         validateSigningHash(*this, hashAlgo, hash);
 
         // TODO: add step for supported algo detection before sign(), see if () below.
-        auto signature = manager.sign(signingToken, hash, hashAlgo,
-                                      reinterpret_cast<const char*>(pin.data()), pin.size());
+        auto signature = manager->sign(signingToken, hash, hashAlgo,
+                                       reinterpret_cast<const char*>(pin.data()), pin.size());
 
         if (!module.supportedSigningAlgorithms.count(signature.second)) {
             THROW(SmartCardChangeRequiredError,

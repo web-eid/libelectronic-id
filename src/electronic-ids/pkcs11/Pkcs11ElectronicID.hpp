@@ -88,7 +88,7 @@ private:
     Type type() const override { return module.type; }
 
     const Pkcs11ElectronicIDModule& module;
-    PKCS11CardManager manager;
+    const std::shared_ptr<PKCS11CardManager> manager;
     PKCS11CardManager::Token authToken;
     PKCS11CardManager::Token signingToken;
 };
