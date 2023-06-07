@@ -169,24 +169,28 @@ public:
     electronic_id::ElectronicID::Signature sign(const Token& token,
                                                 const std::vector<CK_BYTE>& hash,
                                                 electronic_id::HashAlgorithm hashAlgo,
-                                                const char* pin, size_t pinSize) const
+                                                bool providesExternalPinDialog, const char* pin,
+                                                size_t pinSize) const
     {
         CK_SESSION_HANDLE session = 0;
         C(OpenSession, token.slotID, CKF_SERIAL_SESSION, nullptr, nullptr, &session);
         auto closeSessionGuard = SCOPE_GUARD_SESSION(session, CloseSession);
 
-        try {
-            C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pinSize));
-        } catch (const VerifyPinFailed& e) {
-            if (e.status() != VerifyPinFailed::Status::RETRY_ALLOWED)
-                throw;
+        // If the module provides an external PIN dialog, login is not required.
+        if (!providesExternalPinDialog) {
             try {
-                CK_TOKEN_INFO tokenInfo;
-                C(GetTokenInfo, token.slotID, &tokenInfo);
-                throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, nullptr,
-                                      pinRetryCount(tokenInfo.flags));
-            } catch (const Pkcs11Error&) {
-                throw e;
+                C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pinSize));
+            } catch (const VerifyPinFailed& e) {
+                if (e.status() != VerifyPinFailed::Status::RETRY_ALLOWED)
+                    throw;
+                try {
+                    CK_TOKEN_INFO tokenInfo;
+                    C(GetTokenInfo, token.slotID, &tokenInfo);
+                    throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, nullptr,
+                                          pinRetryCount(tokenInfo.flags));
+                } catch (const Pkcs11Error&) {
+                    throw e;
+                }
             }
         }
 
