@@ -32,6 +32,11 @@
 
 using namespace electronic_id;
 
+namespace
+{
+const pcsc_cpp::byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
+}
+
 TEST(electronic_id_test, selectCertificateEstGEMALTO)
 {
     PcscMock::setAtr(ESTEID_GEMALTO_V3_5_8_COLD_ATR);
@@ -41,20 +46,20 @@ TEST(electronic_id_test, selectCertificateEstGEMALTO)
     EXPECT_TRUE(cardInfo);
     EXPECT_EQ(cardInfo->eid().name(), "EstEID Gemalto v3.5.8");
     auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
-    EXPECT_EQ(certificateAuth.size(), 1611u);
+    EXPECT_EQ(certificateAuth.size(), 1611U);
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3u);
+    EXPECT_EQ(authRetriesLeft.first, 3U);
     EXPECT_EQ(authRetriesLeft.second, 3);
 
     PcscMock::setApduScript(ESTEID_GEMALTO_V3_5_8_GET_SIGN_CERTIFICATE_AND_SIGNING);
     EXPECT_TRUE(cardInfo);
     EXPECT_EQ(cardInfo->eid().name(), "EstEID Gemalto v3.5.8");
     auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
-    EXPECT_EQ(certificateSign.size(), 1478u);
+    EXPECT_EQ(certificateSign.size(), 1478U);
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3u);
+    EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
     PcscMock::reset();
@@ -69,19 +74,17 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
 
     PcscMock::setApduScript(ESTEID_IDEMIA_V1_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
     auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
-    EXPECT_EQ(certificateAuth.size(), 1031u);
+    EXPECT_EQ(certificateAuth.size(), 1031U);
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3u);
+    EXPECT_EQ(authRetriesLeft.first, 3U);
     EXPECT_EQ(authRetriesLeft.second, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin = {'1', '2', '3', '4'};
-    const pcsc_cpp::byte_vector dataToSign = {'H', 'e', 'l', 'l', 'o', ' ',
-                                              'w', 'o', 'r', 'l', 'd', '!'};
+    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
@@ -90,13 +93,13 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
 
     PcscMock::setApduScript(ESTEID_IDEMIA_V1_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
     auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
-    EXPECT_EQ(certificateSign.size(), 1008u);
+    EXPECT_EQ(certificateSign.size(), 1008U);
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3u);
+    EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
-    const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5'};
+    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES384);
@@ -117,19 +120,17 @@ TEST(electronic_id_test, selectCertificateFinV3)
 
     PcscMock::setApduScript(FINEID_V3_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
     auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
-    EXPECT_EQ(certificateAuth.size(), 1664u);
+    EXPECT_EQ(certificateAuth.size(), 1664U);
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 5u);
+    EXPECT_EQ(authRetriesLeft.first, 5U);
     EXPECT_EQ(authRetriesLeft.second, 5);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::PS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin = {'1', '2', '3', '4'};
-    const pcsc_cpp::byte_vector dataToSign = {'H', 'e', 'l', 'l', 'o', ' ',
-                                              'w', 'o', 'r', 'l', 'd', '!'};
+    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
@@ -138,16 +139,62 @@ TEST(electronic_id_test, selectCertificateFinV3)
 
     PcscMock::setApduScript(FINEID_V3_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
     auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
-    EXPECT_EQ(certificateSign.size(), 1487u);
+    EXPECT_EQ(certificateSign.size(), 1487U);
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 5u);
+    EXPECT_EQ(signingRetriesLeft.first, 5U);
     EXPECT_EQ(signingRetriesLeft.second, 5);
 
-    const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5', '6'};
+    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES256);
+    if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
+        throw std::runtime_error("Signature is invalid");
+    }
+
+    PcscMock::reset();
+}
+
+TEST(electronic_id_test, selectCertificateFinV4)
+{
+    PcscMock::setAtr(FINEID_V4_ATR);
+
+    auto cardInfo = autoSelectSupportedCard();
+    EXPECT_TRUE(cardInfo);
+    EXPECT_EQ(cardInfo->eid().name(), "FinEID v4");
+
+    PcscMock::setApduScript(FINEID_V4_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
+    auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
+    EXPECT_EQ(certificateAuth.size(), 1087U);
+
+    auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
+    EXPECT_EQ(authRetriesLeft.first, 5U);
+    EXPECT_EQ(authRetriesLeft.second, 5);
+
+    const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
+    EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
+    const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
+
+    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    const auto hash = calculateDigest(hashAlgo, dataToSign);
+    const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
+    if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
+        throw std::runtime_error("Signature is invalid");
+    }
+
+    PcscMock::setApduScript(FINEID_V4_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
+    auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
+    EXPECT_EQ(certificateSign.size(), 1144U);
+
+    auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
+    EXPECT_EQ(signingRetriesLeft.first, 5U);
+    EXPECT_EQ(signingRetriesLeft.second, 5);
+
+    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
+    const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
+    EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES384);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
     }
@@ -165,19 +212,17 @@ TEST(electronic_id_test, selectCertificateLat_V1)
 
     PcscMock::setApduScript(LATEID_IDEMIA_V1_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
     auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
-    EXPECT_EQ(certificateAuth.size(), 1873u);
+    EXPECT_EQ(certificateAuth.size(), 1873U);
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3u);
+    EXPECT_EQ(authRetriesLeft.first, 3U);
     EXPECT_EQ(authRetriesLeft.second, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin = {'1', '2', '3', '4'};
-    const pcsc_cpp::byte_vector dataToSign = {'H', 'e', 'l', 'l', 'o', ' ',
-                                              'w', 'o', 'r', 'l', 'd', '!'};
+    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
@@ -186,13 +231,13 @@ TEST(electronic_id_test, selectCertificateLat_V1)
 
     PcscMock::setApduScript(LATEID_IDEMIA_V1_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
     auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
-    EXPECT_EQ(certificateSign.size(), 2292u);
+    EXPECT_EQ(certificateSign.size(), 2292U);
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3u);
+    EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
-    const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5', '6'};
+    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::RS256);
@@ -213,19 +258,17 @@ TEST(electronic_id_test, selectCertificateLatV2)
 
     PcscMock::setApduScript(LATEID_IDEMIA_V2_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
     auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
-    EXPECT_EQ(certificateAuth.size(), 1733u);
+    EXPECT_EQ(certificateAuth.size(), 1733U);
 
     auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3u);
+    EXPECT_EQ(authRetriesLeft.first, 3U);
     EXPECT_EQ(authRetriesLeft.second, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin = {'1', '2', '3', '4'};
-    const pcsc_cpp::byte_vector dataToSign = {'H', 'e', 'l', 'l', 'o', ' ',
-                                              'w', 'o', 'r', 'l', 'd', '!'};
+    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
@@ -234,13 +277,13 @@ TEST(electronic_id_test, selectCertificateLatV2)
 
     PcscMock::setApduScript(LATEID_IDEMIA_V2_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
     auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
-    EXPECT_EQ(certificateSign.size(), 2124u);
+    EXPECT_EQ(certificateSign.size(), 2124U);
 
     auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3u);
+    EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
-    const pcsc_cpp::byte_vector signPin = {'1', '2', '3', '4', '5', '6'};
+    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::RS256);

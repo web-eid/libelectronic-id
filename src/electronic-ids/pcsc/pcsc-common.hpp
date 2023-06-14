@@ -62,13 +62,13 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_vector::value_ty
     pcsc_cpp::ResponseApdu response;
 
     if (card.readerHasPinPad()) {
-        const auto verifyPin =
-            pcsc_cpp::CommandApdu {VERIFY_PIN, addPaddingToPin({}, paddingLength, paddingChar)};
+        const pcsc_cpp::CommandApdu verifyPin {VERIFY_PIN,
+                                               addPaddingToPin({}, paddingLength, paddingChar)};
         response = card.transmitCTL(verifyPin, 0, uint8_t(pinMinLength));
 
     } else {
-        const auto verifyPin =
-            pcsc_cpp::CommandApdu {VERIFY_PIN, addPaddingToPin(pin, paddingLength, paddingChar)};
+        const pcsc_cpp::CommandApdu verifyPin {VERIFY_PIN,
+                                               addPaddingToPin(pin, paddingLength, paddingChar)};
 
         response = card.transmit(verifyPin);
     }
@@ -125,7 +125,7 @@ inline pcsc_cpp::byte_vector internalAuthenticate(pcsc_cpp::SmartCard& card,
 {
     static const pcsc_cpp::CommandApdu INTERNAL_AUTHENTICATE {0x00, 0x88, 0x00, 0x00};
 
-    auto internalAuth = pcsc_cpp::CommandApdu {INTERNAL_AUTHENTICATE, hash};
+    pcsc_cpp::CommandApdu internalAuth {INTERNAL_AUTHENTICATE, hash};
     // LE is needed in case of protocol T1.
     // TODO: Implement this in libpcsc-cpp.
     if (card.protocol() == pcsc_cpp::SmartCard::Protocol::T1) {
@@ -154,7 +154,7 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
 {
     static const pcsc_cpp::CommandApdu COMPUTE_SIGNATURE {0x00, 0x2A, 0x9E, 0x9A};
 
-    auto internalAuth = pcsc_cpp::CommandApdu {COMPUTE_SIGNATURE, hash};
+    pcsc_cpp::CommandApdu internalAuth {COMPUTE_SIGNATURE, hash};
     // LE is needed in case of protocol T1.
     // TODO: Implement this in libpcsc-cpp.
     if (card.protocol() == pcsc_cpp::SmartCard::Protocol::T1) {
@@ -175,6 +175,23 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
     }
 
     return response.data;
+}
+
+inline void selectComputeSignatureEnv(pcsc_cpp::SmartCard& card,
+                                      pcsc_cpp::byte_vector::value_type signatureAlgo,
+                                      pcsc_cpp::byte_vector::value_type keyReference,
+                                      const std::string& cardType)
+{
+    static const pcsc_cpp::CommandApdu SET_COMPUTE_SIGNATURE_ENV {0x00, 0x22, 0x41, 0xB6};
+
+    const auto response =
+        card.transmit({SET_COMPUTE_SIGNATURE_ENV, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});
+
+    if (!response.isOK()) {
+        THROW(SmartCardError,
+              cardType + ": Command SET ENV for COMPUTE SIGNATURE failed with error "
+                  + pcsc_cpp::bytes2hexstr(response.toBytes()));
+    }
 }
 
 } // namespace electronic_id
