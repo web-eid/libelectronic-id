@@ -80,6 +80,7 @@ add_executable(${MOCK_TEST_EXE}
   tests/mock/select-certificate-script-EST-GEMALTO.hpp
   tests/mock/select-certificate-script-EST-IDEMIA.hpp
   tests/mock/select-certificate-script-FIN-V3.hpp
+  tests/mock/select-certificate-script-FIN-V4.hpp
   tests/mock/select-certificate-script-LAT-V1.hpp
   tests/mock/select-certificate-script-LAT-V2.hpp
   tests/mock/test-autoselect-card.cpp

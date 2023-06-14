@@ -31,7 +31,7 @@
 using namespace electronic_id;
 using namespace pcsc_cpp;
 
-static void signing(const HashAlgorithm& hashAlgo)
+static void signing(HashAlgorithm hashAlgo)
 {
     auto cardInfo = autoSelectSupportedCard();
 
@@ -57,15 +57,15 @@ static void signing(const HashAlgorithm& hashAlgo)
     else if (cardInfo->eid().name() == "LatEID IDEMIA v1"
              || cardInfo->eid().name() == "LatEID IDEMIA v2")
         pin = byte_vector {'1', '2', '3', '4', '5', '6'}; // LatIDEMIA test card default PIN2
-    else if (cardInfo->eid().name() == "FinEID v3")
+    else if (cardInfo->eid().name() == "FinEID v3" || cardInfo->eid().name() == "FinEID v4")
         pin = byte_vector {'1', '2', '3', '4', '5', '6'}; // FinEID custom PIN
     else
         throw std::runtime_error("TEST signing: Unknown card");
 
-    std::cout << "WARNING! Using hard-coded PIN "
-              << std::string(reinterpret_cast<const char*>(pin.data()), pin.size()) << std::endl;
+    std::cout << "WARNING! Using hard-coded PIN " << std::string(pin.cbegin(), pin.cend())
+              << std::endl;
 
-    const byte_vector dataToSign = {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
+    const byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
     const byte_vector hash = calculateDigest(hashAlgo, dataToSign);
     auto signature = cardInfo->eid().signWithSigningKey(pin, hash, hashAlgo);
 

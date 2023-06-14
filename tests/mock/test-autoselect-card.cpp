@@ -81,3 +81,12 @@ TEST(electronic_id_test, autoSelectSuccessWithSupportedCardFinV3)
     EXPECT_EQ(result->eid().name(), "FinEID v3");
     PcscMock::reset();
 }
+
+TEST(electronic_id_test, autoSelectSuccessWithSupportedCardFinV4)
+{
+    PcscMock::setAtr(FINEID_V4_ATR);
+    auto result = autoSelectSupportedCard();
+    EXPECT_TRUE(result);
+    EXPECT_EQ(result->eid().name(), "FinEID v4");
+    PcscMock::reset();
+}
