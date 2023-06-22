@@ -94,6 +94,17 @@ inline fs::path belgianPkcs11ModulePath()
 #endif
 }
 
+inline fs::path czechPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return system32Path() / L"eopproxyp11.dll";
+#elif defined __APPLE__
+    return "/usr/local/lib/eOPCZE/libeopproxyp11.dylib";
+#else // Linux
+    return "/usr/lib/x86_64-linux-gnu/libeopproxyp11.so";
+#endif
+}
+
 const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS11_MODULES {
     // EstEIDIDEMIAV1 configuration is here only for testing,
     // it is not enabled in getElectronicID().
@@ -157,6 +168,18 @@ const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS1
          3,
          true,
          true,
+     }},
+    {Pkcs11ElectronicIDType::CzeEID,
+     {
+         "Czech eID (PKCS#11)"s, // name
+         ElectronicID::Type::CzeEID, // type
+         czechPkcs11ModulePath().make_preferred(), // path
+
+         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         3,
+         true,
+         false,
      }},
 };
 
