@@ -39,7 +39,9 @@ public:
     using ptr = std::shared_ptr<ElectronicID>;
     using PinMinMaxLength = std::pair<size_t, size_t>;
     using PinRetriesRemainingAndMax = std::pair<uint8_t, int8_t>;
-    using Signature = std::pair<pcsc_cpp::byte_vector, SignatureAlgorithm>;
+    using byte_vector = pcsc_cpp::byte_vector;
+    using byte_type = pcsc_cpp::byte_type;
+    using Signature = std::pair<byte_vector, SignatureAlgorithm>;
 
     enum Type {
         EstEID,
@@ -67,8 +69,8 @@ public:
 
     virtual PinRetriesRemainingAndMax authPinRetriesLeft() const = 0;
 
-    virtual pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
-                                                  const pcsc_cpp::byte_vector& hash) const = 0;
+    virtual pcsc_cpp::byte_vector signWithAuthKey(const byte_vector& pin,
+                                                  const byte_vector& hash) const = 0;
 
     // Functions related to signing.
     virtual const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const = 0;
@@ -79,8 +81,7 @@ public:
 
     virtual PinRetriesRemainingAndMax signingPinRetriesLeft() const = 0;
 
-    virtual Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
-                                         const pcsc_cpp::byte_vector& hash,
+    virtual Signature signWithSigningKey(const byte_vector& pin, const byte_vector& hash,
                                          const HashAlgorithm hashAlgo) const = 0;
 
     // General functions.

@@ -50,8 +50,8 @@ const std::vector<byte_vector> SELECT_EE_DIR_AND_SIGN_CERT_FILE {
     {0x00, 0xa4, 0x02, 0x0c, 0x02, 0xdd, 0xce},
 };
 
-const byte_vector::value_type AUTH_PIN_REFERENCE = 0x01;
-const byte_vector::value_type SIGNING_PIN_REFERENCE = 0x02;
+const byte_type AUTH_PIN_REFERENCE = 0x01;
+const byte_type SIGNING_PIN_REFERENCE = 0x02;
 
 } // namespace
 
@@ -97,7 +97,7 @@ ElectronicID::PinRetriesRemainingAndMax EstEIDGemaltoV3_5_8::signingPinRetriesLe
 }
 
 ElectronicID::PinRetriesRemainingAndMax
-EstEIDGemaltoV3_5_8::pinRetriesLeft(byte_vector::value_type pinReference) const
+EstEIDGemaltoV3_5_8::pinRetriesLeft(byte_type pinReference) const
 {
     static const CommandApdu PINRETRY {0x00, 0xA4, 0x02, 0x0C, {0x00, 0x16}};
     const CommandApdu READRECORD {0x00, 0xB2, pinReference, 0x04};
