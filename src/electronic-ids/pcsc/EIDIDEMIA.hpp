@@ -52,15 +52,13 @@ public:
     explicit EIDIDEMIA(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
 
 protected:
-    pcsc_cpp::byte_vector getCertificateImpl(const CertificateType type) const override;
+    byte_vector getCertificateImpl(const CertificateType type) const override;
 
     PinRetriesRemainingAndMax authPinRetriesLeftImpl() const override;
-    pcsc_cpp::byte_vector signWithAuthKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                              const pcsc_cpp::byte_vector& hash) const override;
+    byte_vector signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const override;
 
     PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const override;
-    Signature signWithSigningKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                     const pcsc_cpp::byte_vector& hash,
+    Signature signWithSigningKeyImpl(const byte_vector& pin, const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
     virtual const SelectApplicationIDCmds& selectApplicationID() const;
@@ -68,9 +66,9 @@ protected:
     virtual const ManageSecurityEnvCmds& selectSecurityEnv() const = 0;
 
     virtual size_t pinBlockLength() const { return authPinMinMaxLength().second; }
-    virtual pcsc_cpp::byte_vector::value_type signingPinReference() const { return 0x85; }
+    virtual byte_type signingPinReference() const { return 0x85; }
     virtual SignatureAlgorithm signingSignatureAlgorithm() const = 0;
-    PinRetriesRemainingAndMax pinRetriesLeft(pcsc_cpp::byte_vector::value_type pinReference) const;
+    PinRetriesRemainingAndMax pinRetriesLeft(byte_type pinReference) const;
 
     virtual bool useInternalAuthenticateAndRSAWithPKCS1PaddingDuringSigning() const
     {

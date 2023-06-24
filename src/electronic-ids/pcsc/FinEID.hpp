@@ -33,9 +33,6 @@ public:
     FinEIDv3(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
 
 protected:
-    using byte_vector = pcsc_cpp::byte_vector;
-    using value_type = byte_vector::value_type;
-
     byte_vector getCertificateImpl(const CertificateType type) const override;
 
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
@@ -58,10 +55,10 @@ protected:
                                      const HashAlgorithm hashAlgo) const override;
 
     byte_vector sign(const HashAlgorithm hashAlgo, const byte_vector& hash, const byte_vector& pin,
-                     value_type pinReference, PinMinMaxLength pinMinMaxLength,
-                     value_type keyReference, value_type signatureAlgo, value_type LE) const;
+                     byte_type pinReference, PinMinMaxLength pinMinMaxLength,
+                     byte_type keyReference, byte_type signatureAlgo, byte_type LE) const;
 
-    PinRetriesRemainingAndMax pinRetriesLeft(value_type pinReference) const;
+    PinRetriesRemainingAndMax pinRetriesLeft(byte_type pinReference) const;
 };
 
 class FinEIDv4 : public FinEIDv3

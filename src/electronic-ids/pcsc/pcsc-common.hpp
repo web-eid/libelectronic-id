@@ -47,16 +47,16 @@ getCertificate(pcsc_cpp::SmartCard& card,
 }
 
 inline pcsc_cpp::byte_vector addPaddingToPin(const pcsc_cpp::byte_vector& pin, size_t paddingLength,
-                                             pcsc_cpp::byte_vector::value_type paddingChar)
+                                             pcsc_cpp::byte_type paddingChar)
 {
     auto paddedPin = pin;
     paddedPin.resize(std::max(pin.size(), paddingLength), paddingChar);
     return paddedPin;
 }
 
-inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_vector::value_type p2,
+inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
                       const pcsc_cpp::byte_vector& pin, size_t pinMinLength, size_t paddingLength,
-                      pcsc_cpp::byte_vector::value_type paddingChar)
+                      pcsc_cpp::byte_type paddingChar)
 {
     const pcsc_cpp::CommandApdu VERIFY_PIN {0x00, 0x20, 0x00, p2};
     pcsc_cpp::ResponseApdu response;
@@ -177,15 +177,13 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
     return response.data;
 }
 
-inline void selectComputeSignatureEnv(pcsc_cpp::SmartCard& card,
-                                      pcsc_cpp::byte_vector::value_type signatureAlgo,
-                                      pcsc_cpp::byte_vector::value_type keyReference,
-                                      const std::string& cardType)
+inline void selectComputeSignatureEnv(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type signatureAlgo,
+                                      pcsc_cpp::byte_type keyReference, const std::string& cardType)
 {
     static const pcsc_cpp::CommandApdu SET_COMPUTE_SIGNATURE_ENV {0x00, 0x22, 0x41, 0xB6};
 
-    const auto response =
-        card.transmit({SET_COMPUTE_SIGNATURE_ENV, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});
+    const auto response = card.transmit(
+        {SET_COMPUTE_SIGNATURE_ENV, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});
 
     if (!response.isOK()) {
         THROW(SmartCardError,

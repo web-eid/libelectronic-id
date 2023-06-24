@@ -33,7 +33,7 @@ public:
     EstEIDGemaltoV3_5_8(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
 
 private:
-    pcsc_cpp::byte_vector getCertificateImpl(const CertificateType type) const override;
+    byte_vector getCertificateImpl(const CertificateType type) const override;
 
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
     {
@@ -49,14 +49,12 @@ private:
     std::string name() const override { return "EstEID Gemalto v3.5.8"; }
     Type type() const override { return EstEID; }
 
-    pcsc_cpp::byte_vector signWithAuthKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                              const pcsc_cpp::byte_vector& hash) const override;
+    byte_vector signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const override;
 
-    Signature signWithSigningKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                     const pcsc_cpp::byte_vector& hash,
+    Signature signWithSigningKeyImpl(const byte_vector& pin, const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
-    PinRetriesRemainingAndMax pinRetriesLeft(pcsc_cpp::byte_vector::value_type pinReference) const;
+    PinRetriesRemainingAndMax pinRetriesLeft(byte_type pinReference) const;
 };
 
 } // namespace electronic_id

@@ -45,14 +45,14 @@ const byte_vector SELECT_AUTH_CERT_FILE {0x00, 0xA4, 0x08, 0x0C, 0x02, 0x43, 0x3
 const byte_vector SELECT_SIGN_CERT_FILE_V3 {0x00, 0xA4, 0x08, 0x0C, 0x04, 0x50, 0x16, 0x43, 0x35};
 const byte_vector SELECT_SIGN_CERT_FILE_V4 {0x00, 0xA4, 0x08, 0x0C, 0x04, 0x50, 0x16, 0x43, 0x32};
 
-constexpr byte_vector::value_type PIN_PADDING_CHAR = 0x00;
-constexpr byte_vector::value_type AUTH_PIN_REFERENCE = 0x11;
-constexpr byte_vector::value_type SIGNING_PIN_REFERENCE = 0x82;
-constexpr byte_vector::value_type AUTH_KEY_REFERENCE = 0x01;
-constexpr byte_vector::value_type SIGNING_KEY_REFERENCE_V3 = 0x03;
-constexpr byte_vector::value_type SIGNING_KEY_REFERENCE_V4 = 0x02;
-constexpr byte_vector::value_type ECDSA_ALGO = 0x04;
-constexpr byte_vector::value_type RSA_PSS_ALGO = 0x05;
+constexpr byte_type PIN_PADDING_CHAR = 0x00;
+constexpr byte_type AUTH_PIN_REFERENCE = 0x11;
+constexpr byte_type SIGNING_PIN_REFERENCE = 0x82;
+constexpr byte_type AUTH_KEY_REFERENCE = 0x01;
+constexpr byte_type SIGNING_KEY_REFERENCE_V3 = 0x03;
+constexpr byte_type SIGNING_KEY_REFERENCE_V4 = 0x02;
+constexpr byte_type ECDSA_ALGO = 0x04;
+constexpr byte_type RSA_PSS_ALGO = 0x05;
 
 } // namespace
 
@@ -98,9 +98,9 @@ ElectronicID::PinRetriesRemainingAndMax FinEIDv3::signingPinRetriesLeftImpl() co
 }
 
 byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash,
-                           const byte_vector& pin, value_type pinReference,
-                           PinMinMaxLength pinMinMaxLength, value_type keyReference,
-                           value_type signatureAlgo, value_type LE) const
+                           const byte_vector& pin, byte_type pinReference,
+                           PinMinMaxLength pinMinMaxLength, byte_type keyReference,
+                           byte_type signatureAlgo, byte_type LE) const
 {
     if (signatureAlgo != ECDSA_ALGO && hashAlgo.isSHA3()) {
         THROW(ArgumentFatalError, "No OID for algorithm " + std::string(hashAlgo));
@@ -134,7 +134,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     // Select security environment for COMPUTE SIGNATURE.
     selectComputeSignatureEnv(*card, signatureAlgo, keyReference, name());
 
-    byte_vector tlv {0x90, value_type(hash.size())};
+    byte_vector tlv {0x90, byte_type(hash.size())};
     tlv.insert(tlv.cend(), hash.cbegin(), hash.cend());
 
     const CommandApdu computeSignature {{0x00, 0x2A, 0x90, 0xA0}, tlv};
@@ -166,7 +166,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     return signature.data;
 }
 
-ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(value_type pinReference) const
+ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinReference) const
 {
     const pcsc_cpp::CommandApdu GET_DATA {
         0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}};
