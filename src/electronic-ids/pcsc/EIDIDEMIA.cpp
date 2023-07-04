@@ -141,5 +141,11 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(byte_type pinR
               "Command GET DATA ODD failed with error "
                   + pcsc_cpp::bytes2hexstr(response.toBytes()));
     }
+    if (response.data.size() < 14) {
+        THROW(SmartCardError,
+              "Command GET DATA ODD failed: received data size "
+                  + std::to_string(response.data.size())
+                  + " is less than the expected size of the PIN remaining retries offset 14");
+    }
     return {uint8_t(response.data[13]), uint8_t(response.data[10])};
 }
