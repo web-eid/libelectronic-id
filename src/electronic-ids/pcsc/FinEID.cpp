@@ -25,11 +25,16 @@
 #include "pcsc-common.hpp"
 
 // FINEID specification:
-// App 3.0: https://dvv.fi/documents/16079645/17324923/S1v30.pdf/0bad6ff1-1617-1b1f-ab49-56a2f36ecd38/S1v30.pdf
-// Imp 3.0: https://dvv.fi/documents/16079645/17324923/S4-1v30%20(1).pdf/9ed19b95-098d-ec6b-6f31-8147d1f87663/S4-1v30%20(1).pdf
-// Imp 3.1: https://dvv.fi/documents/16079645/17324992/S4-1v31.pdf/ca3e699e-fae8-aea2-9ce3-28846d2ae95a/S4-1v31.pdf
-// App 4.0: https://dvv.fi/documents/16079645/17324992/S1v40+(1).pdf/56a167fe-9f26-1fda-7d76-cfbbb29d184e/S1v40+(1).pdf
-// Imp 4.0: https://dvv.fi/documents/16079645/17324992/S4-1v40.pdf/55bddc08-6893-b4b4-73fa-24dced600198/S4-1v40.pdf
+// App 3.0:
+// https://dvv.fi/documents/16079645/17324923/S1v30.pdf/0bad6ff1-1617-1b1f-ab49-56a2f36ecd38/S1v30.pdf
+// Imp 3.0:
+// https://dvv.fi/documents/16079645/17324923/S4-1v30%20(1).pdf/9ed19b95-098d-ec6b-6f31-8147d1f87663/S4-1v30%20(1).pdf
+// Imp 3.1:
+// https://dvv.fi/documents/16079645/17324992/S4-1v31.pdf/ca3e699e-fae8-aea2-9ce3-28846d2ae95a/S4-1v31.pdf
+// App 4.0:
+// https://dvv.fi/documents/16079645/17324992/S1v40+(1).pdf/56a167fe-9f26-1fda-7d76-cfbbb29d184e/S1v40+(1).pdf
+// Imp 4.0:
+// https://dvv.fi/documents/16079645/17324992/S4-1v40.pdf/55bddc08-6893-b4b4-73fa-24dced600198/S4-1v40.pdf
 
 using namespace pcsc_cpp;
 
@@ -174,6 +179,11 @@ ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinRe
     if (!response.isOK()) {
         THROW(SmartCardError,
               "Command GET DATA failed with error " + pcsc_cpp::bytes2hexstr(response.toBytes()));
+    }
+    if (response.data.size() < 21) {
+        THROW(SmartCardError,
+              "Command GET DATA failed: received data size " + std::to_string(response.data.size())
+                  + " is less than the expected size of the PIN remaining retries offset 21");
     }
     return {uint8_t(response.data[20]), int8_t(5)};
 }

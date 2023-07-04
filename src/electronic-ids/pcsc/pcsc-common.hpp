@@ -154,14 +154,14 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
 {
     static const pcsc_cpp::CommandApdu COMPUTE_SIGNATURE {0x00, 0x2A, 0x9E, 0x9A};
 
-    pcsc_cpp::CommandApdu internalAuth {COMPUTE_SIGNATURE, hash};
+    pcsc_cpp::CommandApdu computeSignature {COMPUTE_SIGNATURE, hash};
     // LE is needed in case of protocol T1.
     // TODO: Implement this in libpcsc-cpp.
     if (card.protocol() == pcsc_cpp::SmartCard::Protocol::T1) {
-        internalAuth.le = 0;
+        computeSignature.le = 0;
     }
 
-    const auto response = card.transmit(internalAuth);
+    const auto response = card.transmit(computeSignature);
 
     if (response.sw1 == pcsc_cpp::ResponseApdu::WRONG_LENGTH) {
         THROW(SmartCardError,

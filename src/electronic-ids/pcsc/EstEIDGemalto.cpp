@@ -104,9 +104,15 @@ EstEIDGemaltoV3_5_8::pinRetriesLeft(byte_type pinReference) const
     transmitApduWithExpectedResponse(*card, MASTER_FILE);
     transmitApduWithExpectedResponse(*card, PINRETRY);
     const auto response = card->transmit(READRECORD);
-    if (!response.isOK() || response.data.size() < 6) {
+    if (!response.isOK()) {
         THROW(SmartCardError,
               "Command READRECORD failed with error " + pcsc_cpp::bytes2hexstr(response.toBytes()));
+    }
+    if (response.data.size() < 6) {
+        THROW(SmartCardError,
+              "Command READRECORD failed: received data size "
+                  + std::to_string(response.data.size())
+                  + " is less than the expected size of the PIN remaining retries offset 6");
     }
     return {uint8_t(response.data[5]), int8_t(3)};
 }
