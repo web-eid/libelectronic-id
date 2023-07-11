@@ -43,12 +43,12 @@ using namespace std::string_literals;
 namespace
 {
 
-using ElectronicIDConstructor = std::function<ElectronicID::ptr(SmartCard::ptr&&)>;
+using ElectronicIDConstructor = std::function<ElectronicID::ptr(const Reader&)>;
 
 template <typename T>
-constexpr auto constructor(SmartCard::ptr&& card)
+constexpr auto constructor(const Reader& reader)
 {
-    return std::make_unique<T>(std::move(card));
+    return std::make_unique<T>(std::move(reader.connectToCard()));
 }
 
 // Supported cards.
@@ -88,35 +88,30 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS {
     // LitEID
     {{0x3b, 0xf8, 0x13, 0x00, 0x00, 0x81, 0x31, 0xfe, 0x45, 0x53, 0x6d, 0x61, 0x72, 0x74, 0x41,
       0x70, 0x70, 0xf8},
-     [](SmartCard::ptr&& card) {
-         return std::make_unique<Pkcs11ElectronicID>(std::move(card),
-                                                     Pkcs11ElectronicIDType::LitEIDv2);
+     [](const Reader&) {
+         return std::make_unique<Pkcs11ElectronicID>(Pkcs11ElectronicIDType::LitEIDv2);
      }},
     {{0x3B, 0x9D, 0x18, 0x81, 0x31, 0xFC, 0x35, 0x80, 0x31, 0xC0, 0x69,
       0x4D, 0x54, 0x43, 0x4F, 0x53, 0x73, 0x02, 0x05, 0x05, 0xD3},
-     [](SmartCard::ptr&& card) {
-         return std::make_unique<Pkcs11ElectronicID>(std::move(card),
-                                                     Pkcs11ElectronicIDType::LitEIDv3);
+     [](const Reader&) {
+         return std::make_unique<Pkcs11ElectronicID>(Pkcs11ElectronicIDType::LitEIDv3);
      }},
     // HrvEID
     {{0x3b, 0xff, 0x13, 0x00, 0x00, 0x81, 0x31, 0xfe, 0x45, 0x00, 0x31, 0xb9, 0x64,
       0x04, 0x44, 0xec, 0xc1, 0x73, 0x94, 0x01, 0x80, 0x82, 0x90, 0x00, 0x12},
-     [](SmartCard::ptr&& card) {
-         return std::make_unique<Pkcs11ElectronicID>(std::move(card),
-                                                     Pkcs11ElectronicIDType::HrvEID);
+     [](const Reader&) {
+         return std::make_unique<Pkcs11ElectronicID>(Pkcs11ElectronicIDType::HrvEID);
      }},
     // BelEIDV1_7
     {{0x3b, 0x98, 0x13, 0x40, 0x0a, 0xa5, 0x03, 0x01, 0x01, 0x01, 0xad, 0x13, 0x11},
-     [](SmartCard::ptr&& card) {
-         return std::make_unique<Pkcs11ElectronicID>(std::move(card),
-                                                     Pkcs11ElectronicIDType::BelEIDV1_7);
+     [](const Reader&) {
+         return std::make_unique<Pkcs11ElectronicID>(Pkcs11ElectronicIDType::BelEIDV1_7);
      }},
     // BelEIDV1_8
     {{0x3b, 0x7f, 0x96, 0x00, 0x00, 0x80, 0x31, 0x80, 0x65, 0xb0,
       0x85, 0x04, 0x01, 0x20, 0x12, 0x0f, 0xff, 0x82, 0x90, 0x00},
-     [](SmartCard::ptr&& card) {
-         return std::make_unique<Pkcs11ElectronicID>(std::move(card),
-                                                     Pkcs11ElectronicIDType::BelEIDV1_8);
+     [](const Reader&) {
+         return std::make_unique<Pkcs11ElectronicID>(Pkcs11ElectronicIDType::BelEIDV1_8);
      }},
 };
 
@@ -154,7 +149,7 @@ ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 {
     try {
         const auto& eidConstructor = SUPPORTED_ATRS.at(reader.cardAtr);
-        return eidConstructor(reader.connectToCard());
+        return eidConstructor(reader);
     } catch (const std::out_of_range&) {
         // It should be verified that the card is supported with isCardSupported() before
         // calling getElectronicID(), so it is a programming error if out_of_range occurs here.
