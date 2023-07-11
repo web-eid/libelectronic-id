@@ -190,10 +190,9 @@ const Pkcs11ElectronicIDModule& getModule(Pkcs11ElectronicIDType eidType)
 
 } // namespace
 
-Pkcs11ElectronicID::Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr _card,
-                                       Pkcs11ElectronicIDType type) :
-    ElectronicID(std::move(_card)),
-    module(getModule(type)), manager(PKCS11CardManager::instance(module.path))
+Pkcs11ElectronicID::Pkcs11ElectronicID(Pkcs11ElectronicIDType type) :
+    ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()}, module {getModule(type)},
+    manager {PKCS11CardManager::instance(module.path)}
 {
     bool seenAuthToken = false;
     bool seenSigningToken = false;

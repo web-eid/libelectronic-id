@@ -54,7 +54,7 @@ struct Pkcs11ElectronicIDModule
 class Pkcs11ElectronicID : public ElectronicID
 {
 public:
-    Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr card, Pkcs11ElectronicIDType type);
+    explicit Pkcs11ElectronicID(Pkcs11ElectronicIDType type);
 
 private:
     bool allowsUsingLettersAndSpecialCharactersInPin() const override
