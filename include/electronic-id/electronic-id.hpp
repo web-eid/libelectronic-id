@@ -175,16 +175,22 @@ class Pkcs11Error : public Error
     using Error::Error;
 };
 
-/** Smart card was not present in its slot at the time that a PKCS#11 function was invoked. */
-class Pkcs11TokenNotPresent : public Error
+/** Smart card is not recognized. */
+class Pkcs11TokenNotRecognized : public Pkcs11Error
 {
-    using Error::Error;
+    using Pkcs11Error::Pkcs11Error;
+};
+
+/** Smart card was not present in its slot at the time that a PKCS#11 function was invoked. */
+class Pkcs11TokenNotPresent : public Pkcs11Error
+{
+    using Pkcs11Error::Pkcs11Error;
 };
 
 /** Smart card was removed from its slot during the execution of a PKCS#11 function. */
-class Pkcs11TokenRemoved : public Error
+class Pkcs11TokenRemoved : public Pkcs11Error
 {
-    using Error::Error;
+    using Pkcs11Error::Pkcs11Error;
 };
 
 #ifdef _WIN32
