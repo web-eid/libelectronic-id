@@ -83,6 +83,8 @@ inline fs::path croatianPkcs11ModulePath()
     return programFilesPath() / L"AKD/eID Middleware/pkcs11/AkdEidPkcs11_64.dll";
 #elif defined __APPLE__
     return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so"; // NB! Not tested.
+#elif defined __OpenBSD__
+    return "/usr/local/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so";
 #else // Linux
     return "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so";
 #endif
@@ -95,6 +97,8 @@ inline fs::path belgianPkcs11ModulePath()
 #elif defined __APPLE__
     return "/Library/Belgium Identity "
            "Card/Pkcs11/beid-pkcs11.bundle/Contents/MacOS/libbeidpkcs11.dylib";
+#elif defined __OpenBSD__
+    return "/usr/local/lib/libbeidpkcs11.so";
 #else // Linux
     return "/usr/lib/x86_64-linux-gnu/libbeidpkcs11.so.0";
 #endif
