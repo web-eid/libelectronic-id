@@ -47,10 +47,11 @@ private:
 
     const SelectApplicationIDCmds& selectApplicationID() const override;
     const SelectCertificateCmds& selectCertificate() const override;
-    const ManageSecurityEnvCmds& selectSecurityEnv() const override;
+    void selectAuthSecurityEnv() const override;
+    void selectSignSecurityEnv() const override;
 
     size_t pinBlockLength() const override { return 0x40; }
-    unsigned char signingPinReference() const override { return 0x81; }
+    byte_type signingPinReference() const override { return 0x81; }
 
     bool useInternalAuthenticateAndRSAWithPKCS1PaddingDuringSigning() const override
     {

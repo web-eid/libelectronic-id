@@ -60,15 +60,14 @@ const SelectCertificateCmds& LatEIDIDEMIAV1::selectCertificate() const
     return selectCertCmds;
 }
 
-const ManageSecurityEnvCmds& LatEIDIDEMIAV1::selectSecurityEnv() const
+void LatEIDIDEMIAV1::selectAuthSecurityEnv() const
 {
-    static const auto selectSecurityEnvCmds = ManageSecurityEnvCmds {
-        // Activate authentication environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x02, 0x84, 0x01, 0x82},
-        // Activate signing environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x02, 0x84, 0x01, 0x81},
-    };
-    return selectSecurityEnvCmds;
+    selectSecurityEnv(*card, 0xA4, 0x02, 0x82, name());
+}
+
+void LatEIDIDEMIAV1::selectSignSecurityEnv() const
+{
+    selectSecurityEnv(*card, 0xA4, 0x02, 0x81, name());
 }
 
 } // namespace electronic_id

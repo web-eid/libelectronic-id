@@ -40,12 +40,6 @@ struct SelectCertificateCmds
     const pcsc_cpp::byte_vector SIGN_CERT;
 };
 
-struct ManageSecurityEnvCmds
-{
-    const pcsc_cpp::byte_vector AUTH_ENV;
-    const pcsc_cpp::byte_vector SIGN_ENV;
-};
-
 class EIDIDEMIA : public PcscElectronicID
 {
 public:
@@ -63,7 +57,8 @@ protected:
 
     virtual const SelectApplicationIDCmds& selectApplicationID() const;
     virtual const SelectCertificateCmds& selectCertificate() const;
-    virtual const ManageSecurityEnvCmds& selectSecurityEnv() const = 0;
+    virtual void selectAuthSecurityEnv() const = 0;
+    virtual void selectSignSecurityEnv() const = 0;
 
     virtual size_t pinBlockLength() const { return authPinMinMaxLength().second; }
     virtual byte_type signingPinReference() const { return 0x85; }
@@ -74,8 +69,6 @@ protected:
     {
         return false;
     }
-
-    virtual bool isUpdated() const { return false; }
 };
 
 } // namespace electronic_id

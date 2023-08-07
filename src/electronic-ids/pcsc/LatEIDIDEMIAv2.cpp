@@ -29,10 +29,66 @@
 using namespace pcsc_cpp;
 using namespace electronic_id;
 
+struct KeyInfo
+{
+    bool isECC;
+    byte_type id;
+};
+
 struct LatEIDIDEMIAV2::Private
 {
-    std::optional<bool> isUpdated;
+    std::optional<KeyInfo> authKeyInfo;
+    std::optional<KeyInfo> signKeyInfo;
 };
+
+namespace
+{
+constexpr byte_type DEFAULT_AUTH_KEY_ID = 0x81;
+constexpr byte_type DEFAULT_SIGN_KEY_ID = 0x9F;
+
+inline byte_vector readEF_File(const SmartCard& card, const byte_vector& file)
+{
+    auto response = card.transmit({0x00, 0xA4, 0x02, 0x04, file, 0x00});
+    if (!response.isOK()) {
+        THROW(SmartCardError, "Failed to read EF file");
+    }
+    static const byte_vector findLength {0x80, 0x02};
+    auto pos = std::search(response.data.cbegin(), response.data.cend(), findLength.cbegin(),
+                           findLength.cend());
+    if (pos == response.data.cend()) {
+        THROW(SmartCardError, "Failed to read EF file length");
+    }
+    pos += findLength.size();
+    return readBinary(card, size_t(*pos << 8) + *(pos + 1), 0xFF);
+}
+
+inline byte_vector readEF_PrKD(const SmartCard& card)
+{
+    static const byte_vector EF_OD {0x50, 0x31};
+    const auto info = readEF_File(card, EF_OD);
+    static const byte_vector file {0xA0, 0x06, 0x30, 0x04, 0x04, 0x02};
+    auto pos = std::search(info.cbegin(), info.cend(), file.cbegin(), file.cend());
+    if (pos == info.cend()) {
+        THROW(SmartCardError, "EF.PrKD reference not found");
+    }
+    pos += file.size();
+    return readEF_File(card, {*pos, *(pos + 1)});
+}
+
+inline KeyInfo readPrKDInfo(const SmartCard& card, byte_type keyID)
+{
+    const auto data = readEF_PrKD(card);
+    if (data.empty()) {
+        return {false, keyID};
+    }
+    static const byte_vector needle {0x02, 0x02, 0x00};
+    if (auto pos = std::search(data.cbegin(), data.cend(), needle.cbegin(), needle.cend());
+        pos != data.cend()) {
+        return {data[0] == 0xA0, *(pos + needle.size())};
+    }
+    return {data[0] == 0xA0, keyID};
+}
+} // namespace
 
 LatEIDIDEMIAV2::LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card) :
     LatEIDIDEMIACommon(std::move(_card)), data(std::make_unique<Private>())
@@ -41,38 +97,46 @@ LatEIDIDEMIAV2::LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card) :
 
 LatEIDIDEMIAV2::~LatEIDIDEMIAV2() = default;
 
-bool LatEIDIDEMIAV2::isUpdated() const
+JsonWebSignatureAlgorithm LatEIDIDEMIAV2::authSignatureAlgorithm() const
 {
-    if (data->isUpdated.has_value()) {
-        return data->isUpdated.value();
+    if (!data->authKeyInfo.has_value()) {
+        auto transactionGuard = card->beginTransaction();
+        transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
+        transmitApduWithExpectedResponse(*card, selectApplicationID().AUTH_AID);
+        data->authKeyInfo = readPrKDInfo(*card, DEFAULT_AUTH_KEY_ID);
     }
-    static const auto command = CommandApdu::fromBytes({0x00, 0xA4, 0x02, 0x04, 0x02, 0x50, 0x40});
-    const auto response = card->transmit(command);
-    data->isUpdated = response.toSW() == 0x9000;
-    return data->isUpdated.value();
+    return data->authKeyInfo->isECC ? JsonWebSignatureAlgorithm::ES384
+                                    : JsonWebSignatureAlgorithm::RS256;
 }
 
 const std::set<SignatureAlgorithm>& LatEIDIDEMIAV2::supportedSigningAlgorithms() const
 {
+    if (!data->signKeyInfo.has_value()) {
+        auto transactionGuard = card->beginTransaction();
+        transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
+        transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
+        data->signKeyInfo = readPrKDInfo(*card, DEFAULT_SIGN_KEY_ID);
+    }
     const static std::set<SignatureAlgorithm> RS256_SIGNATURE_ALGO {
         {SignatureAlgorithm::RS256},
     };
-    return isUpdated() ? ELLIPTIC_CURVE_SIGNATURE_ALGOS() : RS256_SIGNATURE_ALGO;
+    return data->signKeyInfo->isECC ? ELLIPTIC_CURVE_SIGNATURE_ALGOS() : RS256_SIGNATURE_ALGO;
 }
 
-const ManageSecurityEnvCmds& LatEIDIDEMIAV2::selectSecurityEnv() const
+void LatEIDIDEMIAV2::selectAuthSecurityEnv() const
 {
-    static const ManageSecurityEnvCmds selectSecurityEnv1Cmds {
-        // Activate authentication environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x02, 0x84, 0x01, 0x81},
-        // Activate signing environment.
-        {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x42, 0x84, 0x01, 0x9f},
-    };
-    static const ManageSecurityEnvCmds selectSecurityEnv2Cmds {
-        // Activate authentication environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x04, 0x84, 0x01, 0x82},
-        // Activate signing environment.
-        {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x54, 0x84, 0x01, 0x9e},
-    };
-    return isUpdated() ? selectSecurityEnv2Cmds : selectSecurityEnv1Cmds;
+    if (!data->authKeyInfo.has_value()) {
+        data->authKeyInfo = readPrKDInfo(*card, DEFAULT_AUTH_KEY_ID);
+    }
+    selectSecurityEnv(*card, 0xA4, data->authKeyInfo->isECC ? 0x04 : 0x02, data->authKeyInfo->id,
+                      name());
+}
+
+void LatEIDIDEMIAV2::selectSignSecurityEnv() const
+{
+    if (!data->signKeyInfo.has_value()) {
+        data->signKeyInfo = readPrKDInfo(*card, DEFAULT_SIGN_KEY_ID);
+    }
+    selectSecurityEnv(*card, 0xB6, data->signKeyInfo->isECC ? 0x54 : 0x42, data->signKeyInfo->id,
+                      name());
 }
