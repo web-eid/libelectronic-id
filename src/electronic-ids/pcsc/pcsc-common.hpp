@@ -177,17 +177,16 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
     return response.data;
 }
 
-inline void selectComputeSignatureEnv(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type signatureAlgo,
-                                      pcsc_cpp::byte_type keyReference, const std::string& cardType)
+inline void selectSecurityEnv(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type env,
+                              pcsc_cpp::byte_type signatureAlgo, pcsc_cpp::byte_type keyReference,
+                              const std::string& cardType)
 {
-    static const pcsc_cpp::CommandApdu SET_COMPUTE_SIGNATURE_ENV {0x00, 0x22, 0x41, 0xB6};
-
     const auto response = card.transmit(
-        {SET_COMPUTE_SIGNATURE_ENV, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});
+        {0x00, 0x22, 0x41, env, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});
 
     if (!response.isOK()) {
         THROW(SmartCardError,
-              cardType + ": Command SET ENV for COMPUTE SIGNATURE failed with error "
+              cardType + ": Command SET ENV failed with error "
                   + pcsc_cpp::bytes2hexstr(response.toBytes()));
     }
 }

@@ -29,21 +29,14 @@
 
 using namespace electronic_id;
 
-const ManageSecurityEnvCmds& EstEIDIDEMIAV1::selectSecurityEnv() const
+void EstEIDIDEMIAV1::selectAuthSecurityEnv() const
 {
-    static const ManageSecurityEnvCmds selectSecurityEnv1Cmds {
-        // Activate authentication environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x04, 0x84, 0x01, 0x81},
-        // Activate signing environment.
-        {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x54, 0x84, 0x01, 0x9f},
-    };
-    static const ManageSecurityEnvCmds selectSecurityEnv2Cmds {
-        // Activate authentication environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x04, 0x84, 0x01, 0x82},
-        // Activate signing environment.
-        {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x64, 0x84, 0x01, 0x9e},
-    };
-    return isUpdated() ? selectSecurityEnv2Cmds : selectSecurityEnv1Cmds;
+    selectSecurityEnv(*card, 0xA4, 0x04, 0x81, name());
+}
+
+void EstEIDIDEMIAV1::selectSignSecurityEnv() const
+{
+    selectSecurityEnv(*card, 0xB6, 0x54, 0x9f, name());
 }
 
 const std::set<SignatureAlgorithm>& EstEIDIDEMIAV1::supportedSigningAlgorithms() const

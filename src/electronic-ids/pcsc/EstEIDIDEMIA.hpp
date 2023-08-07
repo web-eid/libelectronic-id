@@ -49,7 +49,8 @@ private:
     std::string name() const override { return "EstEID IDEMIA v1"; }
     Type type() const override { return EstEID; }
 
-    const ManageSecurityEnvCmds& selectSecurityEnv() const override;
+    void selectAuthSecurityEnv() const override;
+    void selectSignSecurityEnv() const override;
 };
 
 } // namespace electronic_id
