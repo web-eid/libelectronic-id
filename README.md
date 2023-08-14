@@ -29,24 +29,22 @@ See more examples in [tests](tests).
 ## Building
 
     apt install build-essential pkg-config cmake libgtest-dev valgrind libpcsclite-dev
-    sudo bash -c 'cd /usr/src/googletest && cmake . && cmake --build . --target install'
 
-    cd build
-    cmake .. # optionally with -DCMAKE_BUILD_TYPE=Debug
-    cmake --build . # optionally with VERBOSE=1
+    cmake -S . -B build # optionally with -DCMAKE_BUILD_TYPE=Debug
+    cmake --build build # optionally with VERBOSE=1
 
 ## Testing
 
 Build as described above, then run inside `build` directory:
 
-    ctest # or 'valgrind --leak-check=full ctest'
+    ctest --test-dir build # or 'valgrind --leak-check=full ctest --test-dir build'
 
 `ctest` runs tests that use the _libscard-mock_ library to mock PC/SC API calls.
 
 There are also integration tests that use the real operating system PC/SC
 service, run them inside `build` directory with:
 
-    ./libpcsc-cpp-test-integration
+    ./build/libpcsc-cpp-test-integration
 
 ## Development guidelines
 

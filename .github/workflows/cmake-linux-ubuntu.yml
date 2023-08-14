@@ -4,14 +4,17 @@ on: [push, pull_request]
 
 env:
   BUILD_TYPE: RelWithDebInfo
+  CMAKE_BUILD_PARALLEL_LEVEL: 3
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: mrts/qt-cmake-gtest-valgrind-ubuntu:v1.8
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt update -qq && sudo apt install --no-install-recommends -y cmake libgtest-dev libpcsclite-dev
 
     - name: Configure CMake
       run: cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -S . -B build
