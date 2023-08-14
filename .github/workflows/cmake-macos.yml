@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 env:
   BUILD_TYPE: RelWithDebInfo
+  CMAKE_BUILD_PARALLEL_LEVEL: 3
   OPENSSL_ROOT_DIR: /usr/local/opt/openssl
 
 jobs:

@@ -11,7 +11,6 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-    container: mrts/qt-cmake-gtest-valgrind-ubuntu:v1.8
     permissions:
       actions: read
       contents: read
@@ -20,6 +19,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt update -qq && sudo apt install --no-install-recommends -y cmake libgtest-dev libpcsclite-dev
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
