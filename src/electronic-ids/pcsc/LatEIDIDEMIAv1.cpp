@@ -65,9 +65,9 @@ void LatEIDIDEMIAV1::selectAuthSecurityEnv() const
     selectSecurityEnv(*card, 0xA4, 0x02, 0x82, name());
 }
 
-void LatEIDIDEMIAV1::selectSignSecurityEnv() const
+pcsc_cpp::byte_type LatEIDIDEMIAV1::selectSignSecurityEnv() const
 {
-    selectSecurityEnv(*card, 0xA4, 0x02, 0x81, name());
+    return selectSecurityEnv(*card, 0xA4, 0x02, 0x81, name());
 }
 
 } // namespace electronic_id

@@ -58,7 +58,7 @@ protected:
     virtual const SelectApplicationIDCmds& selectApplicationID() const;
     virtual const SelectCertificateCmds& selectCertificate() const;
     virtual void selectAuthSecurityEnv() const = 0;
-    virtual void selectSignSecurityEnv() const = 0;
+    virtual pcsc_cpp::byte_type selectSignSecurityEnv() const = 0;
 
     virtual size_t pinBlockLength() const { return authPinMinMaxLength().second; }
     virtual byte_type signingPinReference() const { return 0x85; }

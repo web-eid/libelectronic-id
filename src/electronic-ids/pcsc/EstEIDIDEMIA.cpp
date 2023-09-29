@@ -34,28 +34,12 @@ void EstEIDIDEMIAV1::selectAuthSecurityEnv() const
     selectSecurityEnv(*card, 0xA4, 0x04, 0x81, name());
 }
 
-void EstEIDIDEMIAV1::selectSignSecurityEnv() const
+pcsc_cpp::byte_type EstEIDIDEMIAV1::selectSignSecurityEnv() const
 {
-    selectSecurityEnv(*card, 0xB6, 0x54, 0x9f, name());
+    return selectSecurityEnv(*card, 0xB6, 0x54, 0x9f, name());
 }
 
 const std::set<SignatureAlgorithm>& EstEIDIDEMIAV1::supportedSigningAlgorithms() const
 {
     return ELLIPTIC_CURVE_SIGNATURE_ALGOS();
-}
-
-ElectronicID::Signature EstEIDIDEMIAV1::signWithSigningKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                                               const pcsc_cpp::byte_vector& hash,
-                                                               const HashAlgorithm hashAlgo) const
-{
-    static constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
-    auto tmp = hash;
-    if (tmp.size() < ECDSA384_INPUT_LENGTH) {
-        // Zero-pad hashes that are shorter than SHA-384.
-        tmp.insert(tmp.cbegin(), ECDSA384_INPUT_LENGTH - tmp.size(), 0x00);
-    } else if (tmp.size() > ECDSA384_INPUT_LENGTH) {
-        // Truncate hashes that are longer than SHA-384.
-        tmp.resize(ECDSA384_INPUT_LENGTH);
-    }
-    return EIDIDEMIA::signWithSigningKeyImpl(pin, tmp, hashAlgo);
 }

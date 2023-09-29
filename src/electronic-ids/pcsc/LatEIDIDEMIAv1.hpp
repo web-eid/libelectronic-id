@@ -48,7 +48,7 @@ private:
     const SelectApplicationIDCmds& selectApplicationID() const override;
     const SelectCertificateCmds& selectCertificate() const override;
     void selectAuthSecurityEnv() const override;
-    void selectSignSecurityEnv() const override;
+    pcsc_cpp::byte_type selectSignSecurityEnv() const override;
 
     size_t pinBlockLength() const override { return 0x40; }
     byte_type signingPinReference() const override { return 0x81; }
