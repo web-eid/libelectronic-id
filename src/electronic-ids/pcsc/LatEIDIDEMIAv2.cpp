@@ -58,7 +58,7 @@ inline byte_vector readEF_File(const SmartCard& card, const byte_vector& file)
     if (pos == response.data.cend()) {
         THROW(SmartCardError, "Failed to read EF file length");
     }
-    pos += findLength.size();
+    pos += byte_vector::difference_type(findLength.size());
     return readBinary(card, size_t(*pos << 8) + *(pos + 1), 0xFF);
 }
 
@@ -71,7 +71,7 @@ inline byte_vector readEF_PrKD(const SmartCard& card)
     if (pos == info.cend()) {
         THROW(SmartCardError, "EF.PrKD reference not found");
     }
-    pos += file.size();
+    pos += byte_vector::difference_type(file.size());
     return readEF_File(card, {*pos, *(pos + 1)});
 }
 
@@ -84,7 +84,7 @@ inline KeyInfo readPrKDInfo(const SmartCard& card, byte_type keyID)
     static const byte_vector needle {0x02, 0x02, 0x00};
     if (auto pos = std::search(data.cbegin(), data.cend(), needle.cbegin(), needle.cend());
         pos != data.cend()) {
-        return {data[0] == 0xA0, *(pos + needle.size())};
+        return {data[0] == 0xA0, *(pos + byte_vector::difference_type(needle.size()))};
     }
     return {data[0] == 0xA0, keyID};
 }
@@ -123,6 +123,17 @@ const std::set<SignatureAlgorithm>& LatEIDIDEMIAV2::supportedSigningAlgorithms()
     return data->signKeyInfo->isECC ? ELLIPTIC_CURVE_SIGNATURE_ALGOS() : RS256_SIGNATURE_ALGO;
 }
 
+SignatureAlgorithm LatEIDIDEMIAV2::signingSignatureAlgorithm() const
+{
+    if (!data->signKeyInfo.has_value()) {
+        auto transactionGuard = card->beginTransaction();
+        transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
+        transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
+        data->signKeyInfo = readPrKDInfo(*card, DEFAULT_SIGN_KEY_ID);
+    }
+    return data->signKeyInfo->isECC ? SignatureAlgorithm::ES : SignatureAlgorithm::RS;
+}
+
 void LatEIDIDEMIAV2::selectAuthSecurityEnv() const
 {
     if (!data->authKeyInfo.has_value()) {
@@ -132,11 +143,11 @@ void LatEIDIDEMIAV2::selectAuthSecurityEnv() const
                       name());
 }
 
-void LatEIDIDEMIAV2::selectSignSecurityEnv() const
+byte_type LatEIDIDEMIAV2::selectSignSecurityEnv() const
 {
     if (!data->signKeyInfo.has_value()) {
         data->signKeyInfo = readPrKDInfo(*card, DEFAULT_SIGN_KEY_ID);
     }
-    selectSecurityEnv(*card, 0xB6, data->signKeyInfo->isECC ? 0x54 : 0x42, data->signKeyInfo->id,
-                      name());
+    return selectSecurityEnv(*card, 0xB6, data->signKeyInfo->isECC ? 0x54 : 0x42,
+                             data->signKeyInfo->id, name());
 }

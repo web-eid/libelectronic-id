@@ -177,8 +177,9 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
     return response.data;
 }
 
-inline void selectSecurityEnv(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type env,
-                              pcsc_cpp::byte_type signatureAlgo, pcsc_cpp::byte_type keyReference,
+inline pcsc_cpp::byte_type selectSecurityEnv(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type env,
+                                             pcsc_cpp::byte_type signatureAlgo,
+                                             pcsc_cpp::byte_type keyReference,
                               const std::string& cardType)
 {
     const auto response = card.transmit(
@@ -189,6 +190,7 @@ inline void selectSecurityEnv(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type env
               cardType + ": Command SET ENV failed with error "
                   + pcsc_cpp::bytes2hexstr(response.toBytes()));
     }
+    return signatureAlgo;
 }
 
 } // namespace electronic_id

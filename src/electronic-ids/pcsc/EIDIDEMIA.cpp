@@ -77,14 +77,25 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const byte_vector& pin
 {
     // Select signing application and signing security environment.
     transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
-    selectSignSecurityEnv();
+    pcsc_cpp::byte_type algo = selectSignSecurityEnv();
+    auto tmp = hash;
+    if (algo == 0x54) {
+        constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
+        if (tmp.size() < ECDSA384_INPUT_LENGTH) {
+            // Zero-pad hashes that are shorter than SHA-384.
+            tmp.insert(tmp.cbegin(), ECDSA384_INPUT_LENGTH - tmp.size(), 0x00);
+        } else if (tmp.size() > ECDSA384_INPUT_LENGTH) {
+            // Truncate hashes that are longer than SHA-384.
+            tmp.resize(ECDSA384_INPUT_LENGTH);
+        }
+    }
 
     verifyPin(*card, signingPinReference(), pin, signingPinMinMaxLength().first, pinBlockLength(),
               PIN_PADDING_CHAR);
 
     return {useInternalAuthenticateAndRSAWithPKCS1PaddingDuringSigning()
                 ? internalAuthenticate(*card, addRSAOID(hashAlgo, hash), name())
-                : computeSignature(*card, hash, name()),
+                : computeSignature(*card, tmp, name()),
             {signingSignatureAlgorithm(), hashAlgo}};
 }
 
