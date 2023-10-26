@@ -11,29 +11,20 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
+      uses: actions/checkout@v4
 
     - name: Prepare vcpkg and libraries
-      uses: lukka/run-vcpkg@v6
+      uses: lukka/run-vcpkg@v7
       with:
         vcpkgArguments: gtest:x64-windows openssl:x64-windows
         vcpkgTriplet: x64-windows
-        vcpkgDirectory: ${{runner.workspace}}/vcpkg/
-        vcpkgGitCommitId: 9b064ff07b987c8f213fdbf4358122fd4fe38ef1
-
-    - name: Create build directory
-      run: mkdir build
+        vcpkgGitCommitId: 1f619be01b436b796dab797dd1e1721c5676f8ac
 
     - name: Configure CMake
-      working-directory: ${{github.workspace}}/build
-      run: cmake -A x64 "-DCMAKE_TOOLCHAIN_FILE=${{runner.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake" "-DCMAKE_BUILD_TYPE=${env:BUILD_TYPE}" ..
+      run: cmake -A x64 "-DCMAKE_TOOLCHAIN_FILE=${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" "-DCMAKE_BUILD_TYPE=${env:BUILD_TYPE}" -S . -B build
 
     - name: Build
-      working-directory: ${{github.workspace}}/build
-      run: cmake --build . --config ${env:BUILD_TYPE}
+      run: cmake --build build --config ${env:BUILD_TYPE}
 
     - name: Test
-      working-directory: ${{github.workspace}}/build
-      run: ctest -V -C ${env:BUILD_TYPE}
+      run: ctest -V -C ${env:BUILD_TYPE}--test-dir build

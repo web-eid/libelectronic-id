@@ -1,3 +1,0 @@
-[submodule "lib/libpcsc-cpp"]
-	path = lib/libpcsc-cpp
-	url = ../libpcsc-cpp
