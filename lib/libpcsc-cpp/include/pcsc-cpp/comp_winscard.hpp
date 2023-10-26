@@ -68,6 +68,21 @@ enum DRIVER_FEATURES : uint8_t {
     FEATURE_CCID_ESC_COMMAND = 0x13
 };
 
+enum TLV_PROPERTIES : uint8_t {
+    TLV_PROPERTY_wLcdLayout = 0x01,
+    TLV_PROPERTY_bEntryValidationCondition = 0x02,
+    TLV_PROPERTY_bTimeOut2 = 0x03,
+    TLV_PROPERTY_wLcdMaxCharacters = 0x04,
+    TLV_PROPERTY_wLcdMaxLines = 0x05,
+    TLV_PROPERTY_bMinPINSize = 0x06,
+    TLV_PROPERTY_bMaxPINSize = 0x07,
+    TLV_PROPERTY_sFirmwareID = 0x08,
+    TLV_PROPERTY_bPPDUSupport = 0x09,
+    TLV_PROPERTY_dwMaxAPDUDataSize = 0x0A,
+    TLV_PROPERTY_wIdVendor = 0x0B,
+    TLV_PROPERTY_wIdProduct = 0x0C,
+};
+
 using PCSC_TLV_STRUCTURE = struct
 {
     uint8_t tag;
