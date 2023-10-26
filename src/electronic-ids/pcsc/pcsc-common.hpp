@@ -180,7 +180,7 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
 inline pcsc_cpp::byte_type selectSecurityEnv(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type env,
                                              pcsc_cpp::byte_type signatureAlgo,
                                              pcsc_cpp::byte_type keyReference,
-                              const std::string& cardType)
+                                             const std::string& cardType)
 {
     const auto response = card.transmit(
         {0x00, 0x22, 0x41, env, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});

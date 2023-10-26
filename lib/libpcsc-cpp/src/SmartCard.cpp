@@ -70,6 +70,20 @@ std::pair<SCARDHANDLE, DWORD> connectToCard(const SCARDCONTEXT ctx, const string
     return std::pair<SCARDHANDLE, DWORD> {cardHandle, protocolOut};
 }
 
+template <class K, class V = uint32_t, class D, size_t dsize, typename Func>
+constexpr std::map<K, V> parseTLV(const std::array<D, dsize>& data, DWORD size, Func transfrom)
+{
+    std::map<K, V> result;
+    for (auto p = data.cbegin(); DWORD(std::distance(data.cbegin(), p)) < size;) {
+        auto tag = K(*p++);
+        V value {};
+        for (unsigned int i = 0, len = *p++; i < len; ++i)
+            value |= V(*p++) << 8 * i;
+        result[tag] = transfrom(value);
+    }
+    return result;
+}
+
 } // namespace
 
 namespace pcsc_cpp
@@ -84,15 +98,21 @@ public:
         // TODO: debug("Protocol: " + to_string(protocol()))
         try {
             DWORD size = 0;
-            std::array<BYTE, 256> feature {};
-            SCard(Control, cardHandle, DWORD(CM_IOCTL_GET_FEATURE_REQUEST), nullptr, 0U,
-                  feature.data(), DWORD(feature.size()), &size);
-            for (auto p = feature.cbegin(); DWORD(std::distance(feature.cbegin(), p)) < size;) {
-                auto tag = DRIVER_FEATURES(*p++);
-                uint32_t value = 0;
-                for (unsigned int i = 0, len = *p++; i < len; ++i)
-                    value |= uint32_t(*p++) << 8 * i;
-                features[tag] = ntohl(value);
+            std::array<BYTE, 256> buf {};
+            SCard(Control, cardHandle, DWORD(CM_IOCTL_GET_FEATURE_REQUEST), nullptr, 0U, buf.data(),
+                  DWORD(buf.size()), &size);
+            features = parseTLV<DRIVER_FEATURES>(buf, size, [](uint32_t t) { return ntohl(t); });
+
+            if (auto ioctl = features.find(FEATURE_GET_TLV_PROPERTIES); ioctl != features.cend()) {
+                SCard(Control, cardHandle, ioctl->second, nullptr, 0U, buf.data(),
+                      DWORD(buf.size()), &size);
+                auto properties = parseTLV<TLV_PROPERTIES>(buf, size, [](uint32_t t) { return t; });
+                if (auto vendor = properties.find(TLV_PROPERTY_wIdVendor);
+                    vendor != properties.cend())
+                    id_vendor = vendor->second;
+                if (auto product = properties.find(TLV_PROPERTY_wIdProduct);
+                    product != properties.cend())
+                    id_product = product->second;
             }
         } catch (const ScardError&) {
             // Ignore driver errors during card feature requests.
@@ -114,6 +134,11 @@ public:
 
     bool readerHasPinPad() const
     {
+        // Some readers claim to have PinPAD support even if they have not
+        // HID Global OMNIKEY 3x21 Smart Card Reader / HID Global OMNIKEY 6121 Smart Card Reader
+        if ((id_vendor == 0x076B && id_product == 0x3031)
+            || (id_vendor == 0x076B && id_product == 0x6632))
+            return false;
         if (getenv("SMARTCARDPP_NOPINPAD"))
             return false;
         return features.find(FEATURE_VERIFY_PIN_START) != features.cend()
@@ -168,10 +193,9 @@ public:
         SCard(Control, cardHandle, ioctl, cmd.data(), DWORD(cmd.size()),
               LPVOID(responseBytes.data()), DWORD(responseBytes.size()), &responseLength);
 
-        if (features.find(FEATURE_VERIFY_PIN_FINISH) != features.cend()) {
-            DWORD finish = features.at(FEATURE_VERIFY_PIN_FINISH);
+        if (auto finish = features.find(FEATURE_VERIFY_PIN_FINISH); finish != features.cend()) {
             responseLength = DWORD(responseBytes.size());
-            SCard(Control, cardHandle, finish, nullptr, 0U, LPVOID(responseBytes.data()),
+            SCard(Control, cardHandle, finish->second, nullptr, 0U, LPVOID(responseBytes.data()),
                   DWORD(responseBytes.size()), &responseLength);
         }
 
@@ -188,6 +212,8 @@ private:
     SCARDHANDLE cardHandle;
     const SCARD_IO_REQUEST _protocol;
     std::map<DRIVER_FEATURES, uint32_t> features;
+    uint32_t id_vendor {};
+    uint32_t id_product {};
 
     ResponseApdu toResponse(byte_vector&& responseBytes, size_t responseLength) const
     {
