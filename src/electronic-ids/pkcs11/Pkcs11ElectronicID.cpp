@@ -232,7 +232,8 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::authPinRetriesLeft()
     return {authToken.retry, module.retryMax};
 }
 
-pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_vector& pin,
+pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_vector& cert,
+                                                          const pcsc_cpp::byte_vector& pin,
                                                           const pcsc_cpp::byte_vector& hash) const
 {
     try {
@@ -242,6 +243,10 @@ pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_v
             manager->sign(authToken, hash, authSignatureAlgorithm().hashAlgorithm(),
                           module.providesExternalPinDialog,
                           reinterpret_cast<const char*>(pin.data()), pin.size());
+        if (!verifyDigest(authSignatureAlgorithm(), cert, hash, signature.first)) {
+            THROW(SmartCardError, "Failed to validate given signature!");
+        }
+
         return signature.first;
     } catch (const VerifyPinFailed& e) {
         // Catch and rethrow the VerifyPinFailed error with -1 to inform the caller of the special
@@ -265,7 +270,8 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::signingPinRetriesLef
     return {signingToken.retry, module.retryMax};
 }
 
-ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::byte_vector& pin,
+ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::byte_vector& cert,
+                                                               const pcsc_cpp::byte_vector& pin,
                                                                const pcsc_cpp::byte_vector& hash,
                                                                const HashAlgorithm hashAlgo) const
 {
@@ -281,6 +287,10 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
             THROW(SmartCardChangeRequiredError,
                   "Signature algorithm " + std::string(signature.second) + " is not supported by "
                       + name());
+        }
+
+        if (!verifyDigest(signature.second, cert, hash, signature.first)) {
+            THROW(SmartCardError, "Failed to validate given signature!");
         }
 
         return signature;

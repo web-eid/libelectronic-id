@@ -66,7 +66,8 @@ public:
 
     virtual PinRetriesRemainingAndMax authPinRetriesLeft() const = 0;
 
-    virtual pcsc_cpp::byte_vector signWithAuthKey(const byte_vector& pin,
+    virtual pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& cert,
+                                                  const byte_vector& pin,
                                                   const byte_vector& hash) const = 0;
 
     // Functions related to signing.
@@ -78,7 +79,8 @@ public:
 
     virtual PinRetriesRemainingAndMax signingPinRetriesLeft() const = 0;
 
-    virtual Signature signWithSigningKey(const byte_vector& pin, const byte_vector& hash,
+    virtual Signature signWithSigningKey(const byte_vector& cert, const byte_vector& pin,
+                                         const byte_vector& hash,
                                          const HashAlgorithm hashAlgo) const = 0;
 
     // General functions.
