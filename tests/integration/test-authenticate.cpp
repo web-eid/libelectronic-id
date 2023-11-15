@@ -59,13 +59,12 @@ TEST(electronic_id_test, authenticate)
 
     const byte_vector pin {'1', '2', '3', '4'};
 
-    std::cout << "WARNING! Using hard-coded PIN "
-              << std::string(reinterpret_cast<const char*>(pin.data()), pin.size()) << '\n';
+    std::cout << "WARNING! Using hard-coded PIN " << std::string(pin.cbegin(), pin.cend()) << '\n';
 
     const byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
     const JsonWebSignatureAlgorithm hashAlgo = cardInfo->eid().authSignatureAlgorithm();
     const byte_vector hash = calculateDigest(hashAlgo.hashAlgorithm(), dataToSign);
-    auto signature = cardInfo->eid().signWithAuthKey(pin, hash);
+    auto signature = cardInfo->eid().signWithAuthKey(cert, pin, hash);
 
     std::cout << "Authentication signature: " << signature << '\n';
 
