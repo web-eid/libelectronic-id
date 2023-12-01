@@ -14,3 +14,8 @@ inline electronic_id::CardInfo::ptr autoSelectSupportedCard() {
 
     return  cardList[0];
 }
+
+inline std::ostream &operator<<(std::ostream &os, const pcsc_cpp::byte_vector &data)
+{
+    return os << pcsc_cpp::bytes2hexstr(data);
+}

@@ -31,15 +31,12 @@
 namespace electronic_id
 {
 
-inline pcsc_cpp::byte_vector
-getCertificate(pcsc_cpp::SmartCard& card,
-               const std::vector<pcsc_cpp::byte_vector>& selectCertFileCmds)
+inline pcsc_cpp::byte_vector getCertificate(pcsc_cpp::SmartCard& card,
+                                            const pcsc_cpp::byte_vector& selectCertFileCmd)
 {
     static const size_t MAX_LE_VALUE = 0xb5;
 
-    for (const auto& commandApdu : selectCertFileCmds) {
-        transmitApduWithExpectedResponse(card, commandApdu);
-    }
+    transmitApduWithExpectedResponse(card, selectCertFileCmd);
 
     const auto length = readDataLengthFromAsn1(card);
 

@@ -43,9 +43,12 @@ TEST(electronic_id_test, authenticate)
     std::cout << "Does the reader have a PIN-pad? "
               << (cardInfo->eid().smartcard().readerHasPinPad() ? "yes" : "no") << '\n';
 
-    if (cardInfo->eid().authSignatureAlgorithm() != JsonWebSignatureAlgorithm::ES384
-        && cardInfo->eid().authSignatureAlgorithm() != JsonWebSignatureAlgorithm::RS256
-        && cardInfo->eid().authSignatureAlgorithm() != JsonWebSignatureAlgorithm::PS256) {
+    switch (cardInfo->eid().authSignatureAlgorithm()) {
+    case JsonWebSignatureAlgorithm::ES384:
+    case JsonWebSignatureAlgorithm::RS256:
+    case JsonWebSignatureAlgorithm::PS256:
+        break;
+    default:
         // TODO: Add other algorithms as required.
         throw std::runtime_error(
             "TEST authenticate: Only ES384, RS256 and PS256 signature algorithm "
@@ -54,9 +57,7 @@ TEST(electronic_id_test, authenticate)
 
     GTEST_ASSERT_GE(cardInfo->eid().authPinRetriesLeft().first, 0U);
 
-    const auto &pin = cardInfo->eid().name() == "EstEID Gemalto v3.5.8"
-        ? byte_vector {'0', '0', '9', '0'} // Gemalto test card default PIN1
-        : byte_vector {'1', '2', '3', '4'};
+    const byte_vector pin {'1', '2', '3', '4'};
 
     std::cout << "WARNING! Using hard-coded PIN "
               << std::string(reinterpret_cast<const char*>(pin.data()), pin.size()) << '\n';
@@ -66,7 +67,7 @@ TEST(electronic_id_test, authenticate)
     const byte_vector hash = calculateDigest(hashAlgo.hashAlgorithm(), dataToSign);
     auto signature = cardInfo->eid().signWithAuthKey(pin, hash);
 
-    std::cout << "Authentication signature: " << pcsc_cpp::bytes2hexstr(signature) << '\n';
+    std::cout << "Authentication signature: " << signature << '\n';
 
     if (!verify(hashAlgo.hashAlgorithm(), cert, dataToSign, signature,
                 hashAlgo == JsonWebSignatureAlgorithm::PS256)) {

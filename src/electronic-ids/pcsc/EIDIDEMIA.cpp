@@ -41,11 +41,9 @@ byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
     transmitApduWithExpectedResponse(*card,
                                      type.isAuthentication() ? selectApplicationID().AUTH_AID
                                                              : selectApplicationID().SIGN_AID);
-    return electronic_id::getCertificate(
-        *card,
-        {
-            type.isAuthentication() ? selectCertificate().AUTH_CERT : selectCertificate().SIGN_CERT,
-        });
+    return electronic_id::getCertificate(*card,
+                                         type.isAuthentication() ? selectCertificate().AUTH_CERT
+                                                                 : selectCertificate().SIGN_CERT);
 }
 
 byte_vector EIDIDEMIA::signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const

@@ -23,8 +23,6 @@
 #include "../common/selectcard.hpp"
 #include "../common/verify.hpp"
 
-#include "electronic-id/electronic-id.hpp"
-
 #include "select-certificate-script.hpp"
 #include "atrs.hpp"
 
@@ -35,34 +33,6 @@ using namespace electronic_id;
 namespace
 {
 const pcsc_cpp::byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
-}
-
-TEST(electronic_id_test, selectCertificateEstGEMALTO)
-{
-    PcscMock::setAtr(ESTEID_GEMALTO_V3_5_8_COLD_ATR);
-    auto cardInfo = autoSelectSupportedCard();
-
-    PcscMock::setApduScript(ESTEID_GEMALTO_V3_5_8_GET_AUTH_CERTIFICATE_AND_AUTHENTICATE);
-    EXPECT_TRUE(cardInfo);
-    EXPECT_EQ(cardInfo->eid().name(), "EstEID Gemalto v3.5.8");
-    auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
-    EXPECT_EQ(certificateAuth.size(), 1611U);
-
-    auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3U);
-    EXPECT_EQ(authRetriesLeft.second, 3);
-
-    PcscMock::setApduScript(ESTEID_GEMALTO_V3_5_8_GET_SIGN_CERTIFICATE_AND_SIGNING);
-    EXPECT_TRUE(cardInfo);
-    EXPECT_EQ(cardInfo->eid().name(), "EstEID Gemalto v3.5.8");
-    auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
-    EXPECT_EQ(certificateSign.size(), 1478U);
-
-    auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3U);
-    EXPECT_EQ(signingRetriesLeft.second, 3);
-
-    PcscMock::reset();
 }
 
 TEST(electronic_id_test, selectCertificateEstIDEMIA)

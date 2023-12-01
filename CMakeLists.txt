@@ -19,8 +19,6 @@ add_library(${PROJECT_NAME}
   src/electronic-ids/x509.hpp
   src/electronic-ids/pcsc/EIDIDEMIA.cpp
   src/electronic-ids/pcsc/EIDIDEMIA.hpp
-  src/electronic-ids/pcsc/EstEIDGemalto.cpp
-  src/electronic-ids/pcsc/EstEIDGemalto.hpp
   src/electronic-ids/pcsc/EstEIDIDEMIA.cpp
   src/electronic-ids/pcsc/EstEIDIDEMIA.hpp
   src/electronic-ids/pcsc/FinEID.cpp
@@ -77,7 +75,6 @@ add_executable(${MOCK_TEST_EXE}
   tests/common/verify.hpp
   tests/mock/atrs.hpp
   tests/mock/select-certificate-script.hpp
-  tests/mock/select-certificate-script-EST-GEMALTO.hpp
   tests/mock/select-certificate-script-EST-IDEMIA.hpp
   tests/mock/select-certificate-script-FIN-V3.hpp
   tests/mock/select-certificate-script-FIN-V4.hpp
