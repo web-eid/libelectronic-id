@@ -66,10 +66,9 @@ namespace electronic_id
 
 byte_vector FinEIDv3::getCertificateImpl(const CertificateType type) const
 {
+    transmitApduWithExpectedResponse(*card, SELECT_MAIN_AID);
     return electronic_id::getCertificate(
-        *card,
-        {SELECT_MAIN_AID,
-         type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V3});
+        *card, type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V3);
 }
 
 byte_vector FinEIDv3::signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const
@@ -190,10 +189,9 @@ ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinRe
 
 byte_vector FinEIDv4::getCertificateImpl(const CertificateType type) const
 {
+    transmitApduWithExpectedResponse(*card, SELECT_MAIN_AID);
     return electronic_id::getCertificate(
-        *card,
-        {SELECT_MAIN_AID,
-         type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V4});
+        *card, type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V4);
 }
 
 byte_vector FinEIDv4::signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const

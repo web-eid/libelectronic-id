@@ -20,7 +20,6 @@
  * SOFTWARE.
  */
 
-#include "electronic-ids/pcsc/EstEIDGemalto.hpp"
 #include "electronic-ids/pcsc/EstEIDIDEMIA.hpp"
 #include "electronic-ids/pcsc/FinEID.hpp"
 #include "electronic-ids/pcsc/LatEIDIDEMIAv1.hpp"
@@ -58,14 +57,6 @@ constexpr auto constructor(const Reader& /*reader*/)
 
 // Supported cards.
 const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS {
-    // EstEID Gemalto v3.5.8 cold
-    {{0x3b, 0xfa, 0x18, 0x00, 0x00, 0x80, 0x31, 0xfe, 0x45, 0xfe,
-      0x65, 0x49, 0x44, 0x20, 0x2f, 0x20, 0x50, 0x4b, 0x49, 0x03},
-     constructor<EstEIDGemaltoV3_5_8>},
-    // EstEID Gemalto v3.5.8 warm
-    {{0x3b, 0xfe, 0x18, 0x00, 0x00, 0x80, 0x31, 0xfe, 0x45, 0x80, 0x31, 0x80,
-      0x66, 0x40, 0x90, 0xa4, 0x16, 0x2a, 0x00, 0x83, 0x0f, 0x90, 0x00, 0xef},
-     constructor<EstEIDGemaltoV3_5_8>},
     // EstEID Idemia v1.0
     {{0x3b, 0xdb, 0x96, 0x00, 0x80, 0xb1, 0xfe, 0x45, 0x1f, 0x83, 0x00,
       0x12, 0x23, 0x3f, 0x53, 0x65, 0x49, 0x44, 0x0f, 0x90, 0x00, 0xf1},
@@ -156,7 +147,7 @@ ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 
 bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo) const
 {
-    const auto &supported = supportedSigningAlgorithms();
+    const auto& supported = supportedSigningAlgorithms();
     return std::find(supported.cbegin(), supported.cend(), hashAlgo) != supported.cend();
 }
 
@@ -187,20 +178,17 @@ HashAlgorithm::HashAlgorithm(const std::string& algoName)
 HashAlgorithm::operator std::string() const
 {
     const auto algoNameValuePair =
-        std::find_if(SUPPORTED_ALGORITHMS.begin(), SUPPORTED_ALGORITHMS.end(),
+        std::find_if(SUPPORTED_ALGORITHMS.cbegin(), SUPPORTED_ALGORITHMS.cend(),
                      [this](const auto& pair) { return pair.second == value; });
-    return algoNameValuePair != SUPPORTED_ALGORITHMS.end() ? algoNameValuePair->first : "UNKNOWN";
+    return algoNameValuePair != SUPPORTED_ALGORITHMS.cend() ? algoNameValuePair->first : "UNKNOWN";
 }
 
 std::string HashAlgorithm::allSupportedAlgorithmNames()
 {
-    static auto SUPPORTED_ALGORITHM_NAMES = std::string {};
-    if (SUPPORTED_ALGORITHM_NAMES.empty()) {
-        SUPPORTED_ALGORITHM_NAMES = std::accumulate(
-            std::next(SUPPORTED_ALGORITHMS.begin()), SUPPORTED_ALGORITHMS.end(),
-            SUPPORTED_ALGORITHMS.begin()->first,
-            [](auto result, const auto& value) { return result + ", "s + value.first; });
-    }
+    static const auto SUPPORTED_ALGORITHM_NAMES = std::accumulate(
+        std::next(SUPPORTED_ALGORITHMS.begin()), SUPPORTED_ALGORITHMS.end(),
+        std::string(SUPPORTED_ALGORITHMS.begin()->first),
+        [](auto result, const auto& value) { return result + ", "s + std::string(value.first); });
     return SUPPORTED_ALGORITHM_NAMES;
 }
 

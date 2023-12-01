@@ -22,8 +22,6 @@
 
 #include "../common/selectcard.hpp"
 
-#include "electronic-id/electronic-id.hpp"
-
 #include "gtest/gtest.h"
 
 #include <iostream>
@@ -36,13 +34,13 @@ TEST(electronic_id_test, getCertificate)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->eid().name() << std::endl;
+    std::cout << "Selected card: " << cardInfo->eid().name() << '\n';
 
     auto certificate = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
 
-    std::cout << "Authentication certificate: " << pcsc_cpp::bytes2hexstr(certificate) << std::endl;
+    std::cout << "Authentication certificate: " << certificate << '\n';
 
     certificate = cardInfo->eid().getCertificate(CertificateType::SIGNING);
 
-    std::cout << "Signing certificate: " << pcsc_cpp::bytes2hexstr(certificate) << std::endl;
+    std::cout << "Signing certificate: " << certificate << '\n';
 }
