@@ -34,20 +34,16 @@ public:
     ~LatEIDIDEMIAV2() override;
     PCSC_CPP_DISABLE_COPY_MOVE(LatEIDIDEMIAV2);
 
-    bool isUpdated() const override;
-
 private:
-    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
-    {
-        return isUpdated() ? JsonWebSignatureAlgorithm::ES384 : JsonWebSignatureAlgorithm::RS256;
-    }
+    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override;
 
     std::string name() const override { return "LatEID IDEMIA v2"; }
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
-    SignatureAlgorithm signingSignatureAlgorithm() const override { return SignatureAlgorithm::RS; }
+    SignatureAlgorithm signingSignatureAlgorithm() const override;
 
-    const ManageSecurityEnvCmds& selectSecurityEnv() const override;
+    void selectAuthSecurityEnv() const override;
+    pcsc_cpp::byte_type selectSignSecurityEnv() const override;
 
     struct Private;
     std::unique_ptr<Private> data;

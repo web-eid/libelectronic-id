@@ -30,7 +30,7 @@ namespace electronic_id
 class EstEIDIDEMIAV1 : public EIDIDEMIA
 {
 public:
-    EstEIDIDEMIAV1(pcsc_cpp::SmartCard::ptr _card) : EIDIDEMIA(std::move(_card)) {}
+    explicit EstEIDIDEMIAV1(pcsc_cpp::SmartCard::ptr _card) : EIDIDEMIA(std::move(_card)) {}
 
 private:
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
@@ -42,14 +42,12 @@ private:
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
     SignatureAlgorithm signingSignatureAlgorithm() const override { return SignatureAlgorithm::ES; }
     PinMinMaxLength signingPinMinMaxLength() const override { return {5, 12}; }
-    Signature signWithSigningKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                     const pcsc_cpp::byte_vector& hash,
-                                     const HashAlgorithm hashAlgo) const override;
 
     std::string name() const override { return "EstEID IDEMIA v1"; }
     Type type() const override { return EstEID; }
 
-    const ManageSecurityEnvCmds& selectSecurityEnv() const override;
+    void selectAuthSecurityEnv() const override;
+    pcsc_cpp::byte_type selectSignSecurityEnv() const override;
 };
 
 } // namespace electronic_id

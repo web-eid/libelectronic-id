@@ -60,20 +60,14 @@ inline auto system32Path()
 }
 #endif
 
-inline fs::path lithuanianPKCS11ModulePath(bool v2)
+inline fs::path lithuanianPKCS11ModulePath()
 {
 #ifdef _WIN32
-    return programFilesPath()
-        / (v2 ? L"PWPW/pwpw-card-pkcs11.dll" : L"Softemia/mcard/mcard-pkcs11.dll");
+    return programFilesPath() / L"Softemia/mcard/mcard-pkcs11.dll";
 #elif defined(__APPLE__)
-    static const std::string_view path1("/Library/PWPW-Card/lib/pwpw-card-pkcs11.so");
-    static const std::string_view path2("/Library/mCard/lib/mcard-pkcs11.so");
-    return v2 ? path1 : path2;
+    return "/Library/mCard/lib/mcard-pkcs11.so";
 #else
-    static const std::string_view path1("/usr/lib64/pwpw-card-pkcs11.so");
-    static const std::string_view path2("/usr/lib/pwpw-card-pkcs11.so");
-    static const std::string_view path3("/usr/lib/mcard-pkcs11.so");
-    return v2 ? (fs::exists(path1) ? path1 : path2) : path3;
+    return "/usr/lib/mcard-pkcs11.so";
 #endif
 }
 
@@ -100,6 +94,17 @@ inline fs::path belgianPkcs11ModulePath()
 #endif
 }
 
+inline fs::path czechPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return system32Path() / L"eopproxyp11.dll";
+#elif defined __APPLE__
+    return "/usr/local/lib/eOPCZE/libeopproxyp11.dylib";
+#else // Linux
+    return "/usr/lib/x86_64-linux-gnu/libeopproxyp11.so";
+#endif
+}
+
 const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS11_MODULES {
     // EstEIDIDEMIAV1 configuration is here only for testing,
     // it is not enabled in getElectronicID().
@@ -115,23 +120,11 @@ const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS1
          false,
          false,
      }},
-    {Pkcs11ElectronicIDType::LitEIDv2,
-     {
-         "Lithuanian eID (PKCS#11)"s, // name
-         ElectronicID::Type::LitEID, // type
-         lithuanianPKCS11ModulePath(true).make_preferred(), // path
-
-         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-         -1,
-         false,
-         false,
-     }},
     {Pkcs11ElectronicIDType::LitEIDv3,
      {
          "Lithuanian eID (PKCS#11)"s, // name
          ElectronicID::Type::LitEID, // type
-         lithuanianPKCS11ModulePath(false).make_preferred(), // path
+         lithuanianPKCS11ModulePath().make_preferred(), // path
 
          JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
          ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
@@ -175,6 +168,18 @@ const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS1
          3,
          true,
          true,
+     }},
+    {Pkcs11ElectronicIDType::CzeEID,
+     {
+         "Czech eID (PKCS#11)"s, // name
+         ElectronicID::Type::CzeEID, // type
+         czechPkcs11ModulePath().make_preferred(), // path
+
+         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+         3,
+         true,
+         false,
      }},
 };
 

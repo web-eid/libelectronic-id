@@ -137,7 +137,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     verifyPin(*card, pinReference, pin, pinMinMaxLength.first, pinMinMaxLength.second,
               PIN_PADDING_CHAR);
     // Select security environment for COMPUTE SIGNATURE.
-    selectComputeSignatureEnv(*card, signatureAlgo, keyReference, name());
+    selectSecurityEnv(*card, 0xB6, signatureAlgo, keyReference, name());
 
     byte_vector tlv {0x90, byte_type(hash.size())};
     tlv.insert(tlv.cend(), hash.cbegin(), hash.cend());

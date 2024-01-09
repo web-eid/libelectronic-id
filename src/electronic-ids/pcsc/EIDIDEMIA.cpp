@@ -41,10 +41,11 @@ byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
     transmitApduWithExpectedResponse(*card,
                                      type.isAuthentication() ? selectApplicationID().AUTH_AID
                                                              : selectApplicationID().SIGN_AID);
-    const std::vector<byte_vector> SELECT_AID_AND_CERT_FILE {
-        type.isAuthentication() ? selectCertificate().AUTH_CERT : selectCertificate().SIGN_CERT,
-    };
-    return electronic_id::getCertificate(*card, SELECT_AID_AND_CERT_FILE);
+    return electronic_id::getCertificate(
+        *card,
+        {
+            type.isAuthentication() ? selectCertificate().AUTH_CERT : selectCertificate().SIGN_CERT,
+        });
 }
 
 byte_vector EIDIDEMIA::signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const
@@ -52,7 +53,7 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(const byte_vector& pin, const byte_ve
     // Select authentication application and authentication security environment.
     transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
     transmitApduWithExpectedResponse(*card, selectApplicationID().AUTH_AID);
-    transmitApduWithExpectedResponse(*card, selectSecurityEnv().AUTH_ENV);
+    selectAuthSecurityEnv();
 
     verifyPin(*card, AUTH_PIN_REFERENCE, pin, authPinMinMaxLength().first, pinBlockLength(),
               PIN_PADDING_CHAR);
@@ -76,14 +77,25 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const byte_vector& pin
 {
     // Select signing application and signing security environment.
     transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
-    transmitApduWithExpectedResponse(*card, selectSecurityEnv().SIGN_ENV);
+    pcsc_cpp::byte_type algo = selectSignSecurityEnv();
+    auto tmp = hash;
+    if (algo == 0x54) {
+        constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
+        if (tmp.size() < ECDSA384_INPUT_LENGTH) {
+            // Zero-pad hashes that are shorter than SHA-384.
+            tmp.insert(tmp.cbegin(), ECDSA384_INPUT_LENGTH - tmp.size(), 0x00);
+        } else if (tmp.size() > ECDSA384_INPUT_LENGTH) {
+            // Truncate hashes that are longer than SHA-384.
+            tmp.resize(ECDSA384_INPUT_LENGTH);
+        }
+    }
 
     verifyPin(*card, signingPinReference(), pin, signingPinMinMaxLength().first, pinBlockLength(),
               PIN_PADDING_CHAR);
 
     return {useInternalAuthenticateAndRSAWithPKCS1PaddingDuringSigning()
                 ? internalAuthenticate(*card, addRSAOID(hashAlgo, hash), name())
-                : computeSignature(*card, hash, name()),
+                : computeSignature(*card, tmp, name()),
             {signingSignatureAlgorithm(), hashAlgo}};
 }
 
@@ -117,13 +129,7 @@ const SelectCertificateCmds& EIDIDEMIA::selectCertificate() const
         // Signing certificate.
         {0x00, 0xA4, 0x02, 0x0C, 0x02, 0x34, 0x1F},
     };
-    static const SelectCertificateCmds selectCert2Cmds {
-        // Authentication certificate.
-        {0x00, 0xA4, 0x02, 0x0C, 0x02, 0x34, 0x02},
-        // Signing certificate.
-        {0x00, 0xA4, 0x02, 0x0C, 0x02, 0x34, 0x1E},
-    };
-    return isUpdated() ? selectCert2Cmds : selectCert1Cmds;
+    return selectCert1Cmds;
 }
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(byte_type pinReference) const

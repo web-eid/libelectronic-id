@@ -29,40 +29,17 @@
 
 using namespace electronic_id;
 
-const ManageSecurityEnvCmds& EstEIDIDEMIAV1::selectSecurityEnv() const
+void EstEIDIDEMIAV1::selectAuthSecurityEnv() const
 {
-    static const ManageSecurityEnvCmds selectSecurityEnv1Cmds {
-        // Activate authentication environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x04, 0x84, 0x01, 0x81},
-        // Activate signing environment.
-        {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x54, 0x84, 0x01, 0x9f},
-    };
-    static const ManageSecurityEnvCmds selectSecurityEnv2Cmds {
-        // Activate authentication environment.
-        {0x00, 0x22, 0x41, 0xa4, 0x06, 0x80, 0x01, 0x04, 0x84, 0x01, 0x82},
-        // Activate signing environment.
-        {0x00, 0x22, 0x41, 0xb6, 0x06, 0x80, 0x01, 0x64, 0x84, 0x01, 0x9e},
-    };
-    return isUpdated() ? selectSecurityEnv2Cmds : selectSecurityEnv1Cmds;
+    selectSecurityEnv(*card, 0xA4, 0x04, 0x81, name());
+}
+
+pcsc_cpp::byte_type EstEIDIDEMIAV1::selectSignSecurityEnv() const
+{
+    return selectSecurityEnv(*card, 0xB6, 0x54, 0x9f, name());
 }
 
 const std::set<SignatureAlgorithm>& EstEIDIDEMIAV1::supportedSigningAlgorithms() const
 {
     return ELLIPTIC_CURVE_SIGNATURE_ALGOS();
-}
-
-ElectronicID::Signature EstEIDIDEMIAV1::signWithSigningKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                                               const pcsc_cpp::byte_vector& hash,
-                                                               const HashAlgorithm hashAlgo) const
-{
-    static constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
-    auto tmp = hash;
-    if (tmp.size() < ECDSA384_INPUT_LENGTH) {
-        // Zero-pad hashes that are shorter than SHA-384.
-        tmp.insert(tmp.cbegin(), ECDSA384_INPUT_LENGTH - tmp.size(), 0x00);
-    } else if (tmp.size() > ECDSA384_INPUT_LENGTH) {
-        // Truncate hashes that are longer than SHA-384.
-        tmp.resize(ECDSA384_INPUT_LENGTH);
-    }
-    return EIDIDEMIA::signWithSigningKeyImpl(pin, tmp, hashAlgo);
 }
