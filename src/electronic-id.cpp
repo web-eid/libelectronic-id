@@ -48,11 +48,8 @@ namespace
     {
         const byte_vector token;
         const byte_vector mask;
-    };
-    // Function to compare ElectronicID Type by comparing the token using the mask.
-    struct ElectronicIDTypeCmp
-    {
-        bool operator()(const ElectronicIDType& lhs, const ElectronicIDType& rhs) const
+
+        friend bool operator<(const ElectronicIDType& lhs, const ElectronicIDType& rhs)
         {
             if (lhs.token.size() != rhs.token.size())
                 return lhs.token < rhs.token;
@@ -205,13 +202,15 @@ namespace electronic_id
 
 bool isCardSupported(const pcsc_cpp::byte_vector& atr)
 {
-    return SUPPORTED_ATRS.count(atr);
+    ElectronicIDType atrToken = {atr, {}};
+    return SUPPORTED_ATRS.count(atrToken);
 }
 
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 {
     try {
-        const auto& eidConstructor = SUPPORTED_ATRS.at(reader.cardAtr);
+        ElectronicIDType atrToken = {reader.cardAtr, {}};
+        const auto& eidConstructor = SUPPORTED_ATRS.at(atrToken);
         return eidConstructor(reader);
     } catch (const std::out_of_range&) {
         // It should be verified that the card is supported with isCardSupported() before
