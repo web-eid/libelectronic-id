@@ -27,4 +27,4 @@ jobs:
       run: cmake --build build --config ${env:BUILD_TYPE}
 
     - name: Test
-      run: ctest -V -C ${env:BUILD_TYPE}--test-dir build
+      run: ctest -V -C ${env:BUILD_TYPE} --test-dir build
