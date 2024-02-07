@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2023 Estonian Information System Authority
+ * Copyright (c) 2020-2024 Estonian Information System Authority
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +51,7 @@ class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
 /** Returns the value of the response status bytes SW1 and SW2 as a single status word SW. */
-inline constexpr uint16_t toSW(byte_type sw1, byte_type sw2)
+constexpr uint16_t toSW(byte_type sw1, byte_type sw2)
 {
     return uint16_t(sw1 << 8) | sw2;
 }
