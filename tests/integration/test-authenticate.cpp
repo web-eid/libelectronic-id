@@ -36,12 +36,12 @@ TEST(electronic_id_test, authenticate)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->eid().name() << std::endl;
+    std::cout << "Selected card: " << cardInfo->eid().name() << '\n';
 
     byte_vector cert = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
 
     std::cout << "Does the reader have a PIN-pad? "
-              << (cardInfo->eid().smartcard().readerHasPinPad() ? "yes" : "no") << std::endl;
+              << (cardInfo->eid().smartcard().readerHasPinPad() ? "yes" : "no") << '\n';
 
     if (cardInfo->eid().authSignatureAlgorithm() != JsonWebSignatureAlgorithm::ES384
         && cardInfo->eid().authSignatureAlgorithm() != JsonWebSignatureAlgorithm::RS256
@@ -52,21 +52,21 @@ TEST(electronic_id_test, authenticate)
             "currently supported");
     }
 
-    GTEST_ASSERT_GE(cardInfo->eid().authPinRetriesLeft().first, 0u);
+    GTEST_ASSERT_GE(cardInfo->eid().authPinRetriesLeft().first, 0U);
 
-    const auto pin = cardInfo->eid().name() == "EstEID Gemalto v3.5.8"
+    const auto &pin = cardInfo->eid().name() == "EstEID Gemalto v3.5.8"
         ? byte_vector {'0', '0', '9', '0'} // Gemalto test card default PIN1
         : byte_vector {'1', '2', '3', '4'};
 
     std::cout << "WARNING! Using hard-coded PIN "
-              << std::string(reinterpret_cast<const char*>(pin.data()), pin.size()) << std::endl;
+              << std::string(reinterpret_cast<const char*>(pin.data()), pin.size()) << '\n';
 
-    const byte_vector dataToSign = {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
+    const byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
     const JsonWebSignatureAlgorithm hashAlgo = cardInfo->eid().authSignatureAlgorithm();
     const byte_vector hash = calculateDigest(hashAlgo.hashAlgorithm(), dataToSign);
     auto signature = cardInfo->eid().signWithAuthKey(pin, hash);
 
-    std::cout << "Authentication signature: " << pcsc_cpp::bytes2hexstr(signature) << std::endl;
+    std::cout << "Authentication signature: " << pcsc_cpp::bytes2hexstr(signature) << '\n';
 
     if (!verify(hashAlgo.hashAlgorithm(), cert, dataToSign, signature,
                 hashAlgo == JsonWebSignatureAlgorithm::PS256)) {

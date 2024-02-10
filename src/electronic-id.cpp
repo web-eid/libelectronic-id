@@ -51,7 +51,7 @@ constexpr auto constructor(const Reader& reader)
 }
 
 template <Pkcs11ElectronicIDType value>
-constexpr auto constructor(const Reader&)
+constexpr auto constructor(const Reader& /*reader*/)
 {
     return std::make_unique<Pkcs11ElectronicID>(value);
 }
@@ -156,9 +156,8 @@ ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 
 bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo) const
 {
-    auto supported = supportedSigningAlgorithms();
-    return std::any_of(supported.cbegin(), supported.cend(),
-                       [hashAlgo](SignatureAlgorithm signAlgo) { return signAlgo == hashAlgo; });
+    const auto &supported = supportedSigningAlgorithms();
+    return std::find(supported.cbegin(), supported.cend(), hashAlgo) != supported.cend();
 }
 
 AutoSelectFailed::AutoSelectFailed(Reason r) :

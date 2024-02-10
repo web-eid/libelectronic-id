@@ -35,6 +35,25 @@
     Class(Class&&) = delete;                                                                       \
     Class& operator=(Class&&) = delete
 
+#ifdef WIN32
+#define PCSC_CPP_WARNING_PUSH __pragma(warning(push))
+#define PCSC_CPP_WARNING_POP __pragma(warning(pop))
+#define PCSC_CPP_WARNING_DISABLE_CLANG(text)
+#define PCSC_CPP_WARNING_DISABLE_GCC(text)
+#define PCSC_CPP_WARNING_DISABLE_MSVC(number) __pragma(warning(disable: number))
+#else
+#define PCSC_CPP_DO_PRAGMA(text) _Pragma(#text)
+#define PCSC_CPP_WARNING_PUSH PCSC_CPP_DO_PRAGMA(GCC diagnostic push)
+#define PCSC_CPP_WARNING_POP PCSC_CPP_DO_PRAGMA(GCC diagnostic pop)
+#if __clang__
+#define PCSC_CPP_WARNING_DISABLE_CLANG(text) PCSC_CPP_DO_PRAGMA(clang diagnostic ignored text)
+#else
+#define PCSC_CPP_WARNING_DISABLE_CLANG(text)
+#endif
+#define PCSC_CPP_WARNING_DISABLE_GCC(text) PCSC_CPP_DO_PRAGMA(GCC diagnostic ignored text)
+#define PCSC_CPP_WARNING_DISABLE_MSVC(text)
+#endif
+
 namespace pcsc_cpp
 {
 
@@ -75,8 +94,8 @@ struct ResponseApdu
 
     byte_vector data;
 
-    static const size_t MAX_DATA_SIZE = 256;
-    static const size_t MAX_SIZE = MAX_DATA_SIZE + 2; // + sw1 and sw2
+    static constexpr size_t MAX_DATA_SIZE = 256;
+    static constexpr size_t MAX_SIZE = MAX_DATA_SIZE + 2; // + sw1 and sw2
 
     ResponseApdu(byte_type s1, byte_type s2, byte_vector d = {}) :
         sw1(s1), sw2(s2), data(std::move(d))
@@ -85,15 +104,21 @@ struct ResponseApdu
 
     ResponseApdu() = default;
 
-    static ResponseApdu fromBytes(const byte_vector& data)
+    static ResponseApdu fromBytes(byte_vector data)
     {
         if (data.size() < 2) {
             throw std::invalid_argument("Need at least 2 bytes for creating ResponseApdu");
         }
 
+PCSC_CPP_WARNING_PUSH
+PCSC_CPP_WARNING_DISABLE_GCC("-Warray-bounds") // avoid GCC 13 false positive warning
+        byte_type sw1 = data[data.size() - 2];
+        byte_type sw2 = data[data.size() - 1];
+        data.resize(data.size() - 2);
+PCSC_CPP_WARNING_POP
+
         // SW1 and SW2 are in the end
-        return ResponseApdu {data[data.size() - 2], data[data.size() - 1],
-                             byte_vector {data.cbegin(), data.cend() - 2}};
+        return {sw1, sw2, std::move(data)};
     }
 
     byte_vector toBytes() const
