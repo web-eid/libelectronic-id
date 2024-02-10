@@ -130,7 +130,7 @@ public:
         SCard(Transmit, cardHandle, &_protocol, commandBytes.data(), DWORD(commandBytes.size()),
               nullptr, responseBytes.data(), &responseLength);
 
-        auto response = toResponse(responseBytes, responseLength);
+        auto response = toResponse(std::move(responseBytes), responseLength);
 
         if (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
             getMoreResponseData(response);
@@ -175,7 +175,7 @@ public:
                   DWORD(responseBytes.size()), &responseLength);
         }
 
-        return toResponse(responseBytes, responseLength);
+        return toResponse(std::move(responseBytes), responseLength);
     }
 
     void beginTransaction() const { SCard(BeginTransaction, cardHandle); }
@@ -189,7 +189,7 @@ private:
     const SCARD_IO_REQUEST _protocol;
     std::map<DRIVER_FEATURES, uint32_t> features;
 
-    ResponseApdu toResponse(byte_vector& responseBytes, size_t responseLength) const
+    ResponseApdu toResponse(byte_vector&& responseBytes, size_t responseLength) const
     {
         if (responseLength > responseBytes.size()) {
             THROW(Error, "SCardTransmit: received more bytes than buffer size");
@@ -198,7 +198,7 @@ private:
 
         // TODO: debug("Received: " + bytes2hexstr(responseBytes))
 
-        auto response = ResponseApdu::fromBytes(responseBytes);
+        auto response = ResponseApdu::fromBytes(std::move(responseBytes));
 
         // Let expected errors through for handling in upper layers or in if blocks below.
         switch (response.sw1) {

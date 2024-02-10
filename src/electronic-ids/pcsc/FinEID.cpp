@@ -142,7 +142,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     byte_vector tlv {0x90, byte_type(hash.size())};
     tlv.insert(tlv.cend(), hash.cbegin(), hash.cend());
 
-    const CommandApdu computeSignature {{0x00, 0x2A, 0x90, 0xA0}, tlv};
+    const CommandApdu computeSignature {{0x00, 0x2A, 0x90, 0xA0}, std::move(tlv)};
     const auto response = card->transmit(computeSignature);
 
     if (response.sw1 == ResponseApdu::WRONG_LENGTH) {
