@@ -71,7 +71,7 @@ std::pair<SCARDHANDLE, DWORD> connectToCard(const SCARDCONTEXT ctx, const string
 }
 
 template <class K, class V = uint32_t, class D, size_t dsize, typename Func>
-constexpr std::map<K, V> parseTLV(const std::array<D, dsize>& data, DWORD size, Func transfrom)
+constexpr std::map<K, V> parseTLV(const std::array<D, dsize>& data, DWORD size, Func transform)
 {
     std::map<K, V> result;
     for (auto p = data.cbegin(); DWORD(std::distance(data.cbegin(), p)) < size;) {
@@ -79,10 +79,14 @@ constexpr std::map<K, V> parseTLV(const std::array<D, dsize>& data, DWORD size, 
         V value {};
         for (unsigned int i = 0, len = *p++; i < len; ++i)
             value |= V(*p++) << 8 * i;
-        result[tag] = transfrom(value);
+        result[tag] = transform(value);
     }
     return result;
 }
+
+constexpr uint32_t VENDOR_HID_GLOBAL = 0x076B;
+constexpr uint32_t OMNIKEY_3x21 = 0x3031;
+constexpr uint32_t OMNIKEY_6121 = 0x6632;
 
 } // namespace
 
@@ -134,10 +138,10 @@ public:
 
     bool readerHasPinPad() const
     {
-        // Some readers claim to have PinPAD support even if they have not
-        // HID Global OMNIKEY 3x21 Smart Card Reader / HID Global OMNIKEY 6121 Smart Card Reader
-        if ((id_vendor == 0x076B && id_product == 0x3031)
-            || (id_vendor == 0x076B && id_product == 0x6632))
+        // The HID Global OMNIKEY 3x21 Smart Card Reader and HID Global OMNIKEY 6121 Smart Card Reader
+        // falsely report that they have PIN pad support even though they don't.
+        if (id_vendor == VENDOR_HID_GLOBAL &&
+                (id_product == OMNIKEY_3x21 || id_product == OMNIKEY_6121))
             return false;
         if (getenv("SMARTCARDPP_NOPINPAD"))
             return false;
