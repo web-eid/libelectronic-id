@@ -25,6 +25,7 @@
 #include "electronic-id/electronic-id.hpp"
 
 #include "../common.hpp"
+#include "../x509.hpp"
 
 namespace electronic_id
 {
@@ -41,23 +42,33 @@ protected:
         return getCertificateImpl(type);
     }
 
-    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
+    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& cert,
+                                          const pcsc_cpp::byte_vector& pin,
                                           const pcsc_cpp::byte_vector& hash) const override
     {
         validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
         auto transactionGuard = card->beginTransaction();
-        return signWithAuthKeyImpl(pin, hash);
+        auto signature = signWithAuthKeyImpl(pin, hash);
+        if (!verifyDigest(authSignatureAlgorithm(), cert, hash, signature)) {
+            THROW(SmartCardError, "Failed to validate given signature!");
+        }
+        return signature;
     }
 
-    Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
+    Signature signWithSigningKey(const pcsc_cpp::byte_vector& cert,
+                                 const pcsc_cpp::byte_vector& pin,
                                  const pcsc_cpp::byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override
     {
         validateSigningHash(*this, hashAlgo, hash);
 
         auto transactionGuard = card->beginTransaction();
-        return signWithSigningKeyImpl(pin, hash, hashAlgo);
+        auto signature = signWithSigningKeyImpl(pin, hash, hashAlgo);
+        if (!verifyDigest(signature.second, cert, hash, signature.first)) {
+            THROW(SmartCardError, "Failed to validate given signature!");
+        }
+        return signature;
     }
 
     PinRetriesRemainingAndMax signingPinRetriesLeft() const override

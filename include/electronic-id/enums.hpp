@@ -197,6 +197,8 @@ public:
 
     operator std::string() const;
 
+    operator HashAlgorithm() const { return hashAlgorithm(); }
+
     constexpr HashAlgorithm hashAlgorithm() const
     {
         switch (value) {
@@ -221,6 +223,11 @@ public:
     constexpr bool isRSAWithPKCS1Padding()
     {
         return value == RS256 || value == RS384 || value == RS512;
+    }
+
+    constexpr bool isRSAWithPSSPadding()
+    {
+        return value == PS256 || value == PS384 || value == PS512;
     }
 
     constexpr size_t hashByteLength() const { return hashAlgorithm().hashByteLength(); }
