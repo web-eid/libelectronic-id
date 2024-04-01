@@ -38,8 +38,8 @@ public:
     MsCryptoApiElectronicID(PCCERT_CONTEXT certCtx, pcsc_cpp::byte_vector&& cert,
                             CertificateType cType, bool isRsa, HCRYPTPROV_OR_NCRYPT_KEY_HANDLE k,
                             bool freeK) :
-        ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()},
-        certContext {certCtx}, certData {cert}, certType {cType},
+        ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()}, certContext {certCtx},
+        certData {cert}, certType {cType},
         // TODO: SignatureAlgorithm::PS?
         signatureAlgo {isRsa ? SignatureAlgorithm::RS : SignatureAlgorithm::ES}, key {k},
         freeKey {freeK}
@@ -59,7 +59,7 @@ public:
     // The following placeholders are not used as the external PIN dialog manages PIN length
     // validation.
     static const int8_t PIN_RETRY_COUNT_PLACEHOLDER = -1;
-    static const size_t PIN_LENGTH_PLACEHOLDER = 0;
+    static const uint8_t PIN_LENGTH_PLACEHOLDER = 0;
 
 private:
     // Use the external dialog provided by the CryptoAPI cryptographic service provider.
