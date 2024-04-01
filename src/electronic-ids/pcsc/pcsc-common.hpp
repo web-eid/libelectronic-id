@@ -52,7 +52,7 @@ inline pcsc_cpp::byte_vector addPaddingToPin(const pcsc_cpp::byte_vector& pin, s
 }
 
 inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
-                      const pcsc_cpp::byte_vector& pin, size_t pinMinLength, size_t paddingLength,
+                      const pcsc_cpp::byte_vector& pin, uint8_t pinMinLength, size_t paddingLength,
                       pcsc_cpp::byte_type paddingChar)
 {
     const pcsc_cpp::CommandApdu VERIFY_PIN {0x00, 0x20, 0x00, p2};
@@ -61,7 +61,7 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
     if (card.readerHasPinPad()) {
         const pcsc_cpp::CommandApdu verifyPin {VERIFY_PIN,
                                                addPaddingToPin({}, paddingLength, paddingChar)};
-        response = card.transmitCTL(verifyPin, 0, uint8_t(pinMinLength));
+        response = card.transmitCTL(verifyPin, 0, pinMinLength);
 
     } else {
         const pcsc_cpp::CommandApdu verifyPin {VERIFY_PIN,

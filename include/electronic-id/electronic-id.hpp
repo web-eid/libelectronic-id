@@ -24,10 +24,6 @@
 
 #include "enums.hpp"
 
-#include "pcsc-cpp/pcsc-cpp.hpp"
-
-#include <memory>
-
 namespace electronic_id
 {
 
@@ -37,7 +33,7 @@ class ElectronicID
 {
 public:
     using ptr = std::shared_ptr<ElectronicID>;
-    using PinMinMaxLength = std::pair<size_t, size_t>;
+    using PinMinMaxLength = std::pair<uint8_t, uint8_t>;
     using PinRetriesRemainingAndMax = std::pair<uint8_t, int8_t>;
     using byte_vector = pcsc_cpp::byte_vector;
     using byte_type = pcsc_cpp::byte_type;

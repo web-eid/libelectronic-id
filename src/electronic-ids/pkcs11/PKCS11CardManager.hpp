@@ -124,7 +124,7 @@ public:
         std::vector<CK_BYTE> cert, certID;
         int8_t retry;
         bool pinpad;
-        CK_ULONG minPinLen, maxPinLen;
+        uint8_t minPinLen, maxPinLen;
     };
 
     std::vector<Token> tokens() const
@@ -147,17 +147,15 @@ public:
 
             for (CK_OBJECT_HANDLE obj : findObject(session, CKO_CERTIFICATE)) {
                 result.push_back({
-                    std::string(reinterpret_cast<const char*>(tokenInfo.label),
-                                sizeof(tokenInfo.label)),
-                    std::string(reinterpret_cast<const char*>(tokenInfo.serialNumber),
-                                sizeof(tokenInfo.serialNumber)),
+                    {std::begin(tokenInfo.label), std::end(tokenInfo.label)},
+                    {std::begin(tokenInfo.serialNumber), std::end(tokenInfo.serialNumber)},
                     slotID,
                     attribute(session, obj, CKA_VALUE),
                     attribute(session, obj, CKA_ID),
                     pinRetryCount(tokenInfo.flags),
                     (tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) > 0,
-                    tokenInfo.ulMinPinLen,
-                    tokenInfo.ulMaxPinLen,
+                    uint8_t(tokenInfo.ulMinPinLen),
+                    uint8_t(tokenInfo.ulMaxPinLen),
                 });
             }
 
@@ -211,15 +209,15 @@ public:
         //      token.certID.data());
 
         CK_KEY_TYPE keyType = CKK_RSA;
-        CK_ATTRIBUTE attribute = {CKA_KEY_TYPE, &keyType, sizeof(keyType)};
-        C(GetAttributeValue, session, privateKeyHandle[0], &attribute, 1ul);
+        CK_ATTRIBUTE attribute {CKA_KEY_TYPE, &keyType, sizeof(keyType)};
+        C(GetAttributeValue, session, privateKeyHandle[0], &attribute, 1UL);
 
-        const electronic_id::SignatureAlgorithm signatureAlgorithm = {
+        const electronic_id::SignatureAlgorithm signatureAlgorithm {
             keyType == CKK_ECDSA ? electronic_id::SignatureAlgorithm::ES
                                  : electronic_id::SignatureAlgorithm::RS,
             hashAlgo};
 
-        CK_MECHANISM mechanism = {keyType == CKK_ECDSA ? CKM_ECDSA : CKM_RSA_PKCS, nullptr, 0};
+        CK_MECHANISM mechanism {keyType == CKK_ECDSA ? CKM_ECDSA : CKM_RSA_PKCS, nullptr, 0};
         C(SignInit, session, &mechanism, privateKeyHandle[0]);
         std::vector<CK_BYTE> hashWithPaddingOID =
             keyType == CKK_RSA ? addRSAOID(hashAlgo, hash) : hash;
@@ -275,10 +273,9 @@ private:
 
     template <typename Func, typename... Args>
     static void Call(const char* function, const char* file, int line, const char* apiFunction,
-                     Func func, Args... args)
+                     Func&& func, Args... args)
     {
-        CK_RV rv = func(args...);
-        switch (rv) {
+        switch (CK_RV rv = func(args...)) {
         case CKR_OK:
         case CKR_CRYPTOKI_ALREADY_INITIALIZED:
             break;
@@ -310,7 +307,7 @@ private:
                 THROW_WITH_CALLER_INFO(Pkcs11Error,
                                        fn + " failed with return code " + pcsc_cpp::int2hexstr(rv),
                                        file, line, function);
-            };
+            }
             break;
         }
         default:
@@ -324,11 +321,11 @@ private:
     std::vector<CK_BYTE> attribute(CK_SESSION_HANDLE session, CK_OBJECT_CLASS obj,
                                    CK_ATTRIBUTE_TYPE attr) const
     {
-        CK_ATTRIBUTE attribute = {attr, nullptr, 0};
-        C(GetAttributeValue, session, obj, &attribute, 1ul);
+        CK_ATTRIBUTE attribute {attr, {}, 0};
+        C(GetAttributeValue, session, obj, &attribute, 1UL);
         std::vector<CK_BYTE> data(attribute.ulValueLen);
         attribute.pValue = data.data();
-        C(GetAttributeValue, session, obj, &attribute, 1ul);
+        C(GetAttributeValue, session, obj, &attribute, 1UL);
         return data;
     }
 
@@ -351,7 +348,7 @@ private:
         return objectHandle;
     }
 
-    static int8_t pinRetryCount(CK_FLAGS flags)
+    static constexpr int8_t pinRetryCount(CK_FLAGS flags) noexcept
     {
         // As PKCS#11 does not provide an API for querying remaining PIN retries, we currently
         // simply assume max retry count of 3, which is quite common. We might need to revisit this
