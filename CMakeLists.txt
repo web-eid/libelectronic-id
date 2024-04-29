@@ -85,6 +85,8 @@ add_executable(${MOCK_TEST_EXE}
   tests/mock/test-pkcs11-token.cpp
 )
 
+target_include_directories(${MOCK_TEST_EXE} PRIVATE src)
+
 target_link_libraries(${MOCK_TEST_EXE}
   ${PROJECT_NAME}
   pcsc-mock # this is available via libpcsc-cpp
@@ -104,6 +106,8 @@ add_executable(${INTEGRATION_TEST_EXE}
   tests/integration/test-authenticate.cpp
   tests/integration/test-signing.cpp
 )
+
+target_include_directories(${INTEGRATION_TEST_EXE} PRIVATE src)
 
 target_link_libraries(${INTEGRATION_TEST_EXE}
   ${PROJECT_NAME}

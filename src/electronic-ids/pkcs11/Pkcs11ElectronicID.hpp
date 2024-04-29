@@ -73,7 +73,8 @@ private:
     PinMinMaxLength authPinMinMaxLength() const override;
 
     PinRetriesRemainingAndMax authPinRetriesLeft() const override;
-    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
+    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& cert,
+                                          const pcsc_cpp::byte_vector& pin,
                                           const pcsc_cpp::byte_vector& hash) const override;
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
@@ -83,7 +84,8 @@ private:
     PinMinMaxLength signingPinMinMaxLength() const override;
 
     PinRetriesRemainingAndMax signingPinRetriesLeft() const override;
-    Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
+    Signature signWithSigningKey(const pcsc_cpp::byte_vector& cert,
+                                 const pcsc_cpp::byte_vector& pin,
                                  const pcsc_cpp::byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override;
 

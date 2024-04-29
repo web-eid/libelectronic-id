@@ -21,7 +21,7 @@
  */
 
 #include "MsCryptoApiElectronicID.hpp"
-#include "../scope.hpp"
+#include "../x509.hpp"
 
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
@@ -35,12 +35,7 @@ using namespace electronic_id;
 
 JsonWebSignatureAlgorithm getESAlgorithmFromCert(const byte_vector& cert)
 {
-    const unsigned char* certPtr = cert.data();
-    auto x509 = SCOPE_GUARD(X509, d2i_X509(nullptr, &certPtr, long(cert.size())));
-    if (!x509) {
-        THROW(MsCryptoApiError, "Failed to create X509 object from certificate");
-    }
-
+    auto x509 = toX509(cert);
     EVP_PKEY* key = X509_get0_pubkey(x509.get());
     if (EVP_PKEY_base_id(key) != EVP_PKEY_EC) {
         THROW(MsCryptoApiError, "EVP_PKEY_base_id() reports non-EC key where EC key expected");
@@ -61,8 +56,9 @@ JsonWebSignatureAlgorithm getESAlgorithmFromCert(const byte_vector& cert)
     }
 }
 
-ElectronicID::Signature sign(const byte_vector& hash, HashAlgorithm hashAlgo,
-                             const HCRYPTPROV_OR_NCRYPT_KEY_HANDLE key, const bool isRSA)
+ElectronicID::Signature sign(const byte_vector& cert, const byte_vector& hash,
+                             HashAlgorithm hashAlgo, const HCRYPTPROV_OR_NCRYPT_KEY_HANDLE key,
+                             const bool isRSA)
 {
     BCRYPT_PKCS1_PADDING_INFO padInfo {};
     switch (hashAlgo) {
@@ -114,6 +110,10 @@ ElectronicID::Signature sign(const byte_vector& hash, HashAlgorithm hashAlgo,
         THROW(MsCryptoApiError, "Signing failed with error: " + std::to_string(err));
     }
 
+    if (!verifyDigest(hashAlgo, cert, hash, signature)) {
+        THROW(SmartCardError, "Failed to validate given signature!");
+    }
+
     return {signature,
             SignatureAlgorithm {isRSA ? SignatureAlgorithm::RS : SignatureAlgorithm::ES, hashAlgo}};
 }
@@ -129,7 +129,8 @@ JsonWebSignatureAlgorithm MsCryptoApiElectronicID::authSignatureAlgorithm() cons
     return isRSA() ? JsonWebSignatureAlgorithm::RS256 : getESAlgorithmFromCert(certData);
 }
 
-byte_vector MsCryptoApiElectronicID::signWithAuthKey(const byte_vector& /* pin */,
+byte_vector MsCryptoApiElectronicID::signWithAuthKey(const byte_vector& cert,
+                                                     const byte_vector& /* pin */,
                                                      const byte_vector& hash) const
 {
     if (certType != CertificateType::AUTHENTICATION) {
@@ -141,12 +142,13 @@ byte_vector MsCryptoApiElectronicID::signWithAuthKey(const byte_vector& /* pin *
 
     validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
-    const auto signature = sign(hash, authSignatureAlgorithm().hashAlgorithm(), key, isRSA());
+    const auto signature = sign(cert, hash, authSignatureAlgorithm().hashAlgorithm(), key, isRSA());
     return signature.first;
 }
 
 ElectronicID::Signature
-MsCryptoApiElectronicID::signWithSigningKey(const byte_vector& /* pin */, const byte_vector& hash,
+MsCryptoApiElectronicID::signWithSigningKey(const byte_vector& cert, const byte_vector& /* pin */,
+                                            const byte_vector& hash,
                                             const HashAlgorithm hashAlgo) const
 {
     if (certType != CertificateType::SIGNING) {
@@ -158,7 +160,7 @@ MsCryptoApiElectronicID::signWithSigningKey(const byte_vector& /* pin */, const 
 
     validateSigningHash(*this, hashAlgo, hash);
 
-    return sign(hash, hashAlgo, key, isRSA());
+    return sign(cert, hash, hashAlgo, key, isRSA());
 }
 
 } // namespace electronic_id
