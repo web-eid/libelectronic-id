@@ -26,9 +26,12 @@
 #include <utility>
 #include <memory>
 
-#define SCOPE_GUARD_EX(TYPE, DATA, FREE)                                                           \
-    std::unique_ptr<TYPE, decltype(&FREE)>(static_cast<TYPE*>(DATA), FREE)
-#define SCOPE_GUARD(TYPE, DATA) SCOPE_GUARD_EX(TYPE, DATA, TYPE##_free)
+template <class U, typename T>
+[[nodiscard]]
+constexpr auto make_unique_ptr(U* t, T d) noexcept
+{
+    return std::unique_ptr<U, T>(t, d);
+}
 
 // This is a temporary replacement for the <experimental/scope> header from
 // Version 3 of the C++ Extensions for Library Fundamentals as defined in

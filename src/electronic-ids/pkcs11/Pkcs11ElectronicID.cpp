@@ -22,8 +22,6 @@
 
 #include "Pkcs11ElectronicID.hpp"
 
-#include "../common.hpp"
-
 #include <map>
 
 #ifdef _WIN32
@@ -105,85 +103,62 @@ inline fs::path czechPkcs11ModulePath()
 #endif
 }
 
-const std::map<Pkcs11ElectronicIDType, Pkcs11ElectronicIDModule> SUPPORTED_PKCS11_MODULES {
-    // EstEIDIDEMIAV1 configuration is here only for testing,
+const std::map<ElectronicID::Type, Pkcs11ElectronicIDModule> SUPPORTED_PKCS11_MODULES {
+    // EstEID configuration is here only for testing,
     // it is not enabled in getElectronicID().
-    {Pkcs11ElectronicIDType::EstEIDIDEMIAV1,
+    {ElectronicID::Type::EstEID,
      {
          "EstEID IDEMIA v1 (PKCS#11)"s, // name
          ElectronicID::Type::EstEID, // type
-         fs::u8path("opensc-pkcs11.so").make_preferred(), // path
+         fs::path("opensc-pkcs11.so"), // path
 
-         JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
-         ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
          3,
          false,
          false,
      }},
-    {Pkcs11ElectronicIDType::LitEIDv3,
+    {ElectronicID::Type::LitEID,
      {
          "Lithuanian eID (PKCS#11)"s, // name
          ElectronicID::Type::LitEID, // type
          lithuanianPKCS11ModulePath().make_preferred(), // path
 
-         JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
-         ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
          3,
          false,
          false,
      }},
-    {Pkcs11ElectronicIDType::HrvEID,
+    {ElectronicID::Type::HrvEID,
      {
          "Croatian eID (PKCS#11)"s, // name
          ElectronicID::Type::HrvEID, // type
          croatianPkcs11ModulePath().make_preferred(), // path
 
-         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
          3,
          true,
          false,
      }},
-    {Pkcs11ElectronicIDType::BelEIDV1_7,
+    {ElectronicID::Type::BelEID,
      {
-         "Belgian eID v1.7 (PKCS#11)"s, // name
-         ElectronicID::Type::BelEIDV1_7, // type
+         "Belgian eID (PKCS#11)"s, // name
+         ElectronicID::Type::BelEID, // type
          belgianPkcs11ModulePath().make_preferred(), // path
 
-         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
          3,
          true,
          true,
      }},
-    // https://github.com/Fedict/eid-mw/wiki/Applet-1.8
-    {Pkcs11ElectronicIDType::BelEIDV1_8,
-     {
-         "Belgian eID v1.8 (PKCS#11)"s, // name
-         ElectronicID::Type::BelEIDV1_8, // type
-         belgianPkcs11ModulePath().make_preferred(), // path
-
-         JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
-         ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-         3,
-         true,
-         true,
-     }},
-    {Pkcs11ElectronicIDType::CzeEID,
+    {ElectronicID::Type::CzeEID,
      {
          "Czech eID (PKCS#11)"s, // name
          ElectronicID::Type::CzeEID, // type
          czechPkcs11ModulePath().make_preferred(), // path
 
-         JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-         RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
          3,
          true,
          false,
      }},
 };
 
-const Pkcs11ElectronicIDModule& getModule(Pkcs11ElectronicIDType eidType)
+const Pkcs11ElectronicIDModule& getModule(ElectronicID::Type eidType)
 {
     try {
         return SUPPORTED_PKCS11_MODULES.at(eidType);
@@ -195,7 +170,7 @@ const Pkcs11ElectronicIDModule& getModule(Pkcs11ElectronicIDType eidType)
 
 } // namespace
 
-Pkcs11ElectronicID::Pkcs11ElectronicID(Pkcs11ElectronicIDType type) :
+Pkcs11ElectronicID::Pkcs11ElectronicID(ElectronicID::Type type) :
     ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()}, module {getModule(type)},
     manager {PKCS11CardManager::instance(module.path)}
 {
@@ -222,6 +197,11 @@ pcsc_cpp::byte_vector Pkcs11ElectronicID::getCertificate(const CertificateType t
     return type.isAuthentication() ? authToken.cert : signingToken.cert;
 }
 
+JsonWebSignatureAlgorithm Pkcs11ElectronicID::authSignatureAlgorithm() const
+{
+    return getAuthAlgorithmFromCert(authToken.cert);
+}
+
 ElectronicID::PinMinMaxLength Pkcs11ElectronicID::authPinMinMaxLength() const
 {
     return {authToken.minPinLen, authToken.maxPinLen};
@@ -232,8 +212,8 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::authPinRetriesLeft()
     return {authToken.retry, module.retryMax};
 }
 
-pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_vector& pin,
-                                                          const pcsc_cpp::byte_vector& hash) const
+pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const byte_vector& pin,
+                                                          const byte_vector& hash) const
 {
     try {
         validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
@@ -255,6 +235,11 @@ pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const pcsc_cpp::byte_v
     }
 }
 
+const std::set<SignatureAlgorithm>& Pkcs11ElectronicID::supportedSigningAlgorithms() const
+{
+    return getSignAlgorithmFromCert(signingToken.cert);
+}
+
 ElectronicID::PinMinMaxLength Pkcs11ElectronicID::signingPinMinMaxLength() const
 {
     return {signingToken.minPinLen, signingToken.maxPinLen};
@@ -265,8 +250,8 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::signingPinRetriesLef
     return {signingToken.retry, module.retryMax};
 }
 
-ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::byte_vector& pin,
-                                                               const pcsc_cpp::byte_vector& hash,
+ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const byte_vector& pin,
+                                                               const byte_vector& hash,
                                                                const HashAlgorithm hashAlgo) const
 {
     try {
@@ -277,7 +262,7 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const pcsc_cpp::b
             manager->sign(signingToken, hash, hashAlgo, module.providesExternalPinDialog,
                           reinterpret_cast<const char*>(pin.data()), pin.size());
 
-        if (!module.supportedSigningAlgorithms.count(signature.second)) {
+        if (!supportedSigningAlgorithms().count(signature.second)) {
             THROW(SmartCardChangeRequiredError,
                   "Signature algorithm " + std::string(signature.second) + " is not supported by "
                       + name());
