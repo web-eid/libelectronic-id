@@ -138,10 +138,10 @@ public:
 
     bool readerHasPinPad() const
     {
-        // The HID Global OMNIKEY 3x21 Smart Card Reader and HID Global OMNIKEY 6121 Smart Card Reader
-        // falsely report that they have PIN pad support even though they don't.
-        if (id_vendor == VENDOR_HID_GLOBAL &&
-                (id_product == OMNIKEY_3x21 || id_product == OMNIKEY_6121))
+        // The HID Global OMNIKEY 3x21 Smart Card Reader and HID Global OMNIKEY 6121 Smart Card
+        // Reader falsely report that they have PIN pad support even though they don't.
+        if (id_vendor == VENDOR_HID_GLOBAL
+            && (id_product == OMNIKEY_3x21 || id_product == OMNIKEY_6121))
             return false;
         if (getenv("SMARTCARDPP_NOPINPAD"))
             return false;

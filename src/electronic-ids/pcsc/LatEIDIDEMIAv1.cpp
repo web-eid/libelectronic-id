@@ -51,11 +51,11 @@ const SelectApplicationIDCmds& LatEIDIDEMIAV1::selectApplicationID() const
 
 const SelectCertificateCmds& LatEIDIDEMIAV1::selectCertificate() const
 {
-    static const auto selectCertCmds = SelectCertificateCmds {
+    static const SelectCertificateCmds selectCertCmds {
         // Authentication certificate.
-        {0x00, 0xA4, 0x01, 0x0C, 0x02, 0xA0, 0x02},
+        {0x00, 0xA4, 0x01, 0x0C, {0xA0, 0x02}},
         // Signing certificate.
-        {0x00, 0xA4, 0x01, 0x0C, 0x02, 0xA0, 0x01},
+        {0x00, 0xA4, 0x01, 0x0C, {0xA0, 0x01}},
     };
     return selectCertCmds;
 }

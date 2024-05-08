@@ -86,13 +86,6 @@ std::string bytes2hexstr(const byte_vector& bytes)
     return hexStringBuilder.str();
 }
 
-void transmitApduWithExpectedResponse(const SmartCard& card, const byte_vector& commandBytes,
-                                      const byte_vector& expectedResponseBytes)
-{
-    const auto command = CommandApdu::fromBytes(commandBytes);
-    transmitApduWithExpectedResponse(card, command, expectedResponseBytes);
-}
-
 void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command,
                                       const byte_vector& expectedResponseBytes)
 {

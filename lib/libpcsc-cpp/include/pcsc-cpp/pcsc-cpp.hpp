@@ -40,7 +40,7 @@
 #define PCSC_CPP_WARNING_POP __pragma(warning(pop))
 #define PCSC_CPP_WARNING_DISABLE_CLANG(text)
 #define PCSC_CPP_WARNING_DISABLE_GCC(text)
-#define PCSC_CPP_WARNING_DISABLE_MSVC(number) __pragma(warning(disable: number))
+#define PCSC_CPP_WARNING_DISABLE_MSVC(number) __pragma(warning(disable : number))
 #else
 #define PCSC_CPP_DO_PRAGMA(text) _Pragma(#text)
 #define PCSC_CPP_WARNING_PUSH PCSC_CPP_DO_PRAGMA(GCC diagnostic push)
@@ -70,7 +70,7 @@ class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
 /** Returns the value of the response status bytes SW1 and SW2 as a single status word SW. */
-constexpr uint16_t toSW(byte_type sw1, byte_type sw2)
+constexpr uint16_t toSW(byte_type sw1, byte_type sw2) noexcept
 {
     return uint16_t(sw1 << 8) | sw2;
 }
@@ -110,12 +110,12 @@ struct ResponseApdu
             throw std::invalid_argument("Need at least 2 bytes for creating ResponseApdu");
         }
 
-PCSC_CPP_WARNING_PUSH
-PCSC_CPP_WARNING_DISABLE_GCC("-Warray-bounds") // avoid GCC 13 false positive warning
+        PCSC_CPP_WARNING_PUSH
+        PCSC_CPP_WARNING_DISABLE_GCC("-Warray-bounds") // avoid GCC 13 false positive warning
         byte_type sw1 = data[data.size() - 2];
         byte_type sw2 = data[data.size() - 1];
         data.resize(data.size() - 2);
-PCSC_CPP_WARNING_POP
+        PCSC_CPP_WARNING_POP
 
         // SW1 and SW2 are in the end
         return {sw1, sw2, std::move(data)};
@@ -132,9 +132,9 @@ PCSC_CPP_WARNING_POP
         return bytes;
     }
 
-    uint16_t toSW() const { return pcsc_cpp::toSW(sw1, sw2); }
+    constexpr uint16_t toSW() const noexcept { return pcsc_cpp::toSW(sw1, sw2); }
 
-    bool isOK() const { return sw1 == OK && sw2 == 0x00; }
+    constexpr bool isOK() const noexcept { return sw1 == OK && sw2 == 0x00; }
 
     // TODO: friend function toString() in utilities.hpp
 };
@@ -155,55 +155,16 @@ struct CommandApdu
 
     CommandApdu(byte_type c, byte_type i, byte_type pp1, byte_type pp2, byte_vector d = {},
                 unsigned short l = LE_UNUSED) :
-        cla(c),
-        ins(i), p1(pp1), p2(pp2), le(l), data(std::move(d))
+        cla(c), ins(i), p1(pp1), p2(pp2), le(l), data(std::move(d))
     {
     }
 
     CommandApdu(const CommandApdu& other, byte_vector d) :
-        cla(other.cla), ins(other.ins), p1(other.p1), p2(other.p2), le(other.le), data(std::move(d))
+        CommandApdu(other.cla, other.ins, other.p1, other.p2, std::move(d), other.le)
     {
     }
 
-    bool isLeSet() const { return le != LE_UNUSED; }
-
-    static CommandApdu fromBytes(const byte_vector& bytes, bool useLe = false)
-    {
-        if (bytes.size() < 4) {
-            throw std::invalid_argument("Command APDU must have > 3 bytes");
-        }
-
-        if (bytes.size() == 4) {
-            return CommandApdu {bytes[0], bytes[1], bytes[2], bytes[3]};
-        }
-
-        if (bytes.size() == 5) {
-            if (useLe) {
-                return CommandApdu {bytes[0], bytes[1],      bytes[2],
-                                    bytes[3], byte_vector(), bytes[4]};
-            }
-            throw std::invalid_argument("Command APDU size 5 is invalid without LE");
-        }
-
-        if (bytes.size() == 6 && useLe) {
-            throw std::invalid_argument("Command APDU size 6 uses LE");
-        }
-
-        // 0 - cla, 1 - ins, 2 - p1, 3 - p2, 4 - data size
-        // FIXME: can command chaining use byte 5 for data size too?
-        auto dataStart = bytes.cbegin() + 5;
-
-        if (useLe) {
-            return CommandApdu {bytes[0],
-                                bytes[1],
-                                bytes[2],
-                                bytes[3],
-                                byte_vector(dataStart, bytes.cend() - 1),
-                                *(bytes.cend() - 1)};
-        }
-        return CommandApdu {bytes[0], bytes[1], bytes[2], bytes[3],
-                            byte_vector(dataStart, bytes.cend())};
-    }
+    constexpr bool isLeSet() const noexcept { return le != LE_UNUSED; }
 
     byte_vector toBytes() const
     {
@@ -328,8 +289,6 @@ std::string bytes2hexstr(const byte_vector& bytes);
 
 /** Transmit APDU command and verify that expected response is received. */
 void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command,
-                                      const byte_vector& expectedResponseBytes = APDU_RESPONSE_OK);
-void transmitApduWithExpectedResponse(const SmartCard& card, const byte_vector& commandBytes,
                                       const byte_vector& expectedResponseBytes = APDU_RESPONSE_OK);
 
 /** Read data length from currently selected file header, file must be ASN.1-encoded. */
