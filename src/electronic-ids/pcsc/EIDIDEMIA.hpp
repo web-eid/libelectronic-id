@@ -29,15 +29,15 @@ namespace electronic_id
 
 struct SelectApplicationIDCmds
 {
-    const pcsc_cpp::byte_vector MAIN_AID;
-    const pcsc_cpp::byte_vector AUTH_AID;
-    const pcsc_cpp::byte_vector SIGN_AID;
+    const pcsc_cpp::CommandApdu MAIN_AID;
+    const pcsc_cpp::CommandApdu AUTH_AID;
+    const pcsc_cpp::CommandApdu SIGN_AID;
 };
 
 struct SelectCertificateCmds
 {
-    const pcsc_cpp::byte_vector AUTH_CERT;
-    const pcsc_cpp::byte_vector SIGN_CERT;
+    const pcsc_cpp::CommandApdu AUTH_CERT;
+    const pcsc_cpp::CommandApdu SIGN_CERT;
 };
 
 class EIDIDEMIA : public PcscElectronicID

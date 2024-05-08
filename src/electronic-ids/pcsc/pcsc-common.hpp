@@ -32,7 +32,7 @@ namespace electronic_id
 {
 
 inline pcsc_cpp::byte_vector getCertificate(pcsc_cpp::SmartCard& card,
-                                            const pcsc_cpp::byte_vector& selectCertFileCmd)
+                                            const pcsc_cpp::CommandApdu& selectCertFileCmd)
 {
     static const size_t MAX_LE_VALUE = 0xb5;
 
