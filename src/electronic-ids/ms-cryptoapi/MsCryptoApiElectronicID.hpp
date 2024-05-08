@@ -24,7 +24,6 @@
 
 #include "electronic-id/electronic-id.hpp"
 #include "pcsc-cpp/pcsc-cpp-utils.hpp"
-#include "../common.hpp"
 
 #include <windows.h>
 #include <wincrypt.h>
@@ -35,9 +34,8 @@ namespace electronic_id
 class MsCryptoApiElectronicID : public ElectronicID
 {
 public:
-    MsCryptoApiElectronicID(PCCERT_CONTEXT certCtx, pcsc_cpp::byte_vector&& cert,
-                            CertificateType cType, bool isRsa, HCRYPTPROV_OR_NCRYPT_KEY_HANDLE k,
-                            bool freeK) :
+    MsCryptoApiElectronicID(PCCERT_CONTEXT certCtx, byte_vector&& cert, CertificateType cType,
+                            bool isRsa, HCRYPTPROV_OR_NCRYPT_KEY_HANDLE k, bool freeK) :
         ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()}, certContext {certCtx},
         certData {cert}, certType {cType},
         // TODO: SignatureAlgorithm::PS?
@@ -65,7 +63,7 @@ private:
     // Use the external dialog provided by the CryptoAPI cryptographic service provider.
     bool providesExternalPinDialog() const override { return true; }
 
-    pcsc_cpp::byte_vector getCertificate(const CertificateType typ) const override
+    byte_vector getCertificate(const CertificateType typ) const override
     {
         if (typ != certType) {
             THROW(WrongCertificateTypeError,
@@ -86,13 +84,9 @@ private:
         return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER};
     }
 
-    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
-                                          const pcsc_cpp::byte_vector& hash) const override;
+    byte_vector signWithAuthKey(const byte_vector& pin, const byte_vector& hash) const override;
 
-    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
-    {
-        return isRSA() ? RSA_SIGNATURE_ALGOS() : ELLIPTIC_CURVE_SIGNATURE_ALGOS();
-    }
+    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
 
     PinMinMaxLength signingPinMinMaxLength() const override
     {
@@ -104,8 +98,7 @@ private:
         return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER};
     }
 
-    Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
-                                 const pcsc_cpp::byte_vector& hash,
+    Signature signWithSigningKey(const byte_vector& pin, const byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override;
 
     std::string name() const override
@@ -115,10 +108,10 @@ private:
     }
     Type type() const override { return Type::MsCryptoApiEID; }
 
-    bool isRSA() const { return signatureAlgo != SignatureAlgorithm::ES; }
+    ElectronicID::Signature sign(const byte_vector& hash, HashAlgorithm hashAlgo) const;
 
     PCCERT_CONTEXT certContext;
-    const pcsc_cpp::byte_vector certData;
+    const byte_vector certData;
     const CertificateType certType;
     const SignatureAlgorithm signatureAlgo;
     const HCRYPTPROV_OR_NCRYPT_KEY_HANDLE key;

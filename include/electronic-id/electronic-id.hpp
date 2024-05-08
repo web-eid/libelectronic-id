@@ -45,8 +45,7 @@ public:
         LatEID,
         LitEID,
         HrvEID,
-        BelEIDV1_7,
-        BelEIDV1_8,
+        BelEID,
         CzeEID,
 #ifdef _WIN32
         MsCryptoApiEID,

@@ -29,23 +29,12 @@
 namespace electronic_id
 {
 
-enum class Pkcs11ElectronicIDType {
-    EstEIDIDEMIAV1,
-    LitEIDv3,
-    HrvEID,
-    BelEIDV1_7,
-    BelEIDV1_8,
-    CzeEID,
-};
-
 struct Pkcs11ElectronicIDModule
 {
     const std::string name;
     const ElectronicID::Type type;
     const std::filesystem::path path;
 
-    const JsonWebSignatureAlgorithm authSignatureAlgorithm;
-    const std::set<SignatureAlgorithm> supportedSigningAlgorithms;
     const int8_t retryMax;
     const bool allowsUsingLettersAndSpecialCharactersInPin;
     const bool providesExternalPinDialog;
@@ -54,7 +43,7 @@ struct Pkcs11ElectronicIDModule
 class Pkcs11ElectronicID : public ElectronicID
 {
 public:
-    explicit Pkcs11ElectronicID(Pkcs11ElectronicIDType type);
+    explicit Pkcs11ElectronicID(ElectronicID::Type type);
 
 private:
     bool allowsUsingLettersAndSpecialCharactersInPin() const override
@@ -64,27 +53,19 @@ private:
 
     bool providesExternalPinDialog() const override { return module.providesExternalPinDialog; }
 
-    pcsc_cpp::byte_vector getCertificate(const CertificateType type) const override;
+    byte_vector getCertificate(const CertificateType type) const override;
 
-    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
-    {
-        return module.authSignatureAlgorithm;
-    }
+    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override;
     PinMinMaxLength authPinMinMaxLength() const override;
 
     PinRetriesRemainingAndMax authPinRetriesLeft() const override;
-    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
-                                          const pcsc_cpp::byte_vector& hash) const override;
+    byte_vector signWithAuthKey(const byte_vector& pin, const byte_vector& hash) const override;
 
-    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
-    {
-        return module.supportedSigningAlgorithms;
-    }
+    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
     PinMinMaxLength signingPinMinMaxLength() const override;
 
     PinRetriesRemainingAndMax signingPinRetriesLeft() const override;
-    Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
-                                 const pcsc_cpp::byte_vector& hash,
+    Signature signWithSigningKey(const byte_vector& pin, const byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override;
 
     std::string name() const override { return module.name; }

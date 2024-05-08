@@ -30,13 +30,8 @@
 
 #include "electronic-id/electronic-id.hpp"
 
-#include "../common.hpp"
-#include "../scope.hpp"
 #include "../x509.hpp"
 
-#include <cstring>
-#include <string>
-#include <vector>
 #include <unordered_map>
 #include <algorithm>
 #include <filesystem>
@@ -51,11 +46,8 @@
 
 #define C(API, ...) Call(__func__, __FILE__, __LINE__, "C_" #API, fl->C_##API, __VA_ARGS__)
 
-// HANDLE is captured by copy into the lambda, so the auto* function argument is unused,
-// it is only required for satisfying std::unique_ptr constructor requirements.
 #define SCOPE_GUARD_SESSION(HANDLE, CLOSE)                                                         \
-    std::unique_ptr<decltype(HANDLE), std::function<void(decltype(HANDLE)*)>>(                     \
-        &HANDLE, [HANDLE, this](auto*) { C(CLOSE, HANDLE); })
+    make_unique_ptr(&(HANDLE), [this](auto* h) { C(CLOSE, *h); });
 
 namespace electronic_id
 {
