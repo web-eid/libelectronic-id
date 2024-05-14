@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 env:
   BUILD_TYPE: RelWithDebInfo
-  CMAKE_BUILD_PARALLEL_LEVEL: 3
 
 jobs:
   build:
@@ -20,7 +19,7 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -S . -B build
 
     - name: Build
-      run: cmake --build build --config $BUILD_TYPE
+      run: cmake --build build --config $BUILD_TYPE -j $(nproc)
 
     - name: Test
       run: ctest -V -C $BUILD_TYPE --test-dir build
