@@ -109,8 +109,10 @@ public:
         }
 #ifdef _WIN32
         FreeLibrary(library);
+        library = 0;
 #else
         dlclose(library);
+        library = nullptr;
 #endif
     }
 
