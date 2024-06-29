@@ -43,23 +43,23 @@ inline std::string int2hexstr(const T value)
 
 /** Remove absolute path prefix until 'src' from the given path, '/path/to/src/main.cpp' becomes
  * 'src/main.cpp'. */
-inline std::string removeAbsolutePathPrefix(const std::string& filePath)
+inline std::string removeAbsolutePathPrefix(std::string filePath)
 {
     const auto lastSrc = filePath.rfind("src");
-    return lastSrc == std::string::npos ? filePath : filePath.substr(lastSrc);
+    return lastSrc == std::string::npos ? std::move(filePath) : filePath.erase(0, lastSrc);
 }
 
 } // namespace pcsc_cpp
 
 #define THROW_WITH_CALLER_INFO(ExceptionType, message, file, line, func)                           \
     throw ExceptionType(std::string(message) + " in " + pcsc_cpp::removeAbsolutePathPrefix(file)   \
-                        + ':' + std::to_string(line) + ':' + func)
+                        + ':' + std::to_string(line) + ':' + (func))
 
 #define THROW(ExceptionType, message)                                                              \
     THROW_WITH_CALLER_INFO(ExceptionType, message, __FILE__, __LINE__, __func__)
 
 #define REQUIRE_NON_NULL(val)                                                                      \
-    if (!val) {                                                                                    \
+    if (!(val)) {                                                                                  \
         throw std::logic_error("Null " + std::string(#val) + " in "                                \
                                + pcsc_cpp::removeAbsolutePathPrefix(__FILE__) + ':'                \
                                + std::to_string(__LINE__) + ':' + __func__);                       \
