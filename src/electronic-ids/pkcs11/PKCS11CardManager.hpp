@@ -70,7 +70,9 @@ public:
     static std::shared_ptr<PKCS11CardManager> instance(const std::filesystem::path& module)
     {
         static std::mutex mutex;
-        static std::unordered_map<std::string, std::shared_ptr<PKCS11CardManager>> instances;
+        // Use weak_ptr to avoid increasing the reference count while providing safe
+        // shared access to the PKCS11CardManager instance for the given module.
+        static std::unordered_map<std::string, std::weak_ptr<PKCS11CardManager>> instances;
 
         // There is no std::hash for std::filesystem::path, use the string value.
         // Note that two different path strings that refer to the same filesystem location
@@ -81,10 +83,24 @@ public:
 
         auto it = instances.find(moduleStr);
         if (it != instances.end()) {
-            return it->second;
+            // If the object has already been destroyed, weak_ptr.lock() returns an empty
+            // shared_ptr.
+            if (auto instancePtr = it->second.lock()) {
+                return instancePtr;
+            }
         }
 
-        auto newInstance = std::shared_ptr<PKCS11CardManager>(new PKCS11CardManager(module));
+        // Custom deleter that also removes the instance from the map.
+        auto deleter = [moduleStr](PKCS11CardManager* manager) {
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                instances.erase(moduleStr);
+            }
+            delete manager;
+        };
+
+        auto newInstance =
+            std::shared_ptr<PKCS11CardManager>(new PKCS11CardManager(module), deleter);
         instances[moduleStr] = newInstance;
         return newInstance;
     }

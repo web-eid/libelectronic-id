@@ -83,6 +83,13 @@ public:
     // General functions.
     virtual bool allowsUsingLettersAndSpecialCharactersInPin() const { return false; }
     virtual bool providesExternalPinDialog() const { return false; }
+
+    /** Extension point for releasing the resources held by the ElectronicID object.
+     * By default, this function does nothing. It serves as an extension point for
+     * Pkcs11ElectronicID which needs to release the PKCS#11 module before the application exits to
+     * prevent potential crashes. */
+    virtual void release() const {}
+
     virtual std::string name() const = 0;
     virtual Type type() const = 0;
 

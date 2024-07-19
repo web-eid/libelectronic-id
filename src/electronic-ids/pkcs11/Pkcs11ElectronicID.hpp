@@ -68,11 +68,12 @@ private:
     Signature signWithSigningKey(const byte_vector& pin, const byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override;
 
+    void release() const override;
     std::string name() const override { return module.name; }
     Type type() const override { return module.type; }
 
     const Pkcs11ElectronicIDModule& module;
-    const std::shared_ptr<PKCS11CardManager> manager;
+    mutable std::shared_ptr<PKCS11CardManager> manager;
     PKCS11CardManager::Token authToken;
     PKCS11CardManager::Token signingToken;
 };
