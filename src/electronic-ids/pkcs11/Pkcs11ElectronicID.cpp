@@ -174,6 +174,8 @@ Pkcs11ElectronicID::Pkcs11ElectronicID(ElectronicID::Type type) :
     ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()}, module {getModule(type)},
     manager {PKCS11CardManager::instance(module.path)}
 {
+    REQUIRE_NON_NULL(manager)
+
     bool seenAuthToken = false;
     bool seenSigningToken = false;
 
@@ -215,6 +217,8 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::authPinRetriesLeft()
 pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const byte_vector& pin,
                                                           const byte_vector& hash) const
 {
+    REQUIRE_NON_NULL(manager)
+
     try {
         validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
@@ -254,6 +258,8 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const byte_vector
                                                                const byte_vector& hash,
                                                                const HashAlgorithm hashAlgo) const
 {
+    REQUIRE_NON_NULL(manager)
+
     try {
         validateSigningHash(*this, hashAlgo, hash);
 
@@ -276,4 +282,9 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const byte_vector
         }
         throw;
     }
+}
+
+void Pkcs11ElectronicID::release() const
+{
+    manager.reset();
 }
