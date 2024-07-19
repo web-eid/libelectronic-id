@@ -47,7 +47,12 @@
 #define C(API, ...) Call(__func__, __FILE__, __LINE__, "C_" #API, fl->C_##API, __VA_ARGS__)
 
 #define SCOPE_GUARD_SESSION(HANDLE, CLOSE)                                                         \
-    make_unique_ptr(&(HANDLE), [this](auto* h) { C(CLOSE, *h); });
+    make_unique_ptr(&(HANDLE), [this](auto* h) noexcept {                                          \
+        try {                                                                                      \
+            C(CLOSE, *h);                                                                          \
+        } catch (...) {                                                                            \
+        }                                                                                          \
+    });
 
 namespace electronic_id
 {
@@ -100,12 +105,12 @@ public:
         };
 
         auto newInstance =
-            std::shared_ptr<PKCS11CardManager>(new PKCS11CardManager(module), deleter);
+            std::shared_ptr<PKCS11CardManager>(new PKCS11CardManager(module), std::move(deleter));
         instances[moduleStr] = newInstance;
         return newInstance;
     }
 
-    ~PKCS11CardManager()
+    ~PKCS11CardManager() noexcept
     {
         if (!library)
             return;
