@@ -114,13 +114,6 @@ inline flag_set<Reader::Status> flagSetFromReaderState(const DWORD readerState)
     return result;
 }
 
-inline Reader makeReader(const ContextPtr& ctx, const SCARD_READERSTATE& readerState)
-{
-    return Reader {ctx, readerState.szReader,
-                   byte_vector {readerState.rgbAtr, readerState.rgbAtr + readerState.cbAtr},
-                   flagSetFromReaderState(readerState.dwEventState)};
-}
-
 string_t populateReaderNames(const SCARDCONTEXT ctx)
 {
     // Buffer length is in characters, not bytes.
@@ -142,18 +135,20 @@ namespace pcsc_cpp
 std::vector<Reader> listReaders()
 {
     auto ctx = std::make_shared<Context>();
+    std::vector<Reader> readers;
 
     try {
         auto readerNames = populateReaderNames(ctx->handle());
 
-        auto readers = std::vector<Reader> {};
         for (const auto& readerState : getReaderStates(ctx->handle(), readerNames)) {
-            readers.emplace_back(makeReader(ctx, readerState));
+            readers.emplace_back(
+                ctx, readerState.szReader,
+                byte_vector {readerState.rgbAtr, std::next(readerState.rgbAtr, readerState.cbAtr)},
+                flagSetFromReaderState(readerState.dwEventState));
         }
-        return readers;
     } catch (const ScardNoReadersError& /* e */) {
-        return std::vector<Reader> {};
     }
+    return readers;
 }
 
 } // namespace pcsc_cpp
