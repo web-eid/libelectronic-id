@@ -46,15 +46,15 @@ byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
                                                                  : selectCertificate().SIGN_CERT);
 }
 
-byte_vector EIDIDEMIA::signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const
+byte_vector EIDIDEMIA::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
 {
     // Select authentication application and authentication security environment.
     transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
     transmitApduWithExpectedResponse(*card, selectApplicationID().AUTH_AID);
     selectAuthSecurityEnv();
 
-    verifyPin(*card, AUTH_PIN_REFERENCE, pin, authPinMinMaxLength().first, pinBlockLength(),
-              PIN_PADDING_CHAR);
+    verifyPin(*card, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength().first,
+              pinBlockLength(), PIN_PADDING_CHAR);
 
     return internalAuthenticate(*card,
                                 authSignatureAlgorithm().isRSAWithPKCS1Padding()
@@ -69,7 +69,7 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::authPinRetriesLeftImpl() cons
     return pinRetriesLeft(AUTH_PIN_REFERENCE);
 }
 
-ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const byte_vector& pin,
+ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
                                                           const byte_vector& hash,
                                                           const HashAlgorithm hashAlgo) const
 {
@@ -88,8 +88,8 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const byte_vector& pin
         }
     }
 
-    verifyPin(*card, signingPinReference(), pin, signingPinMinMaxLength().first, pinBlockLength(),
-              PIN_PADDING_CHAR);
+    verifyPin(*card, signingPinReference(), std::move(pin), signingPinMinMaxLength().first,
+              pinBlockLength(), PIN_PADDING_CHAR);
 
     return {useInternalAuthenticateAndRSAWithPKCS1PaddingDuringSigning()
                 ? internalAuthenticate(*card, addRSAOID(hashAlgo, hash), name())

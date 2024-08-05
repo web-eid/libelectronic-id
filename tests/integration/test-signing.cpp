@@ -65,7 +65,7 @@ static void signing(HashAlgorithm hashAlgo)
     const byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
     const byte_vector hash = calculateDigest(hashAlgo, dataToSign);
 
-    auto signature = cardInfo->eid().signWithSigningKey(pin, hash, hashAlgo);
+    auto signature = cardInfo->eid().signWithSigningKey(std::move(pin), hash, hashAlgo);
 
     std::cout << "Signing signature: " << signature.first << '\n';
 
