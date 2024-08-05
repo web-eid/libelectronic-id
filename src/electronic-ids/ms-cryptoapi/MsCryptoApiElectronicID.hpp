@@ -84,7 +84,7 @@ private:
         return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER};
     }
 
-    byte_vector signWithAuthKey(const byte_vector& pin, const byte_vector& hash) const override;
+    byte_vector signWithAuthKey(byte_vector&& pin, const byte_vector& hash) const override;
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
 
@@ -98,7 +98,7 @@ private:
         return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER};
     }
 
-    Signature signWithSigningKey(const byte_vector& pin, const byte_vector& hash,
+    Signature signWithSigningKey(byte_vector&& pin, const byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override;
 
     std::string name() const override

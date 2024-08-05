@@ -43,16 +43,15 @@ inline pcsc_cpp::byte_vector getCertificate(pcsc_cpp::SmartCard& card,
     return readBinary(card, length, MAX_LE_VALUE);
 }
 
-inline pcsc_cpp::byte_vector addPaddingToPin(const pcsc_cpp::byte_vector& pin, size_t paddingLength,
+inline pcsc_cpp::byte_vector addPaddingToPin(pcsc_cpp::byte_vector&& pin, size_t paddingLength,
                                              pcsc_cpp::byte_type paddingChar)
 {
-    auto paddedPin = pin;
-    paddedPin.resize(std::max(pin.size(), paddingLength), paddingChar);
-    return paddedPin;
+    pin.resize(std::max(pin.size(), paddingLength), paddingChar);
+    return pin;
 }
 
 inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
-                      const pcsc_cpp::byte_vector& pin, uint8_t pinMinLength, size_t paddingLength,
+                      pcsc_cpp::byte_vector&& pin, uint8_t pinMinLength, size_t paddingLength,
                       pcsc_cpp::byte_type paddingChar)
 {
     const pcsc_cpp::CommandApdu VERIFY_PIN {0x00, 0x20, 0x00, p2};
@@ -64,8 +63,8 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
         response = card.transmitCTL(verifyPin, 0, pinMinLength);
 
     } else {
-        const pcsc_cpp::CommandApdu verifyPin {VERIFY_PIN,
-                                               addPaddingToPin(pin, paddingLength, paddingChar)};
+        const pcsc_cpp::CommandApdu verifyPin {
+            VERIFY_PIN, addPaddingToPin(std::move(pin), paddingLength, paddingChar)};
 
         response = card.transmit(verifyPin);
     }

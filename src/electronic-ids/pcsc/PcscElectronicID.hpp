@@ -35,29 +35,27 @@ public:
     PcscElectronicID(pcsc_cpp::SmartCard::ptr _card) : ElectronicID(std::move(_card)) {}
 
 protected:
-    pcsc_cpp::byte_vector getCertificate(const CertificateType type) const override
+    byte_vector getCertificate(const CertificateType type) const override
     {
         auto transactionGuard = card->beginTransaction();
         return getCertificateImpl(type);
     }
 
-    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
-                                          const pcsc_cpp::byte_vector& hash) const override
+    byte_vector signWithAuthKey(byte_vector&& pin, const byte_vector& hash) const override
     {
         validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
         auto transactionGuard = card->beginTransaction();
-        return signWithAuthKeyImpl(pin, hash);
+        return signWithAuthKeyImpl(std::move(pin), hash);
     }
 
-    Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
-                                 const pcsc_cpp::byte_vector& hash,
+    Signature signWithSigningKey(byte_vector&& pin, const byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override
     {
         validateSigningHash(*this, hashAlgo, hash);
 
         auto transactionGuard = card->beginTransaction();
-        return signWithSigningKeyImpl(pin, hash, hashAlgo);
+        return signWithSigningKeyImpl(std::move(pin), hash, hashAlgo);
     }
 
     PinRetriesRemainingAndMax signingPinRetriesLeft() const override
@@ -77,15 +75,13 @@ protected:
     // they have to be implemented when adding a new electronic ID.
     // This design follows the non-virtual interface pattern.
 
-    virtual pcsc_cpp::byte_vector getCertificateImpl(const CertificateType type) const = 0;
+    virtual byte_vector getCertificateImpl(const CertificateType type) const = 0;
 
-    virtual pcsc_cpp::byte_vector signWithAuthKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                                      const pcsc_cpp::byte_vector& hash) const = 0;
+    virtual byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const = 0;
 
     virtual PinRetriesRemainingAndMax authPinRetriesLeftImpl() const = 0;
 
-    virtual Signature signWithSigningKeyImpl(const pcsc_cpp::byte_vector& pin,
-                                             const pcsc_cpp::byte_vector& hash,
+    virtual Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                              const HashAlgorithm hashAlgo) const = 0;
 
     virtual PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const = 0;
