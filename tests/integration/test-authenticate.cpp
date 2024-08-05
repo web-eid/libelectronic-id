@@ -57,15 +57,15 @@ TEST(electronic_id_test, authenticate)
 
     GTEST_ASSERT_GE(cardInfo->eid().authPinRetriesLeft().first, 0U);
 
-    const byte_vector pin {'1', '2', '3', '4'};
+    byte_vector pin {'1', '2', '3', '4'};
 
     std::cout << "WARNING! Using hard-coded PIN "
-              << std::string(reinterpret_cast<const char*>(pin.data()), pin.size()) << '\n';
+              << std::string_view(reinterpret_cast<const char*>(pin.data()), pin.size()) << '\n';
 
     const byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
     const JsonWebSignatureAlgorithm hashAlgo = cardInfo->eid().authSignatureAlgorithm();
     const byte_vector hash = calculateDigest(hashAlgo.hashAlgorithm(), dataToSign);
-    auto signature = cardInfo->eid().signWithAuthKey(pin, hash);
+    auto signature = cardInfo->eid().signWithAuthKey(std::move(pin), hash);
 
     std::cout << "Authentication signature: " << signature << '\n';
 

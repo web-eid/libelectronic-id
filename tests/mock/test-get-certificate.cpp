@@ -54,9 +54,9 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
+    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
         throw std::runtime_error("Signature is invalid");
     }
@@ -69,9 +69,10 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
-    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5'};
+    pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
+    const auto signSignature =
+        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES384);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
@@ -100,9 +101,9 @@ TEST(electronic_id_test, selectCertificateFinV3)
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::PS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
+    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
         throw std::runtime_error("Signature is invalid");
     }
@@ -115,9 +116,10 @@ TEST(electronic_id_test, selectCertificateFinV3)
     EXPECT_EQ(signingRetriesLeft.first, 5U);
     EXPECT_EQ(signingRetriesLeft.second, 5);
 
-    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
+    const auto signSignature =
+        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES256);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
@@ -146,9 +148,9 @@ TEST(electronic_id_test, selectCertificateFinV4)
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
+    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
         throw std::runtime_error("Signature is invalid");
     }
@@ -161,9 +163,10 @@ TEST(electronic_id_test, selectCertificateFinV4)
     EXPECT_EQ(signingRetriesLeft.first, 5U);
     EXPECT_EQ(signingRetriesLeft.second, 5);
 
-    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
+    const auto signSignature =
+        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES384);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
@@ -192,9 +195,9 @@ TEST(electronic_id_test, selectCertificateLat_V1)
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
+    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
         throw std::runtime_error("Signature is invalid");
     }
@@ -207,9 +210,10 @@ TEST(electronic_id_test, selectCertificateLat_V1)
     EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
-    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
+    const auto signSignature =
+        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::RS256);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
@@ -238,9 +242,9 @@ TEST(electronic_id_test, selectCertificateLatV2)
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
-    const pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(authPin, hash);
+    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
         throw std::runtime_error("Signature is invalid");
     }
@@ -253,9 +257,10 @@ TEST(electronic_id_test, selectCertificateLatV2)
     EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
-    const pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature = cardInfo->eid().signWithSigningKey(signPin, hash, hashAlgo);
+    const auto signSignature =
+        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::RS256);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");

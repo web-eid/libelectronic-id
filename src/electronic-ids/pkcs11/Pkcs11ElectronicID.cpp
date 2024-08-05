@@ -214,7 +214,7 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::authPinRetriesLeft()
     return {authToken.retry, module.retryMax};
 }
 
-pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(const byte_vector& pin,
+pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(byte_vector&& pin,
                                                           const byte_vector& hash) const
 {
     REQUIRE_NON_NULL(manager)
@@ -254,7 +254,7 @@ ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::signingPinRetriesLef
     return {signingToken.retry, module.retryMax};
 }
 
-ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(const byte_vector& pin,
+ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(byte_vector&& pin,
                                                                const byte_vector& hash,
                                                                const HashAlgorithm hashAlgo) const
 {
