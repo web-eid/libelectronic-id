@@ -317,7 +317,7 @@ ResponseApdu SmartCard::transmit(const CommandApdu& command) const
         THROW(std::logic_error, "Call SmartCard::transmit() inside a transaction");
     }
 
-    return card->transmitBytes(command.toBytes());
+    return card->transmitBytes(command);
 }
 
 ResponseApdu SmartCard::transmitCTL(const CommandApdu& command, uint16_t lang, uint8_t minlen) const
@@ -327,7 +327,7 @@ ResponseApdu SmartCard::transmitCTL(const CommandApdu& command, uint16_t lang, u
         THROW(std::logic_error, "Call SmartCard::transmit() inside a transaction");
     }
 
-    return card->transmitBytesCTL(command.toBytes(), lang, minlen);
+    return card->transmitBytesCTL(command, lang, minlen);
 }
 
 } // namespace pcsc_cpp

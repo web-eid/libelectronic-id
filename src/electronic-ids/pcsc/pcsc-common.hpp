@@ -34,7 +34,7 @@ namespace electronic_id
 inline pcsc_cpp::byte_vector getCertificate(pcsc_cpp::SmartCard& card,
                                             const pcsc_cpp::CommandApdu& selectCertFileCmd)
 {
-    static const size_t MAX_LE_VALUE = 0xb5;
+    static const pcsc_cpp::byte_type MAX_LE_VALUE = 0xb5;
 
     transmitApduWithExpectedResponse(card, selectCertFileCmd);
 
@@ -54,17 +54,16 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
                       pcsc_cpp::byte_vector&& pin, uint8_t pinMinLength, size_t paddingLength,
                       pcsc_cpp::byte_type paddingChar)
 {
-    const pcsc_cpp::CommandApdu VERIFY_PIN {0x00, 0x20, 0x00, p2};
     pcsc_cpp::ResponseApdu response;
 
     if (card.readerHasPinPad()) {
-        const pcsc_cpp::CommandApdu verifyPin {VERIFY_PIN,
+        const pcsc_cpp::CommandApdu verifyPin {0x00, 0x20, 0x00, p2,
                                                addPaddingToPin({}, paddingLength, paddingChar)};
         response = card.transmitCTL(verifyPin, 0, pinMinLength);
 
     } else {
         const pcsc_cpp::CommandApdu verifyPin {
-            VERIFY_PIN, addPaddingToPin(std::move(pin), paddingLength, paddingChar)};
+            0x00, 0x20, 0x00, p2, addPaddingToPin(std::move(pin), paddingLength, paddingChar)};
 
         response = card.transmit(verifyPin);
     }
@@ -119,15 +118,7 @@ inline pcsc_cpp::byte_vector internalAuthenticate(pcsc_cpp::SmartCard& card,
                                                   const pcsc_cpp::byte_vector& hash,
                                                   const std::string& cardType)
 {
-    static const pcsc_cpp::CommandApdu INTERNAL_AUTHENTICATE {0x00, 0x88, 0x00, 0x00};
-
-    pcsc_cpp::CommandApdu internalAuth {INTERNAL_AUTHENTICATE, hash};
-    // LE is needed in case of protocol T1.
-    // TODO: Implement this in libpcsc-cpp.
-    if (card.protocol() == pcsc_cpp::SmartCard::Protocol::T1) {
-        internalAuth.le = 0;
-    }
-
+    pcsc_cpp::CommandApdu internalAuth {0x00, 0x88, 0x00, 0x00, hash, 0};
     const auto response = card.transmit(internalAuth);
 
     if (response.sw1 == pcsc_cpp::ResponseApdu::WRONG_LENGTH) {
@@ -148,15 +139,7 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
                                               const pcsc_cpp::byte_vector& hash,
                                               const std::string& cardType)
 {
-    static const pcsc_cpp::CommandApdu COMPUTE_SIGNATURE {0x00, 0x2A, 0x9E, 0x9A};
-
-    pcsc_cpp::CommandApdu computeSignature {COMPUTE_SIGNATURE, hash};
-    // LE is needed in case of protocol T1.
-    // TODO: Implement this in libpcsc-cpp.
-    if (card.protocol() == pcsc_cpp::SmartCard::Protocol::T1) {
-        computeSignature.le = 0;
-    }
-
+    pcsc_cpp::CommandApdu computeSignature {0x00, 0x2A, 0x9E, 0x9A, hash, 0};
     const auto response = card.transmit(computeSignature);
 
     if (response.sw1 == pcsc_cpp::ResponseApdu::WRONG_LENGTH) {
