@@ -27,7 +27,7 @@
 #include <map>
 #include <vector>
 #include <stdexcept>
-#include <stdint.h>
+#include <cstdint>
 
 #ifdef _WIN32
 using MOCK_LONG = int32_t;
@@ -44,9 +44,9 @@ public:
 class PcscMock
 {
 public:
-    typedef std::vector<unsigned char> byte_vector;
+    using byte_vector = std::vector<unsigned char>;
     // An APDU script is a list of request-response APDU pairs.
-    typedef std::vector<std::pair<byte_vector, byte_vector>> ApduScript;
+    using ApduScript = std::vector<std::pair<byte_vector, byte_vector>>;
     // Define local string type so that we can use wstring in Windows if needed.
 #ifdef _WIN32
     using string_t = std::wstring;
@@ -61,7 +61,7 @@ public:
 
     static bool wasScardFunctionCalled(const std::string& scardFunction)
     {
-        return instance()._recordedCalls.find(scardFunction) != instance()._recordedCalls.end();
+        return instance()._recordedCalls.contains(scardFunction);
     }
 
     static void addReturnValueForScardFunctionCall(const std::string& scardFunctionName,
