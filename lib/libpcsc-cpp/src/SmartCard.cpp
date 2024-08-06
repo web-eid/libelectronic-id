@@ -67,7 +67,7 @@ std::pair<SCARDHANDLE, DWORD> connectToCard(const SCARDCONTEXT ctx, const string
     SCard(Connect, ctx, readerName.c_str(), DWORD(SCARD_SHARE_SHARED), requestedProtocol,
           &cardHandle, &protocolOut);
 
-    return std::pair<SCARDHANDLE, DWORD> {cardHandle, protocolOut};
+    return {cardHandle, protocolOut};
 }
 
 template <class K, class V = uint32_t, class D, size_t dsize, typename Func>
@@ -97,7 +97,7 @@ class CardImpl
 {
 public:
     explicit CardImpl(std::pair<SCARDHANDLE, DWORD> cardParams) :
-        cardHandle(cardParams.first), _protocol({cardParams.second, sizeof(SCARD_IO_REQUEST)})
+        cardHandle(cardParams.first), _protocol {cardParams.second, sizeof(SCARD_IO_REQUEST)}
     {
         // TODO: debug("Protocol: " + to_string(protocol()))
         try {
@@ -145,8 +145,8 @@ public:
             return false;
         if (getenv("SMARTCARDPP_NOPINPAD"))
             return false;
-        return features.find(FEATURE_VERIFY_PIN_START) != features.cend()
-            || features.find(FEATURE_VERIFY_PIN_DIRECT) != features.cend();
+        return features.contains(FEATURE_VERIFY_PIN_START)
+            || features.contains(FEATURE_VERIFY_PIN_DIRECT);
     }
 
     ResponseApdu transmitBytes(const byte_vector& commandBytes) const
@@ -189,9 +189,9 @@ public:
         data->ulDataLength = uint32_t(commandBytes.size());
         cmd.insert(cmd.cend(), commandBytes.cbegin(), commandBytes.cend());
 
-        DWORD ioctl = features.at(features.find(FEATURE_VERIFY_PIN_START) != features.cend()
-                                      ? FEATURE_VERIFY_PIN_START
-                                      : FEATURE_VERIFY_PIN_DIRECT);
+        DWORD ioctl =
+            features.at(features.contains(FEATURE_VERIFY_PIN_START) ? FEATURE_VERIFY_PIN_START
+                                                                    : FEATURE_VERIFY_PIN_DIRECT);
         byte_vector responseBytes(ResponseApdu::MAX_SIZE, 0);
         auto responseLength = DWORD(responseBytes.size());
         SCard(Control, cardHandle, ioctl, cmd.data(), DWORD(cmd.size()),
