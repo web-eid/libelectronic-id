@@ -33,7 +33,7 @@ namespace electronic_id
 class CertificateType
 {
 public:
-    enum CertificateTypeEnum { AUTHENTICATION, SIGNING, NONE = -1 };
+    enum CertificateTypeEnum: int8_t { AUTHENTICATION, SIGNING, NONE = -1 };
 
     CertificateType() = default;
     constexpr CertificateType(const CertificateTypeEnum _value) : value(_value) {}
@@ -53,7 +53,7 @@ private:
 class HashAlgorithm
 {
 public:
-    enum HashAlgorithmEnum {
+    enum HashAlgorithmEnum: int16_t {
         SHA224 = 224, // SHA2
         SHA256 = 256,
         SHA384 = 384,
@@ -93,8 +93,6 @@ public:
         return value >= HashAlgorithm::SHA3_224 && value <= HashAlgorithm::SHA3_512;
     }
 
-    constexpr bool isSHA2orSHA3() const { return isSHA2() || isSHA3(); }
-
     static std::string allSupportedAlgorithmNames();
     static pcsc_cpp::byte_vector rsaOID(const HashAlgorithmEnum hash);
 
@@ -109,40 +107,40 @@ public:
     enum SignatureAlgorithmEnum {
         // ECDSA
         ES = 1 << 13,
-        ES224 = ES | HashAlgorithm::SHA224,
-        ES256 = ES | HashAlgorithm::SHA256,
-        ES384 = ES | HashAlgorithm::SHA384,
-        ES512 = ES | HashAlgorithm::SHA512,
-        ES3_224 = ES | HashAlgorithm::SHA3_224,
-        ES3_256 = ES | HashAlgorithm::SHA3_256,
-        ES3_384 = ES | HashAlgorithm::SHA3_384,
-        ES3_512 = ES | HashAlgorithm::SHA3_512,
+        ES224 = ES | int16_t(HashAlgorithm::SHA224),
+        ES256 = ES | int16_t(HashAlgorithm::SHA256),
+        ES384 = ES | int16_t(HashAlgorithm::SHA384),
+        ES512 = ES | int16_t(HashAlgorithm::SHA512),
+        ES3_224 = ES | int16_t(HashAlgorithm::SHA3_224),
+        ES3_256 = ES | int16_t(HashAlgorithm::SHA3_256),
+        ES3_384 = ES | int16_t(HashAlgorithm::SHA3_384),
+        ES3_512 = ES | int16_t(HashAlgorithm::SHA3_512),
         // RSASSA-PSS
         PS = 1 << 14,
-        PS224 = PS | HashAlgorithm::SHA224,
-        PS256 = PS | HashAlgorithm::SHA256,
-        PS384 = PS | HashAlgorithm::SHA384,
-        PS512 = PS | HashAlgorithm::SHA512,
-        PS3_224 = PS | HashAlgorithm::SHA3_224,
-        PS3_256 = PS | HashAlgorithm::SHA3_256,
-        PS3_384 = PS | HashAlgorithm::SHA3_384,
-        PS3_512 = PS | HashAlgorithm::SHA3_512,
+        PS224 = PS | int16_t(HashAlgorithm::SHA224),
+        PS256 = PS | int16_t(HashAlgorithm::SHA256),
+        PS384 = PS | int16_t(HashAlgorithm::SHA384),
+        PS512 = PS | int16_t(HashAlgorithm::SHA512),
+        PS3_224 = PS | int16_t(HashAlgorithm::SHA3_224),
+        PS3_256 = PS | int16_t(HashAlgorithm::SHA3_256),
+        PS3_384 = PS | int16_t(HashAlgorithm::SHA3_384),
+        PS3_512 = PS | int16_t(HashAlgorithm::SHA3_512),
         // RSASSA-PKCS1-v1_5
         RS = 1 << 15,
-        RS224 = RS | HashAlgorithm::SHA224,
-        RS256 = RS | HashAlgorithm::SHA256,
-        RS384 = RS | HashAlgorithm::SHA384,
-        RS512 = RS | HashAlgorithm::SHA512,
-        RS3_224 = RS | HashAlgorithm::SHA3_224,
-        RS3_256 = RS | HashAlgorithm::SHA3_256,
-        RS3_384 = RS | HashAlgorithm::SHA3_384,
-        RS3_512 = RS | HashAlgorithm::SHA3_512,
+        RS224 = RS | int16_t(HashAlgorithm::SHA224),
+        RS256 = RS | int16_t(HashAlgorithm::SHA256),
+        RS384 = RS | int16_t(HashAlgorithm::SHA384),
+        RS512 = RS | int16_t(HashAlgorithm::SHA512),
+        RS3_224 = RS | int16_t(HashAlgorithm::SHA3_224),
+        RS3_256 = RS | int16_t(HashAlgorithm::SHA3_256),
+        RS3_384 = RS | int16_t(HashAlgorithm::SHA3_384),
+        RS3_512 = RS | int16_t(HashAlgorithm::SHA3_512),
         NONE = -1
     };
 
     constexpr SignatureAlgorithm(const SignatureAlgorithmEnum _value) : value(_value) {}
     constexpr SignatureAlgorithm(const SignatureAlgorithmEnum key, const HashAlgorithm hash) :
-        value(SignatureAlgorithmEnum(key | hash))
+        value(SignatureAlgorithmEnum(key | int16_t(hash)))
     {
     }
 
@@ -174,7 +172,7 @@ private:
 class JsonWebSignatureAlgorithm
 {
 public:
-    enum JsonWebSignatureAlgorithmEnum {
+    enum JsonWebSignatureAlgorithmEnum: int8_t {
         ES256, // ECDSA
         ES384,
         ES512,

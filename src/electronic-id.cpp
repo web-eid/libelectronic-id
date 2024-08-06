@@ -139,7 +139,7 @@ namespace electronic_id
 
 bool isCardSupported(const pcsc_cpp::byte_vector& atr)
 {
-    return SUPPORTED_ATRS.count(atr);
+    return SUPPORTED_ATRS.contains(atr);
 }
 
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
@@ -177,7 +177,7 @@ VerifyPinFailed::VerifyPinFailed(const Status s, const observer_ptr<pcsc_cpp::Re
 
 HashAlgorithm::HashAlgorithm(const std::string& algoName)
 {
-    if (!SUPPORTED_ALGORITHMS.count(algoName)) {
+    if (!SUPPORTED_ALGORITHMS.contains(algoName)) {
         THROW(ArgumentFatalError,
               "Hash algorithm is not valid, supported algorithms are "
                   + allSupportedAlgorithmNames());
