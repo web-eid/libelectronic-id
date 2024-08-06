@@ -75,9 +75,9 @@ byte_vector FinEIDv3::getCertificateImpl(const CertificateType type) const
         *card, type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V3);
 }
 
-byte_vector FinEIDv3::signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const
+byte_vector FinEIDv3::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
 {
-    return sign(authSignatureAlgorithm().hashAlgorithm(), hash, pin, AUTH_PIN_REFERENCE,
+    return sign(authSignatureAlgorithm().hashAlgorithm(), hash, std::move(pin), AUTH_PIN_REFERENCE,
                 authPinMinMaxLength(), AUTH_KEY_REFERENCE, RSA_PSS_ALGO, 0x00);
 }
 
@@ -91,11 +91,10 @@ const std::set<SignatureAlgorithm>& FinEIDv3::supportedSigningAlgorithms() const
     return ELLIPTIC_CURVE_SIGNATURE_ALGOS();
 }
 
-ElectronicID::Signature FinEIDv3::signWithSigningKeyImpl(const byte_vector& pin,
-                                                         const byte_vector& hash,
+ElectronicID::Signature FinEIDv3::signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                                          const HashAlgorithm hashAlgo) const
 {
-    return {sign(hashAlgo, hash, pin, SIGNING_PIN_REFERENCE, signingPinMinMaxLength(),
+    return {sign(hashAlgo, hash, std::move(pin), SIGNING_PIN_REFERENCE, signingPinMinMaxLength(),
                  SIGNING_KEY_REFERENCE_V3, ECDSA_ALGO, 0x40),
             {SignatureAlgorithm::ES, hashAlgo}};
 }
@@ -105,10 +104,9 @@ ElectronicID::PinRetriesRemainingAndMax FinEIDv3::signingPinRetriesLeftImpl() co
     return pinRetriesLeft(SIGNING_PIN_REFERENCE);
 }
 
-byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash,
-                           const byte_vector& pin, byte_type pinReference,
-                           PinMinMaxLength pinMinMaxLength, byte_type keyReference,
-                           byte_type signatureAlgo, byte_type LE) const
+byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash, byte_vector&& pin,
+                           byte_type pinReference, PinMinMaxLength pinMinMaxLength,
+                           byte_type keyReference, byte_type signatureAlgo, byte_type LE) const
 {
     if (signatureAlgo != ECDSA_ALGO && hashAlgo.isSHA3()) {
         THROW(ArgumentFatalError, "No OID for algorithm " + std::string(hashAlgo));
@@ -137,7 +135,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
 
     transmitApduWithExpectedResponse(*card, SELECT_MASTER_FILE);
 
-    verifyPin(*card, pinReference, pin, pinMinMaxLength.first, pinMinMaxLength.second,
+    verifyPin(*card, pinReference, std::move(pin), pinMinMaxLength.first, pinMinMaxLength.second,
               PIN_PADDING_CHAR);
     // Select security environment for COMPUTE SIGNATURE.
     selectSecurityEnv(*card, 0xB6, signatureAlgo, keyReference, name());
@@ -198,17 +196,16 @@ byte_vector FinEIDv4::getCertificateImpl(const CertificateType type) const
         *card, type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V4);
 }
 
-byte_vector FinEIDv4::signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const
+byte_vector FinEIDv4::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
 {
-    return sign(authSignatureAlgorithm().hashAlgorithm(), hash, pin, AUTH_PIN_REFERENCE,
+    return sign(authSignatureAlgorithm().hashAlgorithm(), hash, std::move(pin), AUTH_PIN_REFERENCE,
                 authPinMinMaxLength(), AUTH_KEY_REFERENCE, ECDSA_ALGO, 0x60);
 }
 
-ElectronicID::Signature FinEIDv4::signWithSigningKeyImpl(const byte_vector& pin,
-                                                         const byte_vector& hash,
+ElectronicID::Signature FinEIDv4::signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                                          const HashAlgorithm hashAlgo) const
 {
-    return {sign(hashAlgo, hash, pin, SIGNING_PIN_REFERENCE, signingPinMinMaxLength(),
+    return {sign(hashAlgo, hash, std::move(pin), SIGNING_PIN_REFERENCE, signingPinMinMaxLength(),
                  SIGNING_KEY_REFERENCE_V4, ECDSA_ALGO, 0x60),
             {SignatureAlgorithm::ES, hashAlgo}};
 }

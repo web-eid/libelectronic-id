@@ -49,10 +49,10 @@ protected:
     byte_vector getCertificateImpl(const CertificateType type) const override;
 
     PinRetriesRemainingAndMax authPinRetriesLeftImpl() const override;
-    byte_vector signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const override;
+    byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
 
     PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const override;
-    Signature signWithSigningKeyImpl(const byte_vector& pin, const byte_vector& hash,
+    Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
     virtual const SelectApplicationIDCmds& selectApplicationID() const;

@@ -49,12 +49,12 @@ protected:
     std::string name() const override { return "FinEID v3"; }
     Type type() const override { return FinEID; }
 
-    byte_vector signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const override;
+    byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
 
-    Signature signWithSigningKeyImpl(const byte_vector& pin, const byte_vector& hash,
+    Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
-    byte_vector sign(const HashAlgorithm hashAlgo, const byte_vector& hash, const byte_vector& pin,
+    byte_vector sign(const HashAlgorithm hashAlgo, const byte_vector& hash, byte_vector&& pin,
                      byte_type pinReference, PinMinMaxLength pinMinMaxLength,
                      byte_type keyReference, byte_type signatureAlgo, byte_type LE) const;
 
@@ -76,9 +76,9 @@ private:
 
     std::string name() const override { return "FinEID v4"; }
 
-    byte_vector signWithAuthKeyImpl(const byte_vector& pin, const byte_vector& hash) const override;
+    byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
 
-    Signature signWithSigningKeyImpl(const byte_vector& pin, const byte_vector& hash,
+    Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 };
 
