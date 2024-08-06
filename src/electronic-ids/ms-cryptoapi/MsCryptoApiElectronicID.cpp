@@ -34,7 +34,7 @@ JsonWebSignatureAlgorithm MsCryptoApiElectronicID::authSignatureAlgorithm() cons
     return getAuthAlgorithmFromCert(certData);
 }
 
-byte_vector MsCryptoApiElectronicID::signWithAuthKey(const byte_vector& /* pin */,
+byte_vector MsCryptoApiElectronicID::signWithAuthKey(byte_vector&& /* pin */,
                                                      const byte_vector& hash) const
 {
     if (certType != CertificateType::AUTHENTICATION) {
@@ -56,7 +56,7 @@ const std::set<SignatureAlgorithm>& MsCryptoApiElectronicID::supportedSigningAlg
 }
 
 ElectronicID::Signature
-MsCryptoApiElectronicID::signWithSigningKey(const byte_vector& /* pin */, const byte_vector& hash,
+MsCryptoApiElectronicID::signWithSigningKey(byte_vector&& /* pin */, const byte_vector& hash,
                                             const HashAlgorithm hashAlgo) const
 {
     if (certType != CertificateType::SIGNING) {
