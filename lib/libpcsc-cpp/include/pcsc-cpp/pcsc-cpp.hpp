@@ -140,53 +140,37 @@ struct ResponseApdu
 };
 
 /** Struct that wraps command APDUs. */
-struct CommandApdu
+struct CommandApdu : public byte_vector
 {
-    byte_type cla;
-    byte_type ins;
-    byte_type p1;
-    byte_type p2;
-    unsigned short le;
-    // Lc is data.size()
-    byte_vector data;
+    static constexpr size_t MAX_DATA_SIZE = 255;
 
-    static const size_t MAX_DATA_SIZE = 255;
-    static const unsigned short LE_UNUSED = std::numeric_limits<unsigned short>::max();
-
-    CommandApdu(byte_type c, byte_type i, byte_type pp1, byte_type pp2, byte_vector d = {},
-                unsigned short l = LE_UNUSED) :
-        cla(c), ins(i), p1(pp1), p2(pp2), le(l), data(std::move(d))
+    // Case 1
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2) :
+        byte_vector {cls, ins, p1, p2}
     {
     }
 
-    CommandApdu(const CommandApdu& other, byte_vector d) :
-        CommandApdu(other.cla, other.ins, other.p1, other.p2, std::move(d), other.le)
+    // Case 2
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_type le) :
+        byte_vector {cls, ins, p1, p2, le}
     {
     }
 
-    constexpr bool isLeSet() const noexcept { return le != LE_UNUSED; }
-
-    byte_vector toBytes() const
+    // Case 3
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data) :
+        byte_vector {std::move(data)}
     {
-        if (data.size() > MAX_DATA_SIZE) {
-            throw std::invalid_argument("Command chaining not supported");
+        if (size() > MAX_DATA_SIZE) {
+            throw std::invalid_argument("Command chaining and extended lenght not supported");
         }
+        insert(begin(), {cls, ins, p1, p2, static_cast<byte_type>(size())});
+    }
 
-        auto bytes = byte_vector {cla, ins, p1, p2};
-
-        if (!data.empty()) {
-            bytes.push_back(static_cast<byte_type>(data.size()));
-            bytes.insert(bytes.end(), data.cbegin(), data.cend());
-        }
-
-        if (isLeSet()) {
-            // TODO: EstEID spec: the maximum value of Le is 0xFE
-            if (le > ResponseApdu::MAX_DATA_SIZE)
-                throw std::invalid_argument("LE larger than response size");
-            bytes.push_back(static_cast<byte_type>(le));
-        }
-
-        return bytes;
+    // Case 4
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data,
+                byte_type le) : CommandApdu {cls, ins, p1, p2, std::move(data)}
+    {
+        push_back(le);
     }
 };
 
@@ -295,7 +279,7 @@ void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& 
 size_t readDataLengthFromAsn1(const SmartCard& card);
 
 /** Read lenght bytes from currently selected binary file in blockLength-sized chunks. */
-byte_vector readBinary(const SmartCard& card, const size_t length, const size_t blockLength);
+byte_vector readBinary(const SmartCard& card, const size_t length, byte_type blockLength);
 
 // Errors.
 
