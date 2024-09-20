@@ -33,7 +33,7 @@ namespace electronic_id
 class CertificateType
 {
 public:
-    enum CertificateTypeEnum: int8_t { AUTHENTICATION, SIGNING, NONE = -1 };
+    enum CertificateTypeEnum : int8_t { AUTHENTICATION, SIGNING, NONE = -1 };
 
     CertificateType() = default;
     constexpr CertificateType(const CertificateTypeEnum _value) : value(_value) {}
@@ -53,7 +53,7 @@ private:
 class HashAlgorithm
 {
 public:
-    enum HashAlgorithmEnum: int16_t {
+    enum HashAlgorithmEnum : int16_t {
         SHA224 = 224, // SHA2
         SHA256 = 256,
         SHA384 = 384,
@@ -172,7 +172,7 @@ private:
 class JsonWebSignatureAlgorithm
 {
 public:
-    enum JsonWebSignatureAlgorithmEnum: int8_t {
+    enum JsonWebSignatureAlgorithmEnum : int8_t {
         ES256, // ECDSA
         ES384,
         ES512,
