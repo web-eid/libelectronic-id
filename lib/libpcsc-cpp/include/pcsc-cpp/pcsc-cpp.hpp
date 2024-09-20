@@ -180,6 +180,8 @@ struct CommandApdu
 
     constexpr operator const byte_vector&() const { return d; }
 
+    virtual ~CommandApdu() = default;
+
     /**
      * A helper function to create a SELECT command APDU.
      *

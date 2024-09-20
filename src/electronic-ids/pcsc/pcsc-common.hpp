@@ -56,6 +56,26 @@ addPaddingToPin(pcsc_cpp::byte_vector&& pin, size_t paddingLength, pcsc_cpp::byt
     return std::move(pin);
 }
 
+struct VerifyPinCommandAPDU : public pcsc_cpp::CommandApdu
+{
+public:
+    // Make it move-only
+    VerifyPinCommandAPDU(const VerifyPinCommandAPDU&) = delete;
+    VerifyPinCommandAPDU& operator=(const VerifyPinCommandAPDU&) = delete;
+
+    VerifyPinCommandAPDU(VerifyPinCommandAPDU&&) noexcept = default;
+    VerifyPinCommandAPDU& operator=(VerifyPinCommandAPDU&&) noexcept = default;
+
+    VerifyPinCommandAPDU(pcsc_cpp::byte_type p2, pcsc_cpp::byte_vector&& pin, size_t paddingLength,
+                         pcsc_cpp::byte_type paddingChar) :
+        CommandApdu(0x00, 0x20, 0x00, p2,
+                    addPaddingToPin(std::move(pin), paddingLength, paddingChar))
+    {
+    }
+
+    ~VerifyPinCommandAPDU() { std::fill(d.begin(), d.end(), 0); }
+};
+
 inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
                       pcsc_cpp::byte_vector&& pin, uint8_t pinMinLength, size_t paddingLength,
                       pcsc_cpp::byte_type paddingChar)
@@ -63,14 +83,11 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
     pcsc_cpp::ResponseApdu response;
 
     if (card.readerHasPinPad()) {
-        const pcsc_cpp::CommandApdu verifyPin {0x00, 0x20, 0x00, p2,
-                                               addPaddingToPin({}, paddingLength, paddingChar)};
+        VerifyPinCommandAPDU verifyPin {p2, {}, paddingLength, paddingChar};
         response = card.transmitCTL(verifyPin, 0, pinMinLength);
 
     } else {
-        const pcsc_cpp::CommandApdu verifyPin {
-            0x00, 0x20, 0x00, p2, addPaddingToPin(std::move(pin), paddingLength, paddingChar)};
-
+        VerifyPinCommandAPDU verifyPin {p2, std::move(pin), paddingLength, paddingChar};
         response = card.transmit(verifyPin);
     }
 
