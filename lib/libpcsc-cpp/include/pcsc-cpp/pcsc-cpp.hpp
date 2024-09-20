@@ -145,16 +145,16 @@ struct CommandApdu
     static constexpr size_t MAX_DATA_SIZE = 255;
 
     // Case 1
-    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2) : d {cls, ins, p1, p2} {}
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2) : d {cls, ins, p1, p2} {}
 
     // Case 2
-    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_type le) :
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_type le) :
         d {cls, ins, p1, p2, le}
     {
     }
 
     // Case 3
-    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data) :
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data) :
         d {std::move(data)}
     {
         if (d.size() > MAX_DATA_SIZE) {
@@ -164,7 +164,7 @@ struct CommandApdu
     }
 
     // Case 4
-    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data,
+    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data,
                 byte_type le) : CommandApdu {cls, ins, p1, p2, std::move(data)}
     {
         d.push_back(le);
