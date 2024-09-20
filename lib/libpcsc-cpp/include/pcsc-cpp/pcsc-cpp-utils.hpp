@@ -43,10 +43,10 @@ inline std::string int2hexstr(const T value)
 
 /** Remove absolute path prefix until 'src' from the given path, '/path/to/src/main.cpp' becomes
  * 'src/main.cpp'. */
-inline std::string removeAbsolutePathPrefix(std::string filePath)
+constexpr const char* removeAbsolutePathPrefix(std::string_view filePath)
 {
     const auto lastSrc = filePath.rfind("src");
-    return lastSrc == std::string::npos ? std::move(filePath) : filePath.erase(0, lastSrc);
+    return lastSrc == std::string::npos ? filePath.data() : filePath.substr(lastSrc).data();
 }
 
 } // namespace pcsc_cpp
