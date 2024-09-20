@@ -47,7 +47,7 @@ inline pcsc_cpp::byte_vector addPaddingToPin(pcsc_cpp::byte_vector&& pin, size_t
                                              pcsc_cpp::byte_type paddingChar)
 {
     pin.resize(std::max(pin.size(), paddingLength), paddingChar);
-    return pin;
+    return std::move(pin);
 }
 
 inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
