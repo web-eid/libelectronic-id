@@ -43,8 +43,8 @@ inline pcsc_cpp::byte_vector getCertificate(pcsc_cpp::SmartCard& card,
     return readBinary(card, length, MAX_LE_VALUE);
 }
 
-inline pcsc_cpp::byte_vector addPaddingToPin(pcsc_cpp::byte_vector&& pin, size_t paddingLength,
-                                             pcsc_cpp::byte_type paddingChar)
+PCSC_CPP_CONSTEXPR_VECTOR inline pcsc_cpp::byte_vector
+addPaddingToPin(pcsc_cpp::byte_vector&& pin, size_t paddingLength, pcsc_cpp::byte_type paddingChar)
 {
     pin.resize(std::max(pin.size(), paddingLength), paddingChar);
     return pin;
