@@ -54,6 +54,12 @@
 #define PCSC_CPP_WARNING_DISABLE_MSVC(text)
 #endif
 
+#ifdef __cpp_lib_constexpr_vector
+#define PCSC_CPP_CONSTEXPR_VECTOR constexpr
+#else
+#define PCSC_CPP_CONSTEXPR_VECTOR
+#endif
+
 namespace pcsc_cpp
 {
 
@@ -145,17 +151,20 @@ struct CommandApdu
     static constexpr size_t MAX_DATA_SIZE = 255;
 
     // Case 1
-    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2) : d {cls, ins, p1, p2} {}
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1,
+                                          byte_type p2) : d {cls, ins, p1, p2}
+    {
+    }
 
     // Case 2
-    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_type le) :
-        d {cls, ins, p1, p2, le}
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                                          byte_type le) : d {cls, ins, p1, p2, le}
     {
     }
 
     // Case 3
-    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data) :
-        d {std::move(data)}
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                                          byte_vector data) : d {std::move(data)}
     {
         if (d.size() > MAX_DATA_SIZE) {
             throw std::invalid_argument("Command chaining and extended lenght not supported");
@@ -164,8 +173,9 @@ struct CommandApdu
     }
 
     // Case 4
-    CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_vector data,
-                byte_type le) : CommandApdu {cls, ins, p1, p2, std::move(data)}
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                                          byte_vector data, byte_type le) :
+        CommandApdu {cls, ins, p1, p2, std::move(data)}
     {
         d.push_back(le);
     }
