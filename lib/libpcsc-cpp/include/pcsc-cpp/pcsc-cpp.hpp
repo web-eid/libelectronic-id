@@ -54,6 +54,12 @@
 #define PCSC_CPP_WARNING_DISABLE_MSVC(text)
 #endif
 
+#ifdef __cpp_lib_constexpr_vector
+#define PCSC_CPP_CONSTEXPR_VECTOR constexpr
+#else
+#define PCSC_CPP_CONSTEXPR_VECTOR
+#endif
+
 namespace pcsc_cpp
 {
 
@@ -142,52 +148,41 @@ struct ResponseApdu
 /** Struct that wraps command APDUs. */
 struct CommandApdu
 {
-    byte_type cla;
-    byte_type ins;
-    byte_type p1;
-    byte_type p2;
-    unsigned short le;
-    // Lc is data.size()
-    byte_vector data;
+    static constexpr size_t MAX_DATA_SIZE = 255;
 
-    static const size_t MAX_DATA_SIZE = 255;
-    static const unsigned short LE_UNUSED = std::numeric_limits<unsigned short>::max();
-
-    CommandApdu(byte_type c, byte_type i, byte_type pp1, byte_type pp2, byte_vector d = {},
-                unsigned short l = LE_UNUSED) :
-        cla(c), ins(i), p1(pp1), p2(pp2), le(l), data(std::move(d))
+    // Case 1
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1,
+                                          byte_type p2) : d {cls, ins, p1, p2}
     {
     }
 
-    CommandApdu(const CommandApdu& other, byte_vector d) :
-        CommandApdu(other.cla, other.ins, other.p1, other.p2, std::move(d), other.le)
+    // Case 2
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                                          byte_type le) : d {cls, ins, p1, p2, le}
     {
     }
 
-    constexpr bool isLeSet() const noexcept { return le != LE_UNUSED; }
-
-    byte_vector toBytes() const
+    // Case 3
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                                          byte_vector data) : d {std::move(data)}
     {
-        if (data.size() > MAX_DATA_SIZE) {
-            throw std::invalid_argument("Command chaining not supported");
+        if (d.size() > MAX_DATA_SIZE) {
+            throw std::invalid_argument("Command chaining and extended lenght not supported");
         }
-
-        auto bytes = byte_vector {cla, ins, p1, p2};
-
-        if (!data.empty()) {
-            bytes.push_back(static_cast<byte_type>(data.size()));
-            bytes.insert(bytes.end(), data.cbegin(), data.cend());
-        }
-
-        if (isLeSet()) {
-            // TODO: EstEID spec: the maximum value of Le is 0xFE
-            if (le > ResponseApdu::MAX_DATA_SIZE)
-                throw std::invalid_argument("LE larger than response size");
-            bytes.push_back(static_cast<byte_type>(le));
-        }
-
-        return bytes;
+        d.insert(d.begin(), {cls, ins, p1, p2, static_cast<byte_type>(d.size())});
     }
+
+    // Case 4
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                                          byte_vector data, byte_type le) :
+        CommandApdu {cls, ins, p1, p2, std::move(data)}
+    {
+        d.push_back(le);
+    }
+
+    constexpr operator const byte_vector&() const { return d; }
+
+    byte_vector d;
 };
 
 /** Opaque class that wraps the PC/SC smart card resources like card handle and I/O protocol. */
@@ -295,7 +290,7 @@ void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& 
 size_t readDataLengthFromAsn1(const SmartCard& card);
 
 /** Read lenght bytes from currently selected binary file in blockLength-sized chunks. */
-byte_vector readBinary(const SmartCard& card, const size_t length, const size_t blockLength);
+byte_vector readBinary(const SmartCard& card, const size_t length, byte_type blockLength);
 
 // Errors.
 
