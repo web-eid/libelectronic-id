@@ -72,11 +72,11 @@ inline fs::path lithuanianPKCS11ModulePath()
 inline fs::path croatianPkcs11ModulePath()
 {
 #ifdef _WIN32
-    return programFilesPath() / L"AKD/eID Middleware/pkcs11/AkdEidPkcs11_64.dll";
+    return programFilesPath() / L"AKD/Certilia Middleware/pkcs11/AkdEidPkcs11_64.dll";
 #elif defined __APPLE__
-    return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so"; // NB! Not tested.
+    return "/Library/AKD/Certilia Middleware/pkcs11/libEidPkcs11.so"; // NB! Not tested.
 #else // Linux
-    return "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so";
+    return "/usr/lib/akd/certiliamiddleware/pkcs11/libEidPkcs11.so";
 #endif
 }
 
