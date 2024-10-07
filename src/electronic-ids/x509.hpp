@@ -8,6 +8,8 @@
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 
+#include <optional>
+
 namespace electronic_id
 {
 
@@ -37,7 +39,8 @@ inline bool hasClientAuthExtendedKeyUsage(EXTENDED_KEY_USAGE* usage) noexcept
     return false;
 }
 
-inline CertificateType certificateType(const pcsc_cpp::byte_vector& cert)
+inline CertificateType certificateType(const pcsc_cpp::byte_vector& cert,
+                                       const bool checkExtKeyUsage = true)
 {
     auto x509 = make_x509(cert);
     auto keyUsage = extension(x509.get(), NID_key_usage, ASN1_BIT_STRING_free);
@@ -52,6 +55,10 @@ inline CertificateType certificateType(const pcsc_cpp::byte_vector& cert)
 
     static const int KEY_USAGE_DIGITAL_SIGNATURE = 0;
     if (ASN1_BIT_STRING_get_bit(keyUsage.get(), KEY_USAGE_DIGITAL_SIGNATURE)) {
+        if (!checkExtKeyUsage) {
+            return CertificateType::AUTHENTICATION;
+        }
+
         if (auto extKeyUsage = extension(x509.get(), NID_ext_key_usage, EXTENDED_KEY_USAGE_free);
             extKeyUsage && hasClientAuthExtendedKeyUsage(extKeyUsage.get())) {
             return CertificateType::AUTHENTICATION;
