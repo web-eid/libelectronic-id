@@ -43,7 +43,6 @@ public:
     bool isSigning() const { return value == SIGNING; }
 
     constexpr bool operator==(const CertificateType other) const { return value == other.value; }
-    constexpr bool operator!=(const CertificateType other) const { return value != other.value; }
     operator std::string() const;
 
 private:
@@ -73,7 +72,6 @@ public:
     HashAlgorithm(const std::string&);
 
     constexpr bool operator==(HashAlgorithmEnum other) const { return value == other; }
-    constexpr bool operator!=(HashAlgorithmEnum other) const { return value != other; }
     constexpr operator HashAlgorithmEnum() const { return value; }
 
     operator std::string() const;
@@ -146,14 +144,9 @@ public:
 
     constexpr bool operator==(HashAlgorithm other) const
     {
-        return operator HashAlgorithm() == other;
-    }
-    constexpr bool operator!=(HashAlgorithm other) const
-    {
-        return operator HashAlgorithm() != other;
+        return other.operator ==(operator HashAlgorithm());
     }
     constexpr bool operator==(SignatureAlgorithmEnum other) const { return value == other; }
-    constexpr bool operator!=(SignatureAlgorithmEnum other) const { return value != other; }
 
     constexpr operator HashAlgorithm() const
     {
@@ -190,7 +183,6 @@ public:
     }
 
     constexpr bool operator==(JsonWebSignatureAlgorithmEnum other) const { return value == other; }
-    constexpr bool operator!=(JsonWebSignatureAlgorithmEnum other) const { return value != other; }
     constexpr operator JsonWebSignatureAlgorithmEnum() const { return value; }
 
     operator std::string() const;
