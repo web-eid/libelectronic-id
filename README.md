@@ -26,12 +26,21 @@ read the authentication certificate:
 
 See more examples in [tests](tests).
 
-## Building
+## Building Ubuntu
 
     apt install build-essential pkg-config cmake libgtest-dev valgrind libpcsclite-dev
 
     cmake -S . -B build # optionally with -DCMAKE_BUILD_TYPE=Debug
     cmake --build build # optionally with VERBOSE=1
+
+## Building Fedora
+
+    dnf install pcsc-lite-devel gtest-devel fedora-packager rpmdevtools
+    mkdir build
+    cd build
+    cmake ..
+    cmake package
+    dnf install ./libelectronic-id*.rpm
 
 ## Testing
 
