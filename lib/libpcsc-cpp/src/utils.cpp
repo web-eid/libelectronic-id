@@ -59,9 +59,9 @@ public:
                                      const ResponseApdu& response, const char* file, const int line,
                                      const char* callerFunctionName) :
         Error("transmitApduWithExpectedResponse(): Unexpected response to command '"s
-              + bytes2hexstr(command.toBytes()) + "' - expected '"s
-              + bytes2hexstr(expectedResponseBytes) + "', got '"s + bytes2hexstr(response.toBytes())
-              + " in " + removeAbsolutePathPrefix(file) + ':' + std::to_string(line) + ':'
+              + bytes2hexstr(command) + "' - expected '"s + bytes2hexstr(expectedResponseBytes)
+              + "', got '"s + bytes2hexstr(response.toBytes()) + " in "
+              + removeAbsolutePathPrefix(file) + ':' + std::to_string(line) + ':'
               + callerFunctionName)
     {
     }
@@ -101,7 +101,7 @@ size_t readDataLengthFromAsn1(const SmartCard& card)
     // p1 - offset size first byte, 0
     // p2 - offset size second byte, 0
     // le - number of bytes to read, need 4 bytes from start for length
-    const auto readBinary4Bytes = CommandApdu {0x00, 0xb0, 0x00, 0x00, byte_vector(), 0x04};
+    const CommandApdu readBinary4Bytes {0x00, 0xb0, 0x00, 0x00, 0x04};
 
     auto response = card.transmit(readBinary4Bytes);
 
@@ -135,24 +135,19 @@ size_t readDataLengthFromAsn1(const SmartCard& card)
     return length;
 }
 
-byte_vector readBinary(const SmartCard& card, const size_t length, const size_t blockLength)
+byte_vector readBinary(const SmartCard& card, const size_t length, byte_type blockLength)
 {
-    size_t blockLengthVar = blockLength;
     auto lengthCounter = length;
     auto resultBytes = byte_vector {};
-    auto readBinary = CommandApdu {0x00, 0xb0, 0x00, 0x00};
 
     for (size_t offset = 0; lengthCounter != 0;
-         offset += blockLengthVar, lengthCounter -= blockLengthVar) {
+         offset += blockLength, lengthCounter -= blockLength) {
 
-        if (blockLengthVar > lengthCounter) {
-            blockLengthVar = lengthCounter;
+        if (blockLength > lengthCounter) {
+            blockLength = byte_type(lengthCounter);
         }
 
-        readBinary.p1 = HIBYTE(offset);
-        readBinary.p2 = LOBYTE(offset);
-        readBinary.le = static_cast<byte_type>(blockLengthVar);
-
+        CommandApdu readBinary {0x00, 0xb0, HIBYTE(offset), LOBYTE(offset), blockLength};
         auto response = card.transmit(readBinary);
 
         resultBytes.insert(resultBytes.end(), response.data.cbegin(), response.data.cend());

@@ -143,7 +143,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     byte_vector tlv {0x90, byte_type(hash.size())};
     tlv.insert(tlv.cend(), hash.cbegin(), hash.cend());
 
-    const CommandApdu computeSignature {{0x00, 0x2A, 0x90, 0xA0}, std::move(tlv)};
+    const CommandApdu computeSignature {0x00, 0x2A, 0x90, 0xA0, std::move(tlv)};
     const auto response = card->transmit(computeSignature);
 
     if (response.sw1 == ResponseApdu::WRONG_LENGTH) {
@@ -156,7 +156,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
               "Command COMPUTE SIGNATURE failed with error " + bytes2hexstr(response.toBytes()));
     }
 
-    const CommandApdu getSignature {0x00, 0x2A, 0x9E, 0x9A, {}, LE};
+    const CommandApdu getSignature {0x00, 0x2A, 0x9E, 0x9A, LE};
     const auto signature = card->transmit(getSignature);
 
     if (signature.sw1 == ResponseApdu::WRONG_LENGTH) {
