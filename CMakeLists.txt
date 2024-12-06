@@ -81,6 +81,8 @@ add_executable(${MOCK_TEST_EXE}
   tests/mock/select-certificate-script-LAT-V1.hpp
   tests/mock/select-certificate-script-LAT-V2.hpp
   tests/mock/test-autoselect-card.cpp
+  tests/mock/test-find-masked-atr.cpp
+  tests/mock/test-is-card-supported.cpp
   tests/mock/test-get-certificate.cpp
   tests/mock/test-pkcs11-token.cpp
 )
