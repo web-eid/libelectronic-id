@@ -41,8 +41,6 @@ using namespace std::string_literals;
 namespace
 {
 
-using ElectronicIDConstructor = std::function<ElectronicID::ptr(const Reader&)>;
-
 template <typename T>
 constexpr auto constructor(const Reader& reader)
 {
@@ -94,9 +92,6 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS {
       0x04, 0x44, 0xec, 0xc1, 0x73, 0x94, 0x01, 0x80, 0x82, 0x90, 0x00, 0x12},
      constructor<ElectronicID::Type::HrvEID>},
     // BelEID
-    {{0x3b, 0x98, 0x13, 0x40, 0x0a, 0xa5, 0x03, 0x01, 0x01, 0x01, 0xad, 0x13, 0x11},
-     constructor<ElectronicID::Type::BelEID>},
-    // BelEID
     {{0x3B, 0x98, 0x94, 0x40, 0x0A, 0xA5, 0x03, 0x01, 0x01, 0x01, 0xAD, 0x13, 0x10},
      constructor<ElectronicID::Type::BelEID>},
     // BelEID
@@ -112,7 +107,22 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS {
      constructor<ElectronicID::Type::CzeEID>},
 };
 
-inline std::string byteVectorToHexString(const byte_vector& bytes)
+// Holds ATR pattern, mask, and constructor for variable ATR cards.
+struct MaskedATREntry
+{
+    byte_vector pattern;
+    byte_vector mask;
+    ElectronicIDConstructor constructor;
+};
+
+const std::vector<MaskedATREntry> MASKED_ATRS = {
+    // BelEID v1.7
+    {{0x3b, 0x98, 0x13, 0x40, 0x0a, 0xa5, 0x03, 0x01, 0x01, 0x01, 0xad, 0x13, 0x11},
+     {0xff, 0xff, 0x00, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00},
+     constructor<ElectronicID::Type::BelEID>},
+};
+
+std::string byteVectorToHexString(const byte_vector& bytes)
 {
     std::ostringstream hexStringBuilder;
 
@@ -123,6 +133,26 @@ inline std::string byteVectorToHexString(const byte_vector& bytes)
     }
 
     return hexStringBuilder.str();
+}
+
+bool matchATRWithMask(const byte_vector& atr, const byte_vector& pattern, const byte_vector& mask)
+{
+    if (pattern.size() != mask.size()) {
+        THROW(ProgrammingError,
+              "MaskedATREntry '" + byteVectorToHexString(pattern)
+                  + "' pattern size does not match mask size");
+    }
+
+    if (atr.size() != pattern.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < atr.size(); ++i) {
+        if ((atr[i] & mask[i]) != (pattern[i] & mask[i])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 const auto SUPPORTED_ALGORITHMS = std::map<std::string, HashAlgorithm> {
@@ -137,22 +167,41 @@ const auto SUPPORTED_ALGORITHMS = std::map<std::string, HashAlgorithm> {
 namespace electronic_id
 {
 
+std::optional<ElectronicIDConstructor> findMaskedATR(const byte_vector& atr)
+{
+    for (const auto& entry : MASKED_ATRS) {
+        if (matchATRWithMask(atr, entry.pattern, entry.mask)) {
+            return entry.constructor;
+        }
+    }
+    return std::nullopt;
+}
+
 bool isCardSupported(const pcsc_cpp::byte_vector& atr)
 {
-    return SUPPORTED_ATRS.contains(atr);
+    if (SUPPORTED_ATRS.contains(atr)) {
+        return true;
+    }
+
+    // If exact ATR match is not found, fall back to masked ATR lookup.
+    return findMaskedATR(atr).has_value();
 }
 
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 {
-    try {
-        const auto& eidConstructor = SUPPORTED_ATRS.at(reader.cardAtr);
-        return eidConstructor(reader);
-    } catch (const std::out_of_range&) {
-        // It should be verified that the card is supported with isCardSupported() before
-        // calling getElectronicID(), so it is a programming error if out_of_range occurs here.
-        THROW(ProgrammingError,
-              "Card with ATR '" + byteVectorToHexString(reader.cardAtr) + "' is not supported");
+    if (auto it = SUPPORTED_ATRS.find(reader.cardAtr); it != SUPPORTED_ATRS.end()) {
+        return it->second(reader);
     }
+
+    // If exact ATR match is not found, fall back to masked ATR lookup.
+    if (auto eIDConstructor = findMaskedATR(reader.cardAtr)) {
+        return (*eIDConstructor)(reader);
+    }
+
+    // It should be verified that the card is supported with isCardSupported() before
+    // calling getElectronicID(), so it is a programming error to reach this point.
+    THROW(ProgrammingError,
+          "Card with ATR '" + byteVectorToHexString(reader.cardAtr) + "' is not supported");
 }
 
 bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo) const
