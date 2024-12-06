@@ -52,10 +52,14 @@ inline CertificateType certificateType(const pcsc_cpp::byte_vector& cert)
 
     static const int KEY_USAGE_DIGITAL_SIGNATURE = 0;
     if (ASN1_BIT_STRING_get_bit(keyUsage.get(), KEY_USAGE_DIGITAL_SIGNATURE)) {
-        if (auto extKeyUsage = extension(x509.get(), NID_ext_key_usage, EXTENDED_KEY_USAGE_free);
-            extKeyUsage && hasClientAuthExtendedKeyUsage(extKeyUsage.get())) {
-            return CertificateType::AUTHENTICATION;
+        if (auto extKeyUsage = extension(x509.get(), NID_ext_key_usage, EXTENDED_KEY_USAGE_free)) {
+            return hasClientAuthExtendedKeyUsage(extKeyUsage.get())
+                ? CertificateType::AUTHENTICATION
+                : CertificateType::NONE;
         }
+        // Digital Signature extension present, but Extended Key Usage extension not present,
+        // assume it is an authentication certificate (e.g. Luxembourg eID).
+        return CertificateType::AUTHENTICATION;
     }
 
     return CertificateType::NONE;
