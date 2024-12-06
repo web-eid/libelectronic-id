@@ -24,6 +24,9 @@
 
 #include "enums.hpp"
 
+#include <optional>
+#include <functional>
+
 namespace electronic_id
 {
 
@@ -100,6 +103,10 @@ protected:
 
     pcsc_cpp::SmartCard::ptr card;
 };
+
+using ElectronicIDConstructor = std::function<ElectronicID::ptr(const pcsc_cpp::Reader&)>;
+
+std::optional<ElectronicIDConstructor> findMaskedATR(const pcsc_cpp::byte_vector& atr);
 
 bool isCardSupported(const pcsc_cpp::byte_vector& atr);
 
