@@ -148,25 +148,20 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
 
     if (response.sw1 == ResponseApdu::WRONG_LENGTH) {
         THROW(SmartCardError,
-              "Wrong data length in command COMPUTE SIGNATURE argument: "
-                  + bytes2hexstr(response.toBytes()));
+              "Wrong data length in command COMPUTE SIGNATURE argument: " + response);
     }
     if (!response.isOK()) {
-        THROW(SmartCardError,
-              "Command COMPUTE SIGNATURE failed with error " + bytes2hexstr(response.toBytes()));
+        THROW(SmartCardError, "Command COMPUTE SIGNATURE failed with error " + response);
     }
 
     const CommandApdu getSignature {0x00, 0x2A, 0x9E, 0x9A, LE};
     const auto signature = card->transmit(getSignature);
 
     if (signature.sw1 == ResponseApdu::WRONG_LENGTH) {
-        THROW(SmartCardError,
-              "Wrong data length in command GET SIGNATURE argument: "
-                  + bytes2hexstr(response.toBytes()));
+        THROW(SmartCardError, "Wrong data length in command GET SIGNATURE argument: " + response);
     }
     if (!signature.isOK()) {
-        THROW(SmartCardError,
-              "Command GET SIGNATURE failed with error " + bytes2hexstr(signature.toBytes()));
+        THROW(SmartCardError, "Command GET SIGNATURE failed with error " + signature);
     }
 
     return signature.data;
@@ -178,8 +173,7 @@ ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinRe
         0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}};
     const auto response = card->transmit(GET_DATA);
     if (!response.isOK()) {
-        THROW(SmartCardError,
-              "Command GET DATA failed with error " + pcsc_cpp::bytes2hexstr(response.toBytes()));
+        THROW(SmartCardError, "Command GET DATA failed with error " + response);
     }
     if (response.data.size() < 21) {
         THROW(SmartCardError,

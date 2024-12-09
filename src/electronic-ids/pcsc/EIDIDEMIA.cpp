@@ -152,9 +152,7 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(byte_type pinR
         0x00};
     const auto response = card->transmit(GET_DATA_ODD);
     if (!response.isOK()) {
-        THROW(SmartCardError,
-              "Command GET DATA ODD failed with error "
-                  + pcsc_cpp::bytes2hexstr(response.toBytes()));
+        THROW(SmartCardError, "Command GET DATA ODD failed with error " + response);
     }
     if (response.data.size() < 14) {
         THROW(SmartCardError,

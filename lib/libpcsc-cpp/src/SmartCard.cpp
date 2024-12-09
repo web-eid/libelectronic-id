@@ -243,8 +243,7 @@ private:
             break;
         default:
             THROW(Error,
-                  "Error response: '" + bytes2hexstr({response.sw1, response.sw2}) + "', protocol "
-                      + std::to_string(protocol()));
+                  "Error response: '" + response + "', protocol " + std::to_string(protocol()));
         }
 
         if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {

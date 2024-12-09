@@ -123,13 +123,12 @@ inline pcsc_cpp::byte_vector internalAuthenticate(pcsc_cpp::SmartCard& card,
 
     if (response.sw1 == pcsc_cpp::ResponseApdu::WRONG_LENGTH) {
         THROW(SmartCardError,
-              cardType + ": Wrong data length in command INTERNAL AUTHENTICATE argument: "
-                  + pcsc_cpp::bytes2hexstr(response.toBytes()));
+              cardType
+                  + ": Wrong data length in command INTERNAL AUTHENTICATE argument: " + response);
     }
     if (!response.isOK()) {
         THROW(SmartCardError,
-              cardType + ": Command INTERNAL AUTHENTICATE failed with error "
-                  + pcsc_cpp::bytes2hexstr(response.toBytes()));
+              cardType + ": Command INTERNAL AUTHENTICATE failed with error " + response);
     }
 
     return response.data;
@@ -144,13 +143,11 @@ inline pcsc_cpp::byte_vector computeSignature(pcsc_cpp::SmartCard& card,
 
     if (response.sw1 == pcsc_cpp::ResponseApdu::WRONG_LENGTH) {
         THROW(SmartCardError,
-              cardType + ": Wrong data length in command COMPUTE SIGNATURE argument: "
-                  + pcsc_cpp::bytes2hexstr(response.toBytes()));
+              cardType + ": Wrong data length in command COMPUTE SIGNATURE argument: " + response);
     }
     if (!response.isOK()) {
         THROW(SmartCardError,
-              cardType + ": Command COMPUTE SIGNATURE failed with error "
-                  + pcsc_cpp::bytes2hexstr(response.toBytes()));
+              cardType + ": Command COMPUTE SIGNATURE failed with error " + response);
     }
 
     return response.data;
@@ -165,9 +162,7 @@ inline pcsc_cpp::byte_type selectSecurityEnv(pcsc_cpp::SmartCard& card, pcsc_cpp
         {0x00, 0x22, 0x41, env, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});
 
     if (!response.isOK()) {
-        THROW(SmartCardError,
-              cardType + ": Command SET ENV failed with error "
-                  + pcsc_cpp::bytes2hexstr(response.toBytes()));
+        THROW(SmartCardError, cardType + ": Command SET ENV failed with error " + response);
     }
     return signatureAlgo;
 }
