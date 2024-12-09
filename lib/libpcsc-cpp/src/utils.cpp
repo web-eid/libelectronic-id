@@ -36,11 +36,11 @@ using namespace std::string_literals;
 #undef LOBYTE
 #endif
 
-constexpr byte_type HIBYTE(size_t w)
+constexpr byte_type HIBYTE(size_t w) noexcept
 {
     return static_cast<byte_type>((w >> 8) & 0xff);
 }
-constexpr byte_type LOBYTE(size_t w)
+constexpr byte_type LOBYTE(size_t w) noexcept
 {
     return static_cast<byte_type>(w & 0xff);
 }
@@ -57,10 +57,9 @@ public:
     explicit UnexpectedResponseError(const CommandApdu& command, const ResponseApdu& response,
                                      const char* file, const int line,
                                      const char* callerFunctionName) :
-        Error("transmitApduWithExpectedResponse(): Unexpected response to command '"s
-              + bytes2hexstr(command) + "' - expected '9000', got '"s + response + "' in "
-              + removeAbsolutePathPrefix(file) + ':' + std::to_string(line) + ':'
-              + callerFunctionName)
+        Error("transmitApduWithExpectedResponse(): Unexpected response to command '"s + command
+              + "' - expected '9000', got '"s + response + "' in " + removeAbsolutePathPrefix(file)
+              + ':' + std::to_string(line) + ':' + callerFunctionName)
     {
     }
 };
@@ -70,15 +69,19 @@ public:
 namespace pcsc_cpp
 {
 
-std::string bytes2hexstr(const byte_vector& bytes)
+std::ostream& operator<<(std::ostream& os, const pcsc_cpp::byte_vector& data)
 {
-    std::ostringstream hexStringBuilder;
+    os << std::setfill('0') << std::hex;
+    for (const auto byte : data)
+        os << std::setw(2) << short(byte);
+    return os;
+}
 
-    hexStringBuilder << std::setfill('0') << std::hex;
-
-    for (const auto byte : bytes)
-        hexStringBuilder << std::setw(2) << short(byte);
-
+std::string operator+(std::string lhs, const byte_vector& rhs)
+{
+    lhs.reserve(lhs.size() + rhs.size() * 2);
+    std::ostringstream hexStringBuilder(std::move(lhs));
+    hexStringBuilder << rhs;
     return hexStringBuilder.str();
 }
 
@@ -103,8 +106,8 @@ size_t readDataLengthFromAsn1(const SmartCard& card)
     if (response.data[0] != DER_SEQUENCE_TYPE_TAG) {
         // TODO: more specific exception
         THROW(Error,
-              "readDataLengthFromAsn1(): First byte must be SEQUENCE (0x30), but is 0x"s
-                  + bytes2hexstr({response.data[0]}));
+              "readDataLengthFromAsn1(): First byte must be SEQUENCE (0x30), but is "s
+                  + int2hexstr(response.data[0]));
     }
 
     // TODO: support other lenghts besides 2.
@@ -113,8 +116,8 @@ size_t readDataLengthFromAsn1(const SmartCard& card)
         // TODO: more specific exception
         THROW(Error,
               "readDataLengthFromAsn1(): Second byte must be two-byte length indicator "s
-              "(0x82), but is 0x"s
-                  + bytes2hexstr({response.data[1]}));
+              "(0x82), but is "s
+                  + int2hexstr(response.data[1]));
     }
 
     // Read 2-byte length field at offset 2 and 3 and add the 4 DER length bytes.
