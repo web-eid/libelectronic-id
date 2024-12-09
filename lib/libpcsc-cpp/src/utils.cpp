@@ -58,9 +58,9 @@ public:
                                      const char* file, const int line,
                                      const char* callerFunctionName) :
         Error("transmitApduWithExpectedResponse(): Unexpected response to command '"s
-              + bytes2hexstr(command) + "' - expected '9000', got '"s
-              + bytes2hexstr(response.toBytes()) + "' in " + removeAbsolutePathPrefix(file) + ':'
-              + std::to_string(line) + ':' + callerFunctionName)
+              + bytes2hexstr(command) + "' - expected '9000', got '"s + response + "' in "
+              + removeAbsolutePathPrefix(file) + ':' + std::to_string(line) + ':'
+              + callerFunctionName)
     {
     }
 };

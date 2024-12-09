@@ -81,6 +81,9 @@ constexpr uint16_t toSW(byte_type sw1, byte_type sw2) noexcept
     return uint16_t(sw1 << 8) | sw2;
 }
 
+/** Convert bytes to hex string. */
+std::string bytes2hexstr(const byte_vector& bytes);
+
 /** Struct that wraps response APDUs. */
 struct ResponseApdu
 {
@@ -120,22 +123,14 @@ struct ResponseApdu
         return {sw1, sw2, std::move(data)};
     }
 
-    byte_vector toBytes() const
-    {
-        // makes a copy, valid both if data is empty or full
-        auto bytes = data;
-
-        bytes.push_back(sw1);
-        bytes.push_back(sw2);
-
-        return bytes;
-    }
-
     constexpr uint16_t toSW() const noexcept { return pcsc_cpp::toSW(sw1, sw2); }
 
     constexpr bool isOK() const noexcept { return sw1 == OK && sw2 == 0x00; }
 
-    // TODO: friend function toString() in utilities.hpp
+    friend std::string operator+(std::string&& lhs, const ResponseApdu& rhs)
+    {
+        return lhs + pcsc_cpp::bytes2hexstr(rhs.data) + pcsc_cpp::bytes2hexstr({rhs.sw1, rhs.sw2});
+    }
 };
 
 /** Struct that wraps command APDUs. */
@@ -269,9 +264,6 @@ private:
 std::vector<Reader> listReaders();
 
 // Utility functions.
-
-/** Convert bytes to hex string. */
-std::string bytes2hexstr(const byte_vector& bytes);
 
 /** Transmit APDU command and verify that expected response is received. */
 void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command);
