@@ -26,6 +26,8 @@
 
 #include <iostream>
 
+using namespace pcsc_cpp;
+
 TEST(electronic_id_test, getCertificate)
 {
     using namespace electronic_id;

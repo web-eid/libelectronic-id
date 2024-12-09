@@ -213,19 +213,6 @@ const std::vector<MaskedATREntry> MASKED_ATRS = {
      constructor<ElectronicID::Type::LuxEID>},
 };
 
-std::string byteVectorToHexString(const byte_vector& bytes)
-{
-    std::ostringstream hexStringBuilder;
-
-    hexStringBuilder << std::setfill('0') << std::hex;
-
-    for (const auto byte : bytes) {
-        hexStringBuilder << std::setw(2) << static_cast<short>(byte);
-    }
-
-    return hexStringBuilder.str();
-}
-
 const auto SUPPORTED_ALGORITHMS = std::map<std::string, HashAlgorithm> {
     {"SHA-224"s, HashAlgorithm::SHA224},    {"SHA-256"s, HashAlgorithm::SHA256},
     {"SHA-384"s, HashAlgorithm::SHA384},    {"SHA-512"s, HashAlgorithm::SHA512},
@@ -270,8 +257,7 @@ ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 
     // It should be verified that the card is supported with isCardSupported() before
     // calling getElectronicID(), so it is a programming error to reach this point.
-    THROW(ProgrammingError,
-          "Card with ATR '" + byteVectorToHexString(reader.cardAtr) + "' is not supported");
+    THROW(ProgrammingError, "Card with ATR '" + reader.cardAtr + "' is not supported");
 }
 
 bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo) const

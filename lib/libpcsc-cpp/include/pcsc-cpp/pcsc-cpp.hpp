@@ -82,7 +82,9 @@ constexpr uint16_t toSW(byte_type sw1, byte_type sw2) noexcept
 }
 
 /** Convert bytes to hex string. */
-std::string bytes2hexstr(const byte_vector& bytes);
+std::ostream& operator<<(std::ostream& os, const pcsc_cpp::byte_vector& data);
+
+std::string operator+(std::string lhs, const byte_vector& rhs);
 
 /** Struct that wraps response APDUs. */
 struct ResponseApdu
@@ -129,7 +131,7 @@ struct ResponseApdu
 
     friend std::string operator+(std::string&& lhs, const ResponseApdu& rhs)
     {
-        return lhs + pcsc_cpp::bytes2hexstr(rhs.data) + pcsc_cpp::bytes2hexstr({rhs.sw1, rhs.sw2});
+        return lhs + rhs.data + byte_vector {rhs.sw1, rhs.sw2};
     }
 };
 
