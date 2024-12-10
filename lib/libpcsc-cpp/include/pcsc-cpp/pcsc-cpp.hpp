@@ -92,17 +92,10 @@ struct ResponseApdu
     byte_type sw1 {};
     byte_type sw2 {};
 
-    byte_vector data;
+    byte_vector data {};
 
     static constexpr size_t MAX_DATA_SIZE = 256;
     static constexpr size_t MAX_SIZE = MAX_DATA_SIZE + 2; // + sw1 and sw2
-
-    ResponseApdu(byte_type s1, byte_type s2, byte_vector d = {}) :
-        sw1(s1), sw2(s2), data(std::move(d))
-    {
-    }
-
-    ResponseApdu() = default;
 
     static ResponseApdu fromBytes(byte_vector data)
     {
@@ -135,6 +128,8 @@ struct ResponseApdu
     constexpr uint16_t toSW() const noexcept { return pcsc_cpp::toSW(sw1, sw2); }
 
     constexpr bool isOK() const noexcept { return sw1 == OK && sw2 == 0x00; }
+
+    bool operator==(const ResponseApdu& other) const = default;
 
     // TODO: friend function toString() in utilities.hpp
 };
@@ -282,14 +277,11 @@ std::vector<Reader> listReaders();
 
 // Utility functions.
 
-extern const byte_vector APDU_RESPONSE_OK;
-
 /** Convert bytes to hex string. */
 std::string bytes2hexstr(const byte_vector& bytes);
 
 /** Transmit APDU command and verify that expected response is received. */
-void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command,
-                                      const byte_vector& expectedResponseBytes = APDU_RESPONSE_OK);
+void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command);
 
 /** Read data length from currently selected file header, file must be ASN.1-encoded. */
 size_t readDataLengthFromAsn1(const SmartCard& card);
