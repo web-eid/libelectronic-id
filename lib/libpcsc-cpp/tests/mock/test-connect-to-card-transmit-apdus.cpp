@@ -62,5 +62,5 @@ TEST(pcsc_cpp_test, transmitApduSuccess)
     auto transactionGuard = card->beginTransaction();
     auto response = card->transmit(command);
 
-    EXPECT_EQ(response.toBytes(), expectedResponse.toBytes());
+    EXPECT_EQ(response, expectedResponse);
 }

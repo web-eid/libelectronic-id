@@ -72,8 +72,6 @@ public:
 namespace pcsc_cpp
 {
 
-const byte_vector APDU_RESPONSE_OK {ResponseApdu::OK, 0x00};
-
 std::string bytes2hexstr(const byte_vector& bytes)
 {
     std::ostringstream hexStringBuilder;
@@ -86,13 +84,13 @@ std::string bytes2hexstr(const byte_vector& bytes)
     return hexStringBuilder.str();
 }
 
-void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command,
-                                      const byte_vector& expectedResponseBytes)
+void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command)
 {
+    static const ResponseApdu APDU_RESPONSE_OK {ResponseApdu::OK, 0x00};
     const auto response = card.transmit(command);
-    if (response.toBytes() != expectedResponseBytes) {
-        throw UnexpectedResponseError(command, expectedResponseBytes, response, __FILE__, __LINE__,
-                                      __func__);
+    if (response != APDU_RESPONSE_OK) {
+        throw UnexpectedResponseError(command, APDU_RESPONSE_OK.toBytes(), response, __FILE__,
+                                      __LINE__, __func__);
     }
 }
 
