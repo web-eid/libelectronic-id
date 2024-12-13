@@ -54,6 +54,12 @@
 #define PCSC_CPP_WARNING_DISABLE_MSVC(text)
 #endif
 
+#ifdef __cpp_lib_constexpr_vector
+#define PCSC_CPP_CONSTEXPR_VECTOR constexpr
+#else
+#define PCSC_CPP_CONSTEXPR_VECTOR
+#endif
+
 namespace pcsc_cpp
 {
 
@@ -78,7 +84,7 @@ constexpr uint16_t toSW(byte_type sw1, byte_type sw2) noexcept
 /** Struct that wraps response APDUs. */
 struct ResponseApdu
 {
-    enum Status {
+    enum Status: byte_type {
         OK = 0x90,
         MORE_DATA_AVAILABLE = 0x61,
         VERIFICATION_FAILED = 0x63,
@@ -97,7 +103,7 @@ struct ResponseApdu
     static constexpr size_t MAX_DATA_SIZE = 256;
     static constexpr size_t MAX_SIZE = MAX_DATA_SIZE + 2; // + sw1 and sw2
 
-    static ResponseApdu fromBytes(byte_vector data)
+    PCSC_CPP_CONSTEXPR_VECTOR static ResponseApdu fromBytes(byte_vector data)
     {
         if (data.size() < 2) {
             throw std::invalid_argument("Need at least 2 bytes for creating ResponseApdu");
@@ -128,8 +134,6 @@ struct ResponseApdu
     constexpr uint16_t toSW() const noexcept { return pcsc_cpp::toSW(sw1, sw2); }
 
     constexpr bool isOK() const noexcept { return sw1 == OK && sw2 == 0x00; }
-
-    bool operator==(const ResponseApdu& other) const = default;
 
     // TODO: friend function toString() in utilities.hpp
 };
