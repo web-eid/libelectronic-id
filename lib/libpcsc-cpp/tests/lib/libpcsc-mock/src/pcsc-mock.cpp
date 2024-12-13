@@ -88,19 +88,19 @@ const PcscMock::string_t PcscMock::DEFAULT_READER_NAME {"PcscMock-reader"s};
 #endif
 
 const PcscMock::byte_vector PcscMock::DEFAULT_COMMAND_APDU {0x2, 0x1, 0x3, 0x4};
-const PcscMock::byte_vector PcscMock::DEFAULT_RESPONSE_APDU {0x90, 0x3};
+const PcscMock::byte_vector PcscMock::DEFAULT_RESPONSE_APDU {0x90, 0x00};
 
 const PcscMock::ApduScript PcscMock::DEFAULT_SCRIPT {{DEFAULT_COMMAND_APDU, DEFAULT_RESPONSE_APDU}};
 
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4273)
-__declspec(dllexport) const SCARD_IO_REQUEST g_rgSCardT0Pci = {SCARD_PROTOCOL_T0,
-                                                               sizeof(SCARD_IO_REQUEST)};
-__declspec(dllexport) const SCARD_IO_REQUEST g_rgSCardT1Pci = {SCARD_PROTOCOL_T1,
-                                                               sizeof(SCARD_IO_REQUEST)};
-__declspec(dllexport) const SCARD_IO_REQUEST g_rgSCardRawPci = {SCARD_PROTOCOL_RAW,
-                                                                sizeof(SCARD_IO_REQUEST)};
+__declspec(dllexport)
+const SCARD_IO_REQUEST g_rgSCardT0Pci = {SCARD_PROTOCOL_T0, sizeof(SCARD_IO_REQUEST)};
+__declspec(dllexport)
+const SCARD_IO_REQUEST g_rgSCardT1Pci = {SCARD_PROTOCOL_T1, sizeof(SCARD_IO_REQUEST)};
+__declspec(dllexport)
+const SCARD_IO_REQUEST g_rgSCardRawPci = {SCARD_PROTOCOL_RAW, sizeof(SCARD_IO_REQUEST)};
 #pragma warning(pop)
 #else
 MOCK_CONST SCARD_IO_REQUEST g_rgSCardT0Pci = {SCARD_PROTOCOL_T0, sizeof(SCARD_IO_REQUEST)};

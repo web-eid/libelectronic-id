@@ -258,7 +258,7 @@ private:
     {
         byte_vector getResponseCommand {0x00, 0xc0, 0x00, 0x00, 0x00};
 
-        ResponseApdu newResponse{response.sw1, response.sw2};
+        ResponseApdu newResponse {response.sw1, response.sw2};
 
         while (newResponse.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
             getResponseCommand[4] = newResponse.sw2;

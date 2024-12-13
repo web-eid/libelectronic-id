@@ -54,15 +54,13 @@ const byte_type DER_TWO_BYTE_LENGTH = 0x82;
 class UnexpectedResponseError : public Error
 {
 public:
-    explicit UnexpectedResponseError(const CommandApdu& command,
-                                     const byte_vector& expectedResponseBytes,
-                                     const ResponseApdu& response, const char* file, const int line,
+    explicit UnexpectedResponseError(const CommandApdu& command, const ResponseApdu& response,
+                                     const char* file, const int line,
                                      const char* callerFunctionName) :
         Error("transmitApduWithExpectedResponse(): Unexpected response to command '"s
-              + bytes2hexstr(command.toBytes()) + "' - expected '"s
-              + bytes2hexstr(expectedResponseBytes) + "', got '"s + bytes2hexstr(response.toBytes())
-              + " in " + removeAbsolutePathPrefix(file) + ':' + std::to_string(line) + ':'
-              + callerFunctionName)
+              + bytes2hexstr(command.toBytes()) + "' - expected '9000', got '"s
+              + bytes2hexstr(response.toBytes()) + " in " + removeAbsolutePathPrefix(file) + ':'
+              + std::to_string(line) + ':' + callerFunctionName)
     {
     }
 };
@@ -86,11 +84,9 @@ std::string bytes2hexstr(const byte_vector& bytes)
 
 void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command)
 {
-    static const ResponseApdu APDU_RESPONSE_OK {ResponseApdu::OK, 0x00};
     const auto response = card.transmit(command);
-    if (response != APDU_RESPONSE_OK) {
-        throw UnexpectedResponseError(command, APDU_RESPONSE_OK.toBytes(), response, __FILE__,
-                                      __LINE__, __func__);
+    if (!response.isOK()) {
+        throw UnexpectedResponseError(command, response, __FILE__, __LINE__, __func__);
     }
 }
 

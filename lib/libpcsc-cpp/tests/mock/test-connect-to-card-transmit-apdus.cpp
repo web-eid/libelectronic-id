@@ -57,10 +57,8 @@ TEST(pcsc_cpp_test, transmitApduSuccess)
     CommandApdu command {PcscMock::DEFAULT_COMMAND_APDU[0], PcscMock::DEFAULT_COMMAND_APDU[1],
                          PcscMock::DEFAULT_COMMAND_APDU[2], PcscMock::DEFAULT_COMMAND_APDU[3]};
 
-    auto expectedResponse = ResponseApdu::fromBytes(PcscMock::DEFAULT_RESPONSE_APDU);
-
     auto transactionGuard = card->beginTransaction();
     auto response = card->transmit(command);
 
-    EXPECT_EQ(response, expectedResponse);
+    EXPECT_TRUE(response.isOK());
 }
