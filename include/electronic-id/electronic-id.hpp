@@ -50,6 +50,8 @@ public:
         HrvEID,
         BelEID,
         CzeEID,
+        LuxtrustV2,
+        LuxEID,
 #ifdef _WIN32
         MsCryptoApiEID,
 #endif
