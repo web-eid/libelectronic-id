@@ -153,6 +153,7 @@ public:
             try {
                 C(GetTokenInfo, slotID, &tokenInfo);
             } catch (const Pkcs11Error&) {
+                // TODO: log a warning with the exception message.
                 continue;
             }
             CK_SESSION_HANDLE session = 0;
@@ -301,7 +302,7 @@ private:
         case CKR_PIN_LOCKED:
             throw VerifyPinFailed(VerifyPinFailed::Status::PIN_BLOCKED);
         case CKR_TOKEN_NOT_RECOGNIZED:
-            THROW_WITH_CALLER_INFO(SmartCardChangeRequiredError,
+            THROW_WITH_CALLER_INFO(Pkcs11TokenNotRecognized,
                                    std::string(apiFunction) + ": token not recognized", file, line,
                                    function);
         case CKR_TOKEN_NOT_PRESENT:

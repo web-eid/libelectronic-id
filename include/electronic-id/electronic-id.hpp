@@ -178,6 +178,12 @@ class Pkcs11Error : public Error
     using Error::Error;
 };
 
+/** The PKCS#11 library and/or slot does not recognize the token in the slot. */
+class Pkcs11TokenNotRecognized : public Pkcs11Error
+{
+    using Pkcs11Error::Pkcs11Error;
+};
+
 /** Smart card was not present in its slot at the time that a PKCS#11 function was invoked. */
 class Pkcs11TokenNotPresent : public Error
 {
