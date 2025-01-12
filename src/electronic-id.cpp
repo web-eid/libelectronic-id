@@ -110,6 +110,30 @@ const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS {
 // Holds ATR pattern, mask, and constructor for variable ATR cards.
 struct MaskedATREntry
 {
+    // Single template parameter enforces equal size pattern and mask arrays at compile time.
+    template <size_t N>
+    constexpr MaskedATREntry(const byte_type (&_pat)[N], const byte_type (&_mask)[N],
+                             ElectronicIDConstructor&& _constructor) :
+        pattern(std::begin(_pat), std::end(_pat)), mask(std::begin(_mask), std::end(_mask)),
+        constructor(std::move(_constructor))
+    {
+    }
+
+    bool operator==(const byte_vector& atr) const
+    {
+        if (atr.size() != pattern.size()) {
+            return false;
+        }
+
+        for (size_t i = 0; i < atr.size(); ++i) {
+            if ((atr[i] & mask[i]) != (pattern[i] & mask[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     byte_vector pattern;
     byte_vector mask;
     ElectronicIDConstructor constructor;
@@ -135,26 +159,6 @@ std::string byteVectorToHexString(const byte_vector& bytes)
     return hexStringBuilder.str();
 }
 
-bool matchATRWithMask(const byte_vector& atr, const byte_vector& pattern, const byte_vector& mask)
-{
-    if (pattern.size() != mask.size()) {
-        THROW(ProgrammingError,
-              "MaskedATREntry '" + byteVectorToHexString(pattern)
-                  + "' pattern size does not match mask size");
-    }
-
-    if (atr.size() != pattern.size()) {
-        return false;
-    }
-    for (size_t i = 0; i < atr.size(); ++i) {
-        if ((atr[i] & mask[i]) != (pattern[i] & mask[i])) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 const auto SUPPORTED_ALGORITHMS = std::map<std::string, HashAlgorithm> {
     {"SHA-224"s, HashAlgorithm::SHA224},    {"SHA-256"s, HashAlgorithm::SHA256},
     {"SHA-384"s, HashAlgorithm::SHA384},    {"SHA-512"s, HashAlgorithm::SHA512},
@@ -169,10 +173,9 @@ namespace electronic_id
 
 std::optional<ElectronicIDConstructor> findMaskedATR(const byte_vector& atr)
 {
-    for (const auto& entry : MASKED_ATRS) {
-        if (matchATRWithMask(atr, entry.pattern, entry.mask)) {
-            return entry.constructor;
-        }
+    if (auto i = std::find(MASKED_ATRS.cbegin(), MASKED_ATRS.cend(), atr);
+        i != MASKED_ATRS.cend()) {
+        return i->constructor;
     }
     return std::nullopt;
 }
