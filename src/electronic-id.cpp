@@ -121,17 +121,12 @@ struct MaskedATREntry
 
     bool operator==(const byte_vector& atr) const
     {
-        if (atr.size() != pattern.size()) {
-            return false;
-        }
-
-        for (size_t i = 0; i < atr.size(); ++i) {
-            if ((atr[i] & mask[i]) != (pattern[i] & mask[i])) {
-                return false;
-            }
-        }
-
-        return true;
+        return std::equal(atr.cbegin(), atr.cend(), pattern.cbegin(), pattern.cend(),
+                          [mask_ptr = mask.data()](byte_type a, byte_type p) mutable {
+                              bool result = (a & *mask_ptr) == (p & *mask_ptr);
+                              ++mask_ptr;
+                              return result;
+                          });
     }
 
     byte_vector pattern;
