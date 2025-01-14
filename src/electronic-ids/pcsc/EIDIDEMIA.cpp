@@ -83,8 +83,7 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector&
     auto [keyId, isECC] = authKeyRef();
     selectSecurityEnv(*card, 0xA4, isECC ? 0x04 : 0x02, keyId, name());
 
-    verifyPin(*card, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength().first,
-              authPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(*card, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength(), PIN_PADDING_CHAR);
 
     return internalAuthenticate(*card,
                                 authSignatureAlgorithm().isRSAWithPKCS1Padding()
@@ -111,8 +110,8 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
     selectADF2();
     auto [keyRef, isECC] = signKeyRef();
     selectSecurityEnv(*card, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
-    verifyPin(*card, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength().first,
-              signingPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(*card, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength(),
+              PIN_PADDING_CHAR);
     auto tmp = hash;
     if (isECC) {
         constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
