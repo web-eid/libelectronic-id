@@ -55,6 +55,8 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
     pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    authPin.reserve(12);
+
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
@@ -70,6 +72,8 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5'};
+    signPin.reserve(12);
+
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature =
         cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
@@ -102,6 +106,8 @@ TEST(electronic_id_test, selectCertificateFinV3)
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
     pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    authPin.reserve(12);
+
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
@@ -117,6 +123,8 @@ TEST(electronic_id_test, selectCertificateFinV3)
     EXPECT_EQ(signingRetriesLeft.second, 5);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    signPin.reserve(12);
+
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature =
         cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
@@ -149,6 +157,8 @@ TEST(electronic_id_test, selectCertificateFinV4)
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
     pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    authPin.reserve(12);
+
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
@@ -164,6 +174,8 @@ TEST(electronic_id_test, selectCertificateFinV4)
     EXPECT_EQ(signingRetriesLeft.second, 5);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    signPin.reserve(12);
+
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature =
         cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
@@ -196,6 +208,8 @@ TEST(electronic_id_test, selectCertificateLat_V1)
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
     pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    authPin.reserve(64);
+
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
@@ -211,6 +225,8 @@ TEST(electronic_id_test, selectCertificateLat_V1)
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    signPin.reserve(64);
+
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature =
         cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
@@ -243,6 +259,8 @@ TEST(electronic_id_test, selectCertificateLatV2)
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
     pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
+    authPin.reserve(64);
+
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
@@ -258,6 +276,8 @@ TEST(electronic_id_test, selectCertificateLatV2)
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
+    signPin.reserve(64);
+
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature =
         cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
