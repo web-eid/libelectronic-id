@@ -53,9 +53,9 @@ const SelectCertificateCmds& LatEIDIDEMIAV1::selectCertificate() const
 {
     static const SelectCertificateCmds selectCertCmds {
         // Authentication certificate.
-        {0x00, 0xA4, 0x01, 0x0C, {0xA0, 0x02}},
+        CommandApdu::select(0x09, {0xAD, 0xF1, 0xA0, 0x02}),
         // Signing certificate.
-        {0x00, 0xA4, 0x01, 0x0C, {0xA0, 0x01}},
+        CommandApdu::select(0x09, {0xAD, 0xF1, 0xA0, 0x01}),
     };
     return selectCertCmds;
 }

@@ -41,18 +41,11 @@ using namespace pcsc_cpp;
 namespace
 {
 
-const CommandApdu SELECT_MAIN_AID {
-    0x00,
-    0xA4,
-    0x04,
-    0x00,
-    {0xa0, 0x00, 0x00, 0x00, 0x63, 0x50, 0x4b, 0x43, 0x53, 0x2d, 0x31, 0x35}};
-
-const CommandApdu SELECT_MASTER_FILE {0x00, 0xa4, 0x00, 0x0C, {0x3f, 0x00}};
-
-const CommandApdu SELECT_AUTH_CERT_FILE {0x00, 0xA4, 0x08, 0x0C, {0x43, 0x31}};
-const CommandApdu SELECT_SIGN_CERT_FILE_V3 {0x00, 0xA4, 0x08, 0x0C, {0x50, 0x16, 0x43, 0x35}};
-const CommandApdu SELECT_SIGN_CERT_FILE_V4 {0x00, 0xA4, 0x08, 0x0C, {0x50, 0x16, 0x43, 0x32}};
+const auto SELECT_MAIN_AID = CommandApdu::select(
+    0x04, {0xa0, 0x00, 0x00, 0x00, 0x63, 0x50, 0x4b, 0x43, 0x53, 0x2d, 0x31, 0x35});
+const auto SELECT_AUTH_CERT_FILE = CommandApdu::select(0x08, {0x43, 0x31});
+const auto SELECT_SIGN_CERT_FILE_V3 = CommandApdu::select(0x08, {0x50, 0x16, 0x43, 0x35});
+const auto SELECT_SIGN_CERT_FILE_V4 = CommandApdu::select(0x08, {0x50, 0x16, 0x43, 0x32});
 
 constexpr byte_type PIN_PADDING_CHAR = 0x00;
 constexpr byte_type AUTH_PIN_REFERENCE = 0x11;
@@ -132,8 +125,6 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     default:
         THROW(ArgumentFatalError, "No OID for algorithm " + std::string(hashAlgo));
     }
-
-    transmitApduWithExpectedResponse(*card, SELECT_MASTER_FILE);
 
     verifyPin(*card, pinReference, std::move(pin), pinMinMaxLength.first, pinMinMaxLength.second,
               PIN_PADDING_CHAR);

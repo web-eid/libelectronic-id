@@ -170,6 +170,11 @@ struct CommandApdu
 
     constexpr operator const byte_vector&() const { return d; }
 
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu select(byte_type p1, byte_vector file)
+    {
+        return {0x00, 0xA4, p1, 0x0C, std::move(file)};
+    }
+
     byte_vector d;
 };
 
