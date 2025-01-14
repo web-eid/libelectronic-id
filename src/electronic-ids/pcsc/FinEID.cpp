@@ -106,20 +106,21 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     }
 
     switch (hashAlgo) {
-    case HashAlgorithm::SHA224:
-    case HashAlgorithm::SHA3_224:
+        using enum HashAlgorithm::HashAlgorithmEnum;
+    case SHA224:
+    case SHA3_224:
         signatureAlgo |= 0x30;
         break;
-    case HashAlgorithm::SHA256:
-    case HashAlgorithm::SHA3_256:
+    case SHA256:
+    case SHA3_256:
         signatureAlgo |= 0x40;
         break;
-    case HashAlgorithm::SHA384:
-    case HashAlgorithm::SHA3_384:
+    case SHA384:
+    case SHA3_384:
         signatureAlgo |= 0x50;
         break;
-    case HashAlgorithm::SHA512:
-    case HashAlgorithm::SHA3_512:
+    case SHA512:
+    case SHA3_512:
         signatureAlgo |= 0x60;
         break;
     default:
@@ -161,7 +162,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
 ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinReference) const
 {
     const pcsc_cpp::CommandApdu GET_DATA {
-        0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}};
+        0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}, 0x00};
     const auto response = card->transmit(GET_DATA);
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA failed with error " + response);

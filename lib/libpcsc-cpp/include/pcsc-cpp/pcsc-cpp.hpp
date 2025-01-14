@@ -172,6 +172,9 @@ struct CommandApdu
                                           byte_vector data, byte_type le) :
         CommandApdu {cls, ins, p1, p2, std::move(data)}
     {
+#if defined(__GNUC__) && __GNUC__ == 15 // Apply workaround for GCC 15
+        d.reserve(d.size() + 1);
+#endif
         d.push_back(le);
     }
 
