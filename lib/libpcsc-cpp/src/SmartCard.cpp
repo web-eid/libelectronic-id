@@ -64,6 +64,14 @@ constexpr uint32_t OMNIKEY_6121 = 0x6632;
 namespace pcsc_cpp
 {
 
+std::string operator+(std::string lhs, const byte_vector& rhs)
+{
+    lhs.reserve(lhs.size() + rhs.size() * 2);
+    std::ostringstream hexStringBuilder(std::move(lhs), std::ios::ate);
+    hexStringBuilder << rhs;
+    return hexStringBuilder.str();
+}
+
 class CardImpl
 {
 public:
@@ -140,6 +148,9 @@ public:
 
         auto response = toResponse(std::move(responseBytes), responseLength);
 
+        if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
+            getResponseWithLE(response, commandBytes);
+        }
         if (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
             getMoreResponseData(response);
         }
@@ -224,26 +235,21 @@ private:
 
         // Let expected errors through for handling in upper layers or in if blocks below.
         switch (response.sw1) {
-        case ResponseApdu::OK:
-        case ResponseApdu::MORE_DATA_AVAILABLE: // See the if block after next.
-        case ResponseApdu::VERIFICATION_FAILED:
-        case ResponseApdu::VERIFICATION_CANCELLED:
-        case ResponseApdu::WRONG_LENGTH:
-        case ResponseApdu::COMMAND_NOT_ALLOWED:
-        case ResponseApdu::WRONG_PARAMETERS:
-        case ResponseApdu::WRONG_LE_LENGTH: // See next if block.
-            break;
+            using enum ResponseApdu::Status;
+        case OK:
+        case MORE_DATA_AVAILABLE:
+        case WRONG_LE_LENGTH:
+        case VERIFICATION_FAILED:
+        case VERIFICATION_CANCELLED:
+        case WRONG_LENGTH:
+        case COMMAND_NOT_ALLOWED:
+        case WRONG_PARAMETERS:
+            return response;
         default:
             THROW(Error,
                   "Error response: '" + response + "', protocol "
                       + std::to_string(_protocol.dwProtocol));
         }
-
-        if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
-            THROW(Error, "Wrong LE length (SW1=0x6C) in response, please set LE");
-        }
-
-        return response;
     }
 
     void getMoreResponseData(ResponseApdu& response) const
@@ -261,6 +267,13 @@ private:
 
         response.sw1 = ResponseApdu::OK;
         response.sw2 = 0;
+    }
+
+    void getResponseWithLE(ResponseApdu& response, byte_vector command) const
+    {
+        size_t pos = command.size() <= 5 ? 4 : 5 + command[4];
+        command[pos] = response.sw2;
+        response = transmitBytes(command);
     }
 };
 

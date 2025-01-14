@@ -53,17 +53,17 @@ const auto SIGN_CERT = CommandApdu::selectEF(0x09, {0xAD, 0xF2, 0x34, 0x1F});
 
 void EIDIDEMIA::selectMain(const SmartCard::Session& session)
 {
-    transmitApduWithExpectedResponse(session, MAIN_AID);
+    selectFile(session, MAIN_AID);
 }
 
 void EIDIDEMIA::selectADF1(const pcsc_cpp::SmartCard::Session& session)
 {
-    transmitApduWithExpectedResponse(session, ADF1_AID);
+    selectFile(session, ADF1_AID);
 }
 
 void EIDIDEMIA::selectADF2(const pcsc_cpp::SmartCard::Session& session)
 {
-    transmitApduWithExpectedResponse(session, ADF2_AID);
+    selectFile(session, ADF2_AID);
 }
 
 byte_vector EIDIDEMIA::getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
@@ -86,8 +86,7 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& s
     auto [keyId, isECC] = authKeyRef(session);
     selectSecurityEnv(session, 0xA4, isECC ? 0x04 : 0x02, keyId, name());
 
-    verifyPin(session, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength().first,
-              authPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(session, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength(), PIN_PADDING_CHAR);
 
     return internalAuthenticate(session,
                                 authSignatureAlgorithm().isRSAWithPKCS1Padding()
@@ -115,8 +114,8 @@ EIDIDEMIA::signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, b
     selectADF2(session);
     auto [keyRef, isECC] = signKeyRef(session);
     selectSecurityEnv(session, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
-    verifyPin(session, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength().first,
-              signingPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(session, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength(),
+              PIN_PADDING_CHAR);
     auto tmp = hash;
     if (isECC) {
         constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;

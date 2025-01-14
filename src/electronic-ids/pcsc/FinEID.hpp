@@ -62,8 +62,9 @@ protected:
     byte_vector sign(const pcsc_cpp::SmartCard::Session& session, const HashAlgorithm hashAlgo,
                      const byte_vector& hash, byte_vector&& pin, byte_type pinReference,
                      PinMinMaxLength pinMinMaxLength, byte_type keyReference,
-                     byte_type signatureAlgo, byte_type LE) const;
+                     byte_type signatureAlgo) const;
 
+    virtual int8_t maximumPinRetries() const { return 5; }
     PinRetriesRemainingAndMax pinRetriesLeft(const pcsc_cpp::SmartCard::Session& session,
                                              byte_type pinReference) const;
 };
@@ -73,7 +74,7 @@ class FinEIDv4 : public FinEIDv3
 public:
     using FinEIDv3::FinEIDv3;
 
-private:
+protected:
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
     {
         return JsonWebSignatureAlgorithm::ES384;
@@ -90,6 +91,33 @@ private:
     Signature signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
                                      const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
+};
+
+class EstEIDTHALES : public FinEIDv4
+{
+public:
+    using FinEIDv4::FinEIDv4;
+
+protected:
+    byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                   const CertificateType type) const override;
+
+    PinRetriesRemainingAndMax
+    authPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const override;
+
+    PinMinMaxLength signingPinMinMaxLength() const override { return {5, 12}; }
+
+    std::string name() const override { return "EstEIDTHALES"; }
+    Type type() const override { return EstEID; }
+
+    byte_vector signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                    const byte_vector& hash) const override;
+
+    Signature signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                     const byte_vector& hash,
+                                     const HashAlgorithm hashAlgo) const override;
+
+    int8_t maximumPinRetries() const override { return 3; }
 };
 
 } // namespace electronic_id

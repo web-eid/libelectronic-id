@@ -85,8 +85,6 @@ constexpr uint16_t toSW(byte_type sw1, byte_type sw2) noexcept
 }
 
 /** Convert bytes to hex string. */
-std::ostream& operator<<(std::ostream& os, const pcsc_cpp::byte_vector& data);
-
 std::string operator+(std::string lhs, const byte_vector& rhs);
 
 /** Struct that wraps response APDUs. */
@@ -302,16 +300,6 @@ struct Reader
  * @throw ScardError, SystemError
  */
 std::vector<Reader> listReaders();
-
-// Utility functions.
-
-/** Transmit APDU command and verify that expected response is received. */
-void transmitApduWithExpectedResponse(const SmartCard::Session& session,
-                                      const CommandApdu& command);
-
-/** Read lenght bytes from currently selected binary file in blockLength-sized chunks. */
-byte_vector readBinary(const SmartCard::Session& session, const uint16_t length,
-                       byte_type blockLength = 0x00);
 
 // Errors.
 
