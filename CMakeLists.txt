@@ -20,8 +20,10 @@ add_library(${PROJECT_NAME}
   src/electronic-ids/x509.hpp
   src/electronic-ids/pcsc/EIDIDEMIA.cpp
   src/electronic-ids/pcsc/EIDIDEMIA.hpp
+  src/electronic-ids/pcsc/EIDThales.cpp
+  src/electronic-ids/pcsc/EIDThales.hpp
   src/electronic-ids/pcsc/EstEIDIDEMIA.hpp
-  src/electronic-ids/pcsc/FinEID.cpp
+  src/electronic-ids/pcsc/EstEIDThales.hpp
   src/electronic-ids/pcsc/FinEID.hpp
   src/electronic-ids/pcsc/LatEIDIDEMIAv2.cpp
   src/electronic-ids/pcsc/LatEIDIDEMIAv2.hpp

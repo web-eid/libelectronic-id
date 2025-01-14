@@ -34,33 +34,28 @@ struct TLV;
 class LatEIDIDEMIAV2 : public EIDIDEMIA
 {
 public:
-    explicit LatEIDIDEMIAV2(pcsc_cpp::SmartCard&& _card);
+    explicit LatEIDIDEMIAV2(SmartCard&& _card);
     ~LatEIDIDEMIAV2() override;
     PCSC_CPP_DISABLE_COPY_MOVE(LatEIDIDEMIAV2);
 
 private:
-    byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+    byte_vector getCertificateImpl(const SmartCard::Session& session,
                                    const CertificateType type) const override;
 
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override;
-    PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
-    PinMinMaxLength signingPinMinMaxLength() const override { return {6, 12}; }
+    constexpr PinMinMaxLength signingPinMinMaxLength() const override { return {6, 12}; }
 
     std::string name() const override { return "LatEID IDEMIA v2"; }
     Type type() const override { return LatEID; }
 
-    KeyInfo authKeyRef(const pcsc_cpp::SmartCard::Session& session) const override;
-    KeyInfo signKeyRef(const pcsc_cpp::SmartCard::Session& session) const override;
+    KeyInfo authKeyRef(const SmartCard::Session& session) const override;
+    KeyInfo signKeyRef(const SmartCard::Session& session) const override;
 
-    template <class C>
-    TLV readEF_File(const pcsc_cpp::SmartCard::Session& session, byte_vector file, C& cache) const;
-    template <class C>
-    TLV readDCODInfo(const pcsc_cpp::SmartCard::Session& session, byte_type type, C& cache) const;
-    template <class C>
-    KeyInfo readPrKDInfo(const pcsc_cpp::SmartCard::Session& session, byte_type keyID,
-                         C& cache) const;
+    TLV readEF_File(const SmartCard::Session& session, byte_vector file, auto& cache) const;
+    TLV readDCODInfo(const SmartCard::Session& session, byte_type type, auto& cache) const;
+    KeyInfo readPrKDInfo(const SmartCard::Session& session, byte_type keyID, auto& cache) const;
 
     struct Private;
     std::unique_ptr<Private> data;

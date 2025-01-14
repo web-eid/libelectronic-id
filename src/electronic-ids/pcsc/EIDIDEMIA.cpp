@@ -53,20 +53,20 @@ const auto SIGN_CERT = CommandApdu::selectEF(0x09, {0xAD, 0xF2, 0x34, 0x1F});
 
 void EIDIDEMIA::selectMain(const SmartCard::Session& session)
 {
-    transmitApduWithExpectedResponse(session, MAIN_AID);
+    selectFile(session, MAIN_AID);
 }
 
-void EIDIDEMIA::selectADF1(const pcsc_cpp::SmartCard::Session& session)
+void EIDIDEMIA::selectADF1(const SmartCard::Session& session)
 {
-    transmitApduWithExpectedResponse(session, ADF1_AID);
+    selectFile(session, ADF1_AID);
 }
 
-void EIDIDEMIA::selectADF2(const pcsc_cpp::SmartCard::Session& session)
+void EIDIDEMIA::selectADF2(const SmartCard::Session& session)
 {
-    transmitApduWithExpectedResponse(session, ADF2_AID);
+    selectFile(session, ADF2_AID);
 }
 
-byte_vector EIDIDEMIA::getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+byte_vector EIDIDEMIA::getCertificateImpl(const SmartCard::Session& session,
                                           const CertificateType type) const
 {
     selectMain(session);
@@ -74,51 +74,64 @@ byte_vector EIDIDEMIA::getCertificateImpl(const pcsc_cpp::SmartCard::Session& se
     return readFile(session, type.isAuthentication() ? AUTH_CERT : SIGN_CERT, 0xC0);
 }
 
-EIDIDEMIA::KeyInfo EIDIDEMIA::authKeyRef(const pcsc_cpp::SmartCard::Session& /*session*/) const
+EIDIDEMIA::KeyInfo EIDIDEMIA::authKeyRef(const SmartCard::Session& /*session*/) const
 {
     return {DEFAULT_AUTH_KEY_ID, true};
 }
 
-byte_vector EIDIDEMIA::signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session,
-                                           byte_vector&& pin, const byte_vector& hash) const
+byte_vector EIDIDEMIA::signWithAuthKeyImpl(const SmartCard::Session& session, byte_vector&& pin,
+                                           const byte_vector& hash) const
 {
     selectADF1(session);
     auto [keyId, isECC] = authKeyRef(session);
     selectSecurityEnv(session, 0xA4, isECC ? 0x04 : 0x02, keyId, name());
 
-    verifyPin(session, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength().first,
-              authPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(session, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength(), PIN_PADDING_CHAR);
 
-    return internalAuthenticate(session,
-                                authSignatureAlgorithm().isRSAWithPKCS1Padding()
-                                    ? addRSAOID(authSignatureAlgorithm().hashAlgorithm(), hash)
-                                    : hash,
-                                name());
+    CommandApdu internalAuth {0x00,
+                              0x88,
+                              0x00,
+                              0x00,
+                              authSignatureAlgorithm().isRSAWithPKCS1Padding()
+                                  ? addRSAOID(authSignatureAlgorithm().hashAlgorithm(), hash)
+                                  : hash,
+                              0};
+    auto response = session.transmit(internalAuth);
+    if (response.sw1 == ResponseApdu::WRONG_LENGTH) {
+        THROW(SmartCardError,
+              "Wrong data length in command INTERNAL AUTHENTICATE argument: " + response);
+    }
+    if (!response.isOK()) {
+        THROW(SmartCardError, "Command INTERNAL AUTHENTICATE failed with error " + response);
+    }
+    return std::move(response.data);
 }
 
 ElectronicID::PinRetriesRemainingAndMax
-EIDIDEMIA::authPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const
+EIDIDEMIA::authPinRetriesLeftImpl(const SmartCard::Session& session) const
 {
     selectMain(session);
     return pinRetriesLeft(session, AUTH_PIN_REFERENCE);
 }
 
-EIDIDEMIA::KeyInfo EIDIDEMIA::signKeyRef(const pcsc_cpp::SmartCard::Session& /*session*/) const
+EIDIDEMIA::KeyInfo EIDIDEMIA::signKeyRef(const SmartCard::Session& /*session*/) const
 {
     return {DEFAULT_SIGN_KEY_ID, true};
 }
 
-ElectronicID::Signature
-EIDIDEMIA::signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
-                                  const byte_vector& hash, const HashAlgorithm hashAlgo) const
+ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const SmartCard::Session& session,
+                                                          byte_vector&& pin,
+                                                          const byte_vector& hash,
+                                                          const HashAlgorithm hashAlgo) const
 {
     selectADF2(session);
     auto [keyRef, isECC] = signKeyRef(session);
     selectSecurityEnv(session, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
-    verifyPin(session, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength().first,
-              signingPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(session, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength(),
+              PIN_PADDING_CHAR);
     auto tmp = hash;
     if (isECC) {
+        // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf 6.4
         constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
         if (tmp.size() < ECDSA384_INPUT_LENGTH) {
             // Zero-pad hashes that are shorter than SHA-384.
@@ -128,12 +141,21 @@ EIDIDEMIA::signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, b
             tmp.resize(ECDSA384_INPUT_LENGTH);
         }
     }
-    return {computeSignature(session, tmp, name()),
+    CommandApdu computeSignature {0x00, 0x2A, 0x9E, 0x9A, std::move(tmp), 0};
+    auto response = session.transmit(computeSignature);
+    if (response.sw1 == ResponseApdu::WRONG_LENGTH) {
+        THROW(SmartCardError,
+              "Wrong data length in command COMPUTE SIGNATURE argument: " + response);
+    }
+    if (!response.isOK()) {
+        THROW(SmartCardError, "Command COMPUTE SIGNATURE failed with error " + response);
+    }
+    return {std::move(response.data),
             {isECC ? SignatureAlgorithm::ES : SignatureAlgorithm::RS, hashAlgo}};
 }
 
 ElectronicID::PinRetriesRemainingAndMax
-EIDIDEMIA::signingPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const
+EIDIDEMIA::signingPinRetriesLeftImpl(const SmartCard::Session& session) const
 {
     selectADF2(session);
     return pinRetriesLeft(session, SIGN_PIN_REFERENCE);
@@ -143,13 +165,13 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(const SmartCar
                                                                   byte_type pinReference)
 {
     auto ref = byte_type(pinReference & 0x0F);
-    const pcsc_cpp::CommandApdu GET_DATA_ODD {
+    const CommandApdu GET_DATA_ODD {
         0x00, 0xCB, 0x3F, 0xFF, {0x4D, 0x08, 0x70, 0x06, 0xBF, 0x81, ref, 0x02, 0xA0, 0x80}, 0x00};
     const auto response = session.transmit(GET_DATA_ODD);
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA ODD failed with error " + response);
     }
-    TLV info = TLV::path(TLV(response.data), 0x70, 0xBF8100 | ref, 0xA0);
+    TLV info = TLV(response.data).find(0x70)[0xBF8100 | ref][0xA0];
     TLV max = info[0x9A];
     TLV tries = info[0x9B];
     if (max && tries) {

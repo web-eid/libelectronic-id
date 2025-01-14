@@ -32,7 +32,19 @@ namespace electronic_id
 class PcscElectronicID : public ElectronicID
 {
 public:
-    explicit PcscElectronicID(pcsc_cpp::SmartCard&& _card) : ElectronicID(std::move(_card)) {}
+    using SmartCard = pcsc_cpp::SmartCard;
+
+    explicit PcscElectronicID(SmartCard&& _card) : ElectronicID(std::move(_card)) {}
+
+    constexpr PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
+    constexpr JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
+    {
+        return JsonWebSignatureAlgorithm::ES384;
+    }
+    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
+    {
+        return ELLIPTIC_CURVE_SIGNATURE_ALGOS();
+    }
 
 protected:
     byte_vector getCertificate(const CertificateType type) const override
@@ -68,21 +80,21 @@ protected:
     // they have to be implemented when adding a new electronic ID.
     // This design follows the non-virtual interface pattern.
 
-    virtual byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+    virtual byte_vector getCertificateImpl(const SmartCard::Session& session,
                                            const CertificateType type) const = 0;
 
-    virtual byte_vector signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session,
-                                            byte_vector&& pin, const byte_vector& hash) const = 0;
+    virtual byte_vector signWithAuthKeyImpl(const SmartCard::Session& session, byte_vector&& pin,
+                                            const byte_vector& hash) const = 0;
 
     virtual PinRetriesRemainingAndMax
-    authPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const = 0;
+    authPinRetriesLeftImpl(const SmartCard::Session& session) const = 0;
 
-    virtual Signature signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session,
-                                             byte_vector&& pin, const byte_vector& hash,
+    virtual Signature signWithSigningKeyImpl(const SmartCard::Session& session, byte_vector&& pin,
+                                             const byte_vector& hash,
                                              const HashAlgorithm hashAlgo) const = 0;
 
     virtual PinRetriesRemainingAndMax
-    signingPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const = 0;
+    signingPinRetriesLeftImpl(const SmartCard::Session& session) const = 0;
 };
 
 } // namespace electronic_id
