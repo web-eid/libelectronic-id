@@ -144,7 +144,7 @@ public:
 
     constexpr bool operator==(HashAlgorithm other) const
     {
-        return other.operator ==(operator HashAlgorithm());
+        return other.operator==(operator HashAlgorithm());
     }
     constexpr bool operator==(SignatureAlgorithmEnum other) const { return value == other; }
 

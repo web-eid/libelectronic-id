@@ -46,7 +46,13 @@ inline pcsc_cpp::byte_vector getCertificate(pcsc_cpp::SmartCard& card,
 PCSC_CPP_CONSTEXPR_VECTOR inline pcsc_cpp::byte_vector
 addPaddingToPin(pcsc_cpp::byte_vector&& pin, size_t paddingLength, pcsc_cpp::byte_type paddingChar)
 {
-    pin.resize(std::max(pin.size(), paddingLength), paddingChar);
+    if (pin.capacity() < paddingLength) {
+        THROW(ProgrammingError,
+              "PIN buffer does not have enough capacity to pad without reallocation");
+    }
+    if (pin.size() < paddingLength) {
+        pin.insert(pin.end(), paddingLength - pin.size(), paddingChar);
+    }
     return std::move(pin);
 }
 
