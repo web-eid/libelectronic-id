@@ -58,6 +58,7 @@ TEST(electronic_id_test, authenticate)
     GTEST_ASSERT_GE(cardInfo->eid().authPinRetriesLeft().first, 0U);
 
     byte_vector pin {'1', '2', '3', '4'};
+    pin.reserve(64);
 
     std::cout << "WARNING! Using hard-coded PIN "
               << std::string_view(reinterpret_cast<const char*>(pin.data()), pin.size()) << '\n';

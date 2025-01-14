@@ -59,6 +59,7 @@ static void signing(HashAlgorithm hashAlgo)
         pin = {'1', '2', '3', '4', '5', '6'}; // FinEID custom PIN
     else
         throw std::runtime_error("TEST signing: Unknown card");
+    pin.reserve(64);
 
     std::cout << "WARNING! Using hard-coded PIN " << std::string(pin.cbegin(), pin.cend()) << '\n';
 
