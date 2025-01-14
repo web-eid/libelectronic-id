@@ -29,6 +29,15 @@
 namespace pcsc_cpp
 {
 
+/** Convert bytes to hex string. */
+inline std::ostream& operator<<(std::ostream& os, const byte_vector& data)
+{
+    os << std::setfill('0') << std::hex;
+    for (const auto byte : data)
+        os << std::setw(2) << short(byte);
+    return os << std::setfill(' ') << std::dec;
+}
+
 /** Convert the given integer to a hex string. */
 template <typename T>
 inline std::string int2hexstr(const T value)

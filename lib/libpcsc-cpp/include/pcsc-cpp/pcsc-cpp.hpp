@@ -85,8 +85,6 @@ constexpr uint16_t toSW(byte_type sw1, byte_type sw2) noexcept
 }
 
 /** Convert bytes to hex string. */
-std::ostream& operator<<(std::ostream& os, const pcsc_cpp::byte_vector& data);
-
 std::string operator+(std::string lhs, const byte_vector& rhs);
 
 /** Struct that wraps response APDUs. */
@@ -110,23 +108,6 @@ struct ResponseApdu
 
     static constexpr size_t MAX_DATA_SIZE = 256;
     static constexpr size_t MAX_SIZE = MAX_DATA_SIZE + 2; // + sw1 and sw2
-
-    PCSC_CPP_CONSTEXPR_VECTOR static ResponseApdu fromBytes(byte_vector data)
-    {
-        if (data.size() < 2) {
-            throw std::invalid_argument("Need at least 2 bytes for creating ResponseApdu");
-        }
-
-        PCSC_CPP_WARNING_PUSH
-        PCSC_CPP_WARNING_DISABLE_GCC("-Warray-bounds") // avoid GCC 13 false positive warning
-        byte_type sw1 = data[data.size() - 2];
-        byte_type sw2 = data[data.size() - 1];
-        data.resize(data.size() - 2);
-        PCSC_CPP_WARNING_POP
-
-        // SW1 and SW2 are in the end
-        return {sw1, sw2, std::move(data)};
-    }
 
     constexpr uint16_t toSW() const noexcept { return pcsc_cpp::toSW(sw1, sw2); }
 
@@ -299,16 +280,6 @@ private:
  * @throw ScardError, SystemError
  */
 std::vector<Reader> listReaders();
-
-// Utility functions.
-
-/** Transmit APDU command and verify that expected response is received. */
-void transmitApduWithExpectedResponse(const SmartCard::Session& session,
-                                      const CommandApdu& command);
-
-/** Read lenght bytes from currently selected binary file in blockLength-sized chunks. */
-byte_vector readBinary(const SmartCard::Session& session, const uint16_t length,
-                       byte_type blockLength = 0x00);
 
 // Errors.
 

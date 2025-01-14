@@ -22,23 +22,31 @@
 
 #pragma once
 
-#include "EIDIDEMIA.hpp"
-
-// ESTEID specification:
-// https://installer.id.ee/media/id2019/TD-ID1-Chip-App.pdf
+#include "EIDThales.hpp"
 
 namespace electronic_id
 {
 
-class EstEIDIDEMIAV1 : public EIDIDEMIA
+class EstEIDThales : public EIDThales
 {
 public:
-    using EIDIDEMIA::EIDIDEMIA;
+    using EIDThales::EIDThales;
 
-private:
-    constexpr PinMinMaxLength signingPinMinMaxLength() const override { return {5, 12}; }
-    std::string name() const override { return "EstEID IDEMIA v1"; }
+protected:
+    std::string name() const override { return "EstEIDThales"; }
     Type type() const override { return EstEID; }
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu authCertFile() const override
+    {
+        return CommandApdu::selectEF(0x08, {0xAD, 0xF1, 0x34, 0x11});
+    }
+    constexpr byte_type authPinReference() const override { return 0x81; }
+    constexpr int8_t maximumPinRetries() const override { return 3; }
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu signCertFile() const override
+    {
+        return CommandApdu::selectEF(0x08, {0xAD, 0xF2, 0x34, 0x21});
+    }
+    constexpr byte_type signingKeyReference() const override { return 0x05; }
+    constexpr PinMinMaxLength signingPinMinMaxLength() const override { return {5, 12}; }
 };
 
 } // namespace electronic_id

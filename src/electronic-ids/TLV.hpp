@@ -58,9 +58,9 @@ struct TLV
         tag = *begin++;
         if ((tag & 0x1F) == 0x1F) { // Multi-byte tag
             constexpr uint8_t MAX_TAG_BYTES = sizeof(tag);
-            uint8_t tagBytes = 1;
+            uint8_t tag_bytes = 1;
             do {
-                if (tagBytes >= MAX_TAG_BYTES) {
+                if (tag_bytes >= MAX_TAG_BYTES) {
                     THROW(std::invalid_argument,
                           "Invalid TLV: Tag too long or too large for uint32_t");
                 }
@@ -68,7 +68,7 @@ struct TLV
                     THROW(std::invalid_argument, "Invalid TLV: Unexpected end of tag");
                 }
                 tag = (tag << 8) | (*begin++);
-                ++tagBytes;
+                ++tag_bytes;
             } while ((tag & 0x80) != 0x00);
         }
 
@@ -78,13 +78,15 @@ struct TLV
 
         length = *begin++;
         if (length & 0x80) { // Extended length encoding
-            auto num_bytes = uint8_t(length & 0x7F);
-            if (num_bytes == 0 || num_bytes > 4 || std::distance(begin, end) < num_bytes) {
+            constexpr uint8_t MAX_LEN_BYTES = sizeof(length);
+            auto len_bytes = uint8_t(length & 0x7F);
+            if (len_bytes == 0 || len_bytes > MAX_LEN_BYTES
+                || std::distance(begin, end) < len_bytes) {
                 THROW(std::invalid_argument, "Invalid TLV: Incorrect extended length encoding");
             }
 
             length = 0;
-            for (uint8_t i = 0; i < num_bytes; ++i) {
+            for (uint8_t i = 0; i < len_bytes; ++i) {
                 length = (length << 8) | (*begin++);
             }
         }
@@ -94,28 +96,18 @@ struct TLV
         }
     }
 
-    PCSC_CPP_CONSTEXPR_VECTOR TLV child() const { return {begin, begin + length}; }
-
     PCSC_CPP_CONSTEXPR_VECTOR TLV operator[](uint32_t find) const
     {
-        TLV tlv = child();
-        for (; tlv && tlv.tag != find; ++tlv) {}
-        return tlv;
+        return TLV(begin, begin + length).find(find);
     }
     PCSC_CPP_CONSTEXPR_VECTOR TLV& operator++() { return *this = {begin + length, end}; }
 
-    template <typename... Tags>
-    static PCSC_CPP_CONSTEXPR_VECTOR TLV path(TLV tlv, uint32_t tag, Tags... tags)
+    PCSC_CPP_CONSTEXPR_VECTOR TLV find(uint32_t find) const
     {
-        for (; tlv; ++tlv) {
-            if (tlv.tag == tag) {
-                if constexpr (sizeof...(tags) > 0) {
-                    return path(tlv.child(), uint32_t(tags)...);
-                }
-                return tlv;
-            }
-        }
-        return TLV({});
+        TLV tlv = *this;
+        for (; tlv && tlv.tag != find; ++tlv) {}
+        // Return the found TLV or an empty one if not found
+        return tlv;
     }
 
     constexpr operator bool() const noexcept { return begin < end; }

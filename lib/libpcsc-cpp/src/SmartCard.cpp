@@ -64,6 +64,14 @@ constexpr uint32_t OMNIKEY_6121 = 0x6632;
 namespace pcsc_cpp
 {
 
+std::string operator+(std::string lhs, const byte_vector& rhs)
+{
+    lhs.reserve(lhs.size() + rhs.size() * 2);
+    std::ostringstream hexStringBuilder(std::move(lhs), std::ios::ate);
+    hexStringBuilder << rhs;
+    return hexStringBuilder.str();
+}
+
 SmartCard Reader::connectToCard() const
 {
     return {*this};
@@ -146,6 +154,9 @@ public:
 
         auto response = toResponse(std::move(responseBytes), responseLength);
 
+        if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
+            getResponseWithLE(response, commandBytes);
+        }
         if (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
             getMoreResponseData(response);
         }
@@ -222,34 +233,38 @@ private:
         if (responseLength > responseBytes.size()) {
             THROW(Error, "SCardTransmit: received more bytes than buffer size");
         }
+        if (responseLength < 2) {
+            THROW(Error, "SCardTransmit: Need at least 2 bytes for creating ResponseApdu");
+        }
         responseBytes.resize(responseLength);
 
-        // TODO: debug("Received: " + bytes2hexstr(responseBytes))
+        PCSC_CPP_WARNING_PUSH
+        PCSC_CPP_WARNING_DISABLE_GCC("-Warray-bounds") // avoid GCC 13 false positive warning
+        // SW1 and SW2 are in the end
+        byte_type sw1 = responseBytes[responseLength - 2];
+        byte_type sw2 = responseBytes[responseLength - 1];
+        responseBytes.resize(responseLength - 2);
+        PCSC_CPP_WARNING_POP
 
-        auto response = ResponseApdu::fromBytes(std::move(responseBytes));
+        ResponseApdu response {sw1, sw2, std::move(responseBytes)};
 
         // Let expected errors through for handling in upper layers or in if blocks below.
         switch (response.sw1) {
-        case ResponseApdu::OK:
-        case ResponseApdu::MORE_DATA_AVAILABLE: // See the if block after next.
-        case ResponseApdu::VERIFICATION_FAILED:
-        case ResponseApdu::VERIFICATION_CANCELLED:
-        case ResponseApdu::WRONG_LENGTH:
-        case ResponseApdu::COMMAND_NOT_ALLOWED:
-        case ResponseApdu::WRONG_PARAMETERS:
-        case ResponseApdu::WRONG_LE_LENGTH: // See next if block.
-            break;
+            using enum ResponseApdu::Status;
+        case OK:
+        case MORE_DATA_AVAILABLE:
+        case WRONG_LE_LENGTH:
+        case VERIFICATION_FAILED:
+        case VERIFICATION_CANCELLED:
+        case WRONG_LENGTH:
+        case COMMAND_NOT_ALLOWED:
+        case WRONG_PARAMETERS:
+            return response;
         default:
             THROW(Error,
                   "Error response: '" + response + "', protocol "
                       + std::to_string(_protocol.dwProtocol));
         }
-
-        if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
-            THROW(Error, "Wrong LE length (SW1=0x6C) in response, please set LE");
-        }
-
-        return response;
     }
 
     void getMoreResponseData(ResponseApdu& response) const
@@ -267,6 +282,14 @@ private:
 
         response.sw1 = ResponseApdu::OK;
         response.sw2 = 0;
+    }
+
+    void getResponseWithLE(ResponseApdu& response, byte_vector command) const
+    {
+        size_t pos = command.size() <= 5 ? 4 : 5 + command[4]; // Case 1/2 or 3/4
+        command.resize(pos + 1);
+        command[pos] = response.sw2;
+        response = transmitBytes(command);
     }
 };
 

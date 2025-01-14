@@ -2,6 +2,8 @@
 
 #include "electronic-id/electronic-id.hpp"
 
+#include "pcsc-cpp/pcsc-cpp-utils.hpp"
+
 #include <stdexcept>
 #include <iostream>
 

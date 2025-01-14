@@ -14,7 +14,6 @@ add_library(${PROJECT_NAME}
   src/SCardCall.hpp
   src/SmartCard.cpp
   src/listReaders.cpp
-  src/utils.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

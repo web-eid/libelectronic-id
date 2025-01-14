@@ -26,7 +26,6 @@
 
 #include "pcsc-common.hpp"
 
-#include <array>
 #include <optional>
 
 using namespace pcsc_cpp;
@@ -43,6 +42,7 @@ struct LatEIDIDEMIAV2::Private
 namespace
 {
 
+// https://www.foo.be/docs/opensst/ref/pkcs/pkcs-15/pkcs-15v11d1.pdf
 const byte_vector EF_OD {0x50, 0x31};
 constexpr byte_type PRIV_FILE_REF = 0xA0;
 constexpr byte_type CERT_FILE_REF = 0xA4;
@@ -56,14 +56,14 @@ LatEIDIDEMIAV2::LatEIDIDEMIAV2(SmartCard&& _card) :
 
 LatEIDIDEMIAV2::~LatEIDIDEMIAV2() = default;
 
-byte_vector LatEIDIDEMIAV2::getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+byte_vector LatEIDIDEMIAV2::getCertificateImpl(const SmartCard::Session& session,
                                                const CertificateType type) const
 {
     selectMain(session);
     type.isAuthentication() ? selectADF1(session) : selectADF2(session);
     auto info = readDCODInfo(session, CERT_FILE_REF,
                              type.isAuthentication() ? data->authCache : data->signCache);
-    if (TLV id = TLV::path(info, 0x30, 0xA1, 0x30, 0x30, 0x04)) {
+    if (TLV id = info.find(0x30)[0xA1][0x30][0x30][0x04]) {
         return readFile(session, CommandApdu::selectEF(0x02, {id.begin, id.end}));
     }
     THROW(SmartCardError, "EF.CD reference not found");
@@ -93,7 +93,7 @@ const std::set<SignatureAlgorithm>& LatEIDIDEMIAV2::supportedSigningAlgorithms()
     return data->signKeyInfo->isECC ? ELLIPTIC_CURVE_SIGNATURE_ALGOS() : RS256_SIGNATURE_ALGO;
 }
 
-EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::authKeyRef(const pcsc_cpp::SmartCard::Session& session) const
+EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::authKeyRef(const SmartCard::Session& session) const
 {
     if (!data->authKeyInfo.has_value()) {
         data->authKeyInfo =
@@ -102,7 +102,7 @@ EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::authKeyRef(const pcsc_cpp::SmartCard::Session
     return data->authKeyInfo.value();
 }
 
-EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::signKeyRef(const pcsc_cpp::SmartCard::Session& session) const
+EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::signKeyRef(const SmartCard::Session& session) const
 {
     if (!data->signKeyInfo.has_value()) {
         data->signKeyInfo =
@@ -111,8 +111,8 @@ EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::signKeyRef(const pcsc_cpp::SmartCard::Session
     return data->signKeyInfo.value();
 }
 
-template <class C>
-TLV LatEIDIDEMIAV2::readEF_File(const SmartCard::Session& session, byte_vector file, C& cache) const
+TLV LatEIDIDEMIAV2::readEF_File(const SmartCard::Session& session, byte_vector file,
+                                auto& cache) const
 {
     if (auto it = cache.find(file); it != cache.end()) {
         return TLV(it->second);
@@ -120,31 +120,24 @@ TLV LatEIDIDEMIAV2::readEF_File(const SmartCard::Session& session, byte_vector f
     return TLV(cache[std::move(file)] = readFile(session, CommandApdu::selectEF(0x02, file)));
 }
 
-template <class C>
-TLV LatEIDIDEMIAV2::readDCODInfo(const pcsc_cpp::SmartCard::Session& session, byte_type type,
-                                 C& cache) const
+TLV LatEIDIDEMIAV2::readDCODInfo(const SmartCard::Session& session, byte_type type,
+                                 auto& cache) const
 {
     const auto info = readEF_File(session, EF_OD, cache);
-    for (TLV ref(info); ref; ++ref) {
-        if (ref.tag != type) {
-            continue;
-        }
-        if (auto file = ref[0x30][0x04]; file && file.length == 2) {
-            return readEF_File(session, {file.begin, file.end}, cache);
-        }
+    if (auto file = info.find(type)[0x30][0x04]; file && file.length == 2) {
+        return readEF_File(session, {file.begin, file.end}, cache);
     }
     THROW(SmartCardError, "EF.DCOD reference not found");
 }
 
-template <class C>
-EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::readPrKDInfo(const pcsc_cpp::SmartCard::Session& session,
-                                                byte_type keyID, C& cache) const
+EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::readPrKDInfo(const SmartCard::Session& session, byte_type keyID,
+                                                auto& cache) const
 {
     TLV prKD = readDCODInfo(session, PRIV_FILE_REF, cache);
     if (!prKD) {
         THROW(SmartCardError, "EF.PrKD reference not found");
     }
-    TLV key = prKD[0x30];
-    key = TLV::path(++key, 0x30, 0x02);
+    TLV key = prKD[0x30]; // CommonObjectAttributes
+    key = (++key).find(0x30)[0x02]; // ClassAttributes.ID
     return {key.length == 2 ? *std::next(key.begin) : keyID, prKD.tag == 0xA0};
 }
