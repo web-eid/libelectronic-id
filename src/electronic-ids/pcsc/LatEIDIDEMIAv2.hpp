@@ -22,12 +22,12 @@
 
 #pragma once
 
-#include "LatEIDIDEMIACommon.hpp"
+#include "EIDIDEMIA.hpp"
 
 namespace electronic_id
 {
 
-class LatEIDIDEMIAV2 : public LatEIDIDEMIACommon
+class LatEIDIDEMIAV2 : public EIDIDEMIA
 {
 public:
     explicit LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card);
@@ -36,11 +36,13 @@ public:
 
 private:
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override;
-
-    std::string name() const override { return "LatEID IDEMIA v2"; }
+    PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
-    SignatureAlgorithm signingSignatureAlgorithm() const override;
+    PinMinMaxLength signingPinMinMaxLength() const override { return {6, 12}; }
+
+    std::string name() const override { return "LatEID IDEMIA v2"; }
+    Type type() const override { return LatEID; }
 
     void selectAuthSecurityEnv() const override;
     pcsc_cpp::byte_type selectSignSecurityEnv() const override;

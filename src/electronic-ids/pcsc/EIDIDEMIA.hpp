@@ -27,19 +27,6 @@
 namespace electronic_id
 {
 
-struct SelectApplicationIDCmds
-{
-    const pcsc_cpp::CommandApdu MAIN_AID;
-    const pcsc_cpp::CommandApdu AUTH_AID;
-    const pcsc_cpp::CommandApdu SIGN_AID;
-};
-
-struct SelectCertificateCmds
-{
-    const pcsc_cpp::CommandApdu AUTH_CERT;
-    const pcsc_cpp::CommandApdu SIGN_CERT;
-};
-
 class EIDIDEMIA : public PcscElectronicID
 {
 public:
@@ -49,26 +36,18 @@ protected:
     byte_vector getCertificateImpl(const CertificateType type) const override;
 
     PinRetriesRemainingAndMax authPinRetriesLeftImpl() const override;
+    virtual void selectAuthSecurityEnv() const = 0;
     byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
 
     PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const override;
+    virtual pcsc_cpp::byte_type selectSignSecurityEnv() const = 0;
     Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
-    virtual const SelectApplicationIDCmds& selectApplicationID() const;
-    virtual const SelectCertificateCmds& selectCertificate() const;
-    virtual void selectAuthSecurityEnv() const = 0;
-    virtual pcsc_cpp::byte_type selectSignSecurityEnv() const = 0;
-
-    virtual size_t pinBlockLength() const { return authPinMinMaxLength().second; }
-    virtual byte_type signingPinReference() const { return 0x85; }
-    virtual SignatureAlgorithm signingSignatureAlgorithm() const = 0;
     PinRetriesRemainingAndMax pinRetriesLeft(byte_type pinReference) const;
 
-    virtual bool useInternalAuthenticateAndRSAWithPKCS1PaddingDuringSigning() const
-    {
-        return false;
-    }
+    void selectADF1() const;
+    void selectADF2() const;
 };
 
 } // namespace electronic_id

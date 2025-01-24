@@ -30,28 +30,46 @@ using namespace electronic_id;
 namespace
 {
 
-const byte_type PIN_PADDING_CHAR = 0xFF;
-const byte_type AUTH_PIN_REFERENCE = 0x01;
+constexpr byte_type PIN_PADDING_CHAR = 0xFF;
+constexpr byte_type AUTH_PIN_REFERENCE = 0x01;
+constexpr byte_type SIGN_PIN_REFERENCE = 0x85;
+
+const auto MAIN_AID = CommandApdu::select(0x04,
+                                          {0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07,
+                                           0x00, 0x00, 0xFE, 0x00, 0x00, 0x01, 0x00});
+const auto ADF1_AID = CommandApdu::select(
+    0x04, {0xe8, 0x28, 0xbd, 0x08, 0x0f, 0xf2, 0x50, 0x4f, 0x54, 0x20, 0x41, 0x57, 0x50});
+const auto ADF2_AID = CommandApdu::select(0x04,
+                                          {0x51, 0x53, 0x43, 0x44, 0x20, 0x41, 0x70, 0x70, 0x6C,
+                                           0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E});
+const auto AUTH_CERT = CommandApdu::select(0x09, {0xAD, 0xF1, 0x34, 0x01});
+const auto SIGN_CERT = CommandApdu::select(0x09, {0xAD, 0xF2, 0x34, 0x1F});
 
 } // namespace
 
+void EIDIDEMIA::selectADF1() const
+{
+    transmitApduWithExpectedResponse(*card, ADF1_AID);
+}
+
+void EIDIDEMIA::selectADF2() const
+{
+    transmitApduWithExpectedResponse(*card, ADF2_AID);
+}
+
 byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
 {
-    transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
-    return electronic_id::getCertificate(*card,
-                                         type.isAuthentication() ? selectCertificate().AUTH_CERT
-                                                                 : selectCertificate().SIGN_CERT);
+    transmitApduWithExpectedResponse(*card, MAIN_AID);
+    return electronic_id::getCertificate(*card, type.isAuthentication() ? AUTH_CERT : SIGN_CERT);
 }
 
 byte_vector EIDIDEMIA::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
 {
-    // Select authentication application and authentication security environment.
-    transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
-    transmitApduWithExpectedResponse(*card, selectApplicationID().AUTH_AID);
+    selectADF1();
     selectAuthSecurityEnv();
 
     verifyPin(*card, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength().first,
-              pinBlockLength(), PIN_PADDING_CHAR);
+              authPinMinMaxLength().second, PIN_PADDING_CHAR);
 
     return internalAuthenticate(*card,
                                 authSignatureAlgorithm().isRSAWithPKCS1Padding()
@@ -62,7 +80,7 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector&
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::authPinRetriesLeftImpl() const
 {
-    transmitApduWithExpectedResponse(*card, selectApplicationID().MAIN_AID);
+    transmitApduWithExpectedResponse(*card, MAIN_AID);
     return pinRetriesLeft(AUTH_PIN_REFERENCE);
 }
 
@@ -70,11 +88,11 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
                                                           const byte_vector& hash,
                                                           const HashAlgorithm hashAlgo) const
 {
-    // Select signing application and signing security environment.
-    transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
+    selectADF2();
     pcsc_cpp::byte_type algo = selectSignSecurityEnv();
     auto tmp = hash;
-    if (algo == 0x54) {
+    bool isECC = algo == 0x54;
+    if (isECC) {
         constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
         if (tmp.size() < ECDSA384_INPUT_LENGTH) {
             // Zero-pad hashes that are shorter than SHA-384.
@@ -85,48 +103,17 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
         }
     }
 
-    verifyPin(*card, signingPinReference(), std::move(pin), signingPinMinMaxLength().first,
-              pinBlockLength(), PIN_PADDING_CHAR);
+    verifyPin(*card, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength().first,
+              signingPinMinMaxLength().second, PIN_PADDING_CHAR);
 
-    return {useInternalAuthenticateAndRSAWithPKCS1PaddingDuringSigning()
-                ? internalAuthenticate(*card, addRSAOID(hashAlgo, hash), name())
-                : computeSignature(*card, tmp, name()),
-            {signingSignatureAlgorithm(), hashAlgo}};
+    return {computeSignature(*card, tmp, name()),
+            {isECC ? SignatureAlgorithm::ES : SignatureAlgorithm::RS, hashAlgo}};
 }
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::signingPinRetriesLeftImpl() const
 {
-    transmitApduWithExpectedResponse(*card, selectApplicationID().SIGN_AID);
-    return pinRetriesLeft(signingPinReference());
-}
-
-const SelectApplicationIDCmds& EIDIDEMIA::selectApplicationID() const
-{
-    static const SelectApplicationIDCmds selectAppIDCmds {
-        // Main AID.
-        CommandApdu::select(0x04,
-                            {0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, 0xFE,
-                             0x00, 0x00, 0x01, 0x00}),
-        // AWP AID.
-        CommandApdu::select(
-            0x04, {0xe8, 0x28, 0xbd, 0x08, 0x0f, 0xf2, 0x50, 0x4f, 0x54, 0x20, 0x41, 0x57, 0x50}),
-        // QSCD AID.
-        CommandApdu::select(0x04,
-                            {0x51, 0x53, 0x43, 0x44, 0x20, 0x41, 0x70, 0x70, 0x6C, 0x69, 0x63, 0x61,
-                             0x74, 0x69, 0x6F, 0x6E}),
-    };
-    return selectAppIDCmds;
-}
-
-const SelectCertificateCmds& EIDIDEMIA::selectCertificate() const
-{
-    static const SelectCertificateCmds selectCert1Cmds {
-        // Authentication certificate.
-        CommandApdu::select(0x09, {0xAD, 0xF1, 0x34, 0x01}),
-        // Signing certificate.
-        CommandApdu::select(0x09, {0xAD, 0xF2, 0x34, 0x1F}),
-    };
-    return selectCert1Cmds;
+    selectADF2();
+    return pinRetriesLeft(SIGN_PIN_REFERENCE);
 }
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(byte_type pinReference) const

@@ -23,9 +23,6 @@ add_library(${PROJECT_NAME}
   src/electronic-ids/pcsc/EstEIDIDEMIA.hpp
   src/electronic-ids/pcsc/FinEID.cpp
   src/electronic-ids/pcsc/FinEID.hpp
-  src/electronic-ids/pcsc/LatEIDIDEMIACommon.hpp
-  src/electronic-ids/pcsc/LatEIDIDEMIAv1.cpp
-  src/electronic-ids/pcsc/LatEIDIDEMIAv1.hpp
   src/electronic-ids/pcsc/LatEIDIDEMIAv2.cpp
   src/electronic-ids/pcsc/LatEIDIDEMIAv2.hpp
   src/electronic-ids/pcsc/PcscElectronicID.hpp
@@ -78,7 +75,6 @@ add_executable(${MOCK_TEST_EXE}
   tests/mock/select-certificate-script-EST-IDEMIA.hpp
   tests/mock/select-certificate-script-FIN-V3.hpp
   tests/mock/select-certificate-script-FIN-V4.hpp
-  tests/mock/select-certificate-script-LAT-V1.hpp
   tests/mock/select-certificate-script-LAT-V2.hpp
   tests/mock/test-autoselect-card.cpp
   tests/mock/test-find-masked-atr.cpp
