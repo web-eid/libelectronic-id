@@ -47,7 +47,7 @@ target_include_directories(${PROJECT_NAME}
   include
 )
 
-find_package(OpenSSL 1.1.1 REQUIRED)
+find_package(OpenSSL 3.0.0 REQUIRED)
 
 target_link_libraries(${PROJECT_NAME}
   pcsc-cpp
