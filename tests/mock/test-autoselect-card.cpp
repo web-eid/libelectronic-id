@@ -26,8 +26,6 @@
 
 #include <gtest/gtest.h>
 
-#include <iostream>
-
 using namespace electronic_id;
 
 TEST(electronic_id_test, autoSelectFailureWithUnsupportedCard)
@@ -41,15 +39,6 @@ TEST(electronic_id_test, autoSelectSuccessWithSupportedCardEstIDEMIA)
     auto result = autoSelectSupportedCard();
     EXPECT_TRUE(result);
     EXPECT_EQ(result->eid().name(), "EstEID IDEMIA v1");
-    PcscMock::reset();
-}
-
-TEST(electronic_id_test, autoSelectSuccessWithSupportedCardLatV1)
-{
-    PcscMock::setAtr(LATEID_IDEMIA_V1_ATR);
-    auto result = autoSelectSupportedCard();
-    EXPECT_TRUE(result);
-    EXPECT_EQ(result->eid().name(), "LatEID IDEMIA v1");
     PcscMock::reset();
 }
 

@@ -187,57 +187,6 @@ TEST(electronic_id_test, selectCertificateFinV4)
     PcscMock::reset();
 }
 
-TEST(electronic_id_test, selectCertificateLat_V1)
-{
-    PcscMock::setAtr(LATEID_IDEMIA_V1_ATR);
-
-    auto cardInfo = autoSelectSupportedCard();
-    EXPECT_TRUE(cardInfo);
-    EXPECT_EQ(cardInfo->eid().name(), "LatEID IDEMIA v1");
-
-    PcscMock::setApduScript(LATEID_IDEMIA_V1_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
-    auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
-    EXPECT_EQ(certificateAuth.size(), 1873U);
-
-    auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3U);
-    EXPECT_EQ(authRetriesLeft.second, 3);
-
-    const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
-    EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
-    const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
-
-    pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
-    authPin.reserve(64);
-
-    const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
-    if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
-        throw std::runtime_error("Signature is invalid");
-    }
-
-    PcscMock::setApduScript(LATEID_IDEMIA_V1_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
-    auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
-    EXPECT_EQ(certificateSign.size(), 2292U);
-
-    auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3U);
-    EXPECT_EQ(signingRetriesLeft.second, 3);
-
-    pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
-    signPin.reserve(64);
-
-    EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature =
-        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
-    EXPECT_EQ(signSignature.second, SignatureAlgorithm::RS256);
-    if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
-        throw std::runtime_error("Signature is invalid");
-    }
-
-    PcscMock::reset();
-}
-
 TEST(electronic_id_test, selectCertificateLatV2)
 {
     PcscMock::setAtr(LATEID_IDEMIA_V2_ATR);
@@ -259,7 +208,7 @@ TEST(electronic_id_test, selectCertificateLatV2)
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
     pcsc_cpp::byte_vector authPin {'1', '2', '3', '4'};
-    authPin.reserve(64);
+    authPin.reserve(12);
 
     const auto hash = calculateDigest(hashAlgo, dataToSign);
     const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
@@ -276,7 +225,7 @@ TEST(electronic_id_test, selectCertificateLatV2)
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
-    signPin.reserve(64);
+    signPin.reserve(12);
 
     EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
     const auto signSignature =

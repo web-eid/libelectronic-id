@@ -40,7 +40,6 @@ private:
     PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
-    SignatureAlgorithm signingSignatureAlgorithm() const override { return SignatureAlgorithm::ES; }
     PinMinMaxLength signingPinMinMaxLength() const override { return {5, 12}; }
 
     std::string name() const override { return "EstEID IDEMIA v1"; }
