@@ -133,24 +133,29 @@ struct ResponseApdu
     }
 };
 
-/** Struct that wraps command APDUs. */
+/**
+ * Struct that wraps command APDUs.
+ *
+ * See for example http://cardwerk.com/iso-7816-smart-card-standard/ for a good overview of the
+ * ISO 7816 part 4 standard that defines command APDUs.
+ */
 struct CommandApdu
 {
     static constexpr size_t MAX_DATA_SIZE = 255;
 
-    // Case 1
+    // ISO 7816 part 4, Annex B.1, Case 1
     PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1,
                                           byte_type p2) : d {cls, ins, p1, p2}
     {
     }
 
-    // Case 2
+    // ISO 7816 part 4, Annex B.1, Case 2
     PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
                                           byte_type le) : d {cls, ins, p1, p2, le}
     {
     }
 
-    // Case 3
+    // ISO 7816 part 4, Annex B.1, Case 3
     PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
                                           byte_vector data) : d {std::move(data)}
     {
@@ -160,7 +165,7 @@ struct CommandApdu
         d.insert(d.begin(), {cls, ins, p1, p2, static_cast<byte_type>(d.size())});
     }
 
-    // Case 4
+    // ISO 7816 part 4, Annex B.1, Case 4
     PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
                                           byte_vector data, byte_type le) :
         CommandApdu {cls, ins, p1, p2, std::move(data)}
@@ -170,6 +175,23 @@ struct CommandApdu
 
     constexpr operator const byte_vector&() const { return d; }
 
+    /**
+     * A helper function to create a SELECT command APDU.
+     *
+     * The ISO 7816-4 Section 6.11 SELECT command has the form:
+     *   CLA = 0x00
+     *   INS = 0xA4
+     *   P1  = varies, see below.
+     *   P2  = here hard-coded to 0x0C, no FCI (file control information) returned.
+     *   Lc and Data field = the file/path/AID identifier bytes.
+     *
+     * The P1 parameter for the SELECT command controls the selection mode,
+     * we use the following modes:
+     *   0x04 = Select AID (application identifier),
+     *          direct selection by DF (dedicated file, directory) name.
+     *   0x08 = Select from MF (master file, root directory).
+     *   0x09 = Select from current DF.
+     */
     static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu select(byte_type p1, byte_vector file)
     {
         return {0x00, 0xA4, p1, 0x0C, std::move(file)};
