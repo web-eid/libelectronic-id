@@ -34,11 +34,10 @@ TEST(pcsc_cpp_test, listReaders)
     for (const auto& reader : readers) {
 #ifdef _WIN32
         std::wcout << L"Reader name: '" << reader.name << L"', status: '"
-                   << std::wstring(reader.statusString().cbegin(), reader.statusString().cend())
-                   << L"'" << std::endl;
+                   << (reader.isCardInserted ? L"PRESENT" : L"NOT") << L"'" << std::endl;
 #else
-        std::cout << "Reader name: '" << reader.name << "', status: '" << reader.statusString()
-                  << "'" << std::endl;
+        std::cout << "Reader name: '" << reader.name << "', status: '"
+                  << (reader.isCardInserted ? "PRESENT" : "NOT") << "'" << std::endl;
 #endif
     }
 }
