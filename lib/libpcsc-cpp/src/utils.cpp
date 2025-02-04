@@ -74,7 +74,7 @@ std::ostream& operator<<(std::ostream& os, const pcsc_cpp::byte_vector& data)
     os << std::setfill('0') << std::hex;
     for (const auto byte : data)
         os << std::setw(2) << short(byte);
-    return os;
+    return os << std::setfill(' ') << std::dec;
 }
 
 std::string operator+(std::string lhs, const byte_vector& rhs)
