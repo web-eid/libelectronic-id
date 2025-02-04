@@ -9,10 +9,8 @@ add_library(${PROJECT_NAME}
   include/${PROJECT_NAME}/${PROJECT_NAME}.hpp
   include/${PROJECT_NAME}/${PROJECT_NAME}-utils.hpp
   include/${PROJECT_NAME}/comp_winscard.hpp
-  include/flag-set-cpp/flag_set.hpp
   include/magic_enum/magic_enum.hpp
   src/Context.hpp
-  src/Reader.cpp
   src/SCardCall.hpp
   src/SmartCard.cpp
   src/listReaders.cpp

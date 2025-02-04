@@ -53,7 +53,7 @@ std::vector<CardInfo::ptr> availableSupportedCards()
         // The list may be empty, but we cannot throw yet due to the listMsCryptoApiElectronicIDs()
         // call in Windows.
         for (const auto& reader : readers) {
-            if (!reader.isCardInserted()) {
+            if (!reader.isCardPresent) {
                 continue;
             }
             seenCard = true;

@@ -34,8 +34,8 @@ using namespace electronic_id;
 
 struct LatEIDIDEMIAV2::Private
 {
-    std::map<byte_vector, byte_vector> authCache;
-    std::map<byte_vector, byte_vector> signCache;
+    std::map<byte_vector, byte_vector, VectorComparator> authCache;
+    std::map<byte_vector, byte_vector, VectorComparator> signCache;
     std::optional<KeyInfo> authKeyInfo;
     std::optional<KeyInfo> signKeyInfo;
 };
@@ -108,8 +108,8 @@ EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::signKeyRef() const
     return data->signKeyInfo.value();
 }
 
-const byte_vector& LatEIDIDEMIAV2::readEF_File(byte_vector file,
-                                               std::map<byte_vector, byte_vector>& cache) const
+template <class C>
+const byte_vector& LatEIDIDEMIAV2::readEF_File(byte_vector file, C& cache) const
 {
     if (auto it = cache.find(file); it != cache.end()) {
         return it->second;
@@ -126,8 +126,8 @@ const byte_vector& LatEIDIDEMIAV2::readEF_File(byte_vector file,
                readBinary(*card, size_t(*size.begin << 8) + *(size.begin + 1), 0xFF);
 }
 
-const byte_vector& LatEIDIDEMIAV2::readDCODInfo(byte_type type,
-                                                std::map<byte_vector, byte_vector>& cache) const
+template <class C>
+const byte_vector& LatEIDIDEMIAV2::readDCODInfo(byte_type type, C& cache) const
 {
     const auto info = readEF_File(EF_OD, cache);
     if (auto file = TLV::path(info, type, 0x30, 0x04); file && file.length == 2) {
@@ -136,8 +136,8 @@ const byte_vector& LatEIDIDEMIAV2::readDCODInfo(byte_type type,
     THROW(SmartCardError, "EF.DCOD reference not found");
 }
 
-EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::readPrKDInfo(byte_type keyID,
-                                                std::map<byte_vector, byte_vector>& cache) const
+template <class C>
+EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::readPrKDInfo(byte_type keyID, C& cache) const
 {
     auto info = readDCODInfo(PRIV_FILE_REF, cache);
     if (info.empty()) {

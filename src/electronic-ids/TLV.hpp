@@ -99,7 +99,7 @@ struct TLV
     PCSC_CPP_CONSTEXPR_VECTOR TLV operator[](uint32_t find) const
     {
         TLV tlv = child();
-        for (; tlv && tlv.tag != find; ++tlv);
+        for (; tlv && tlv.tag != find; ++tlv) {}
         return tlv;
     }
     PCSC_CPP_CONSTEXPR_VECTOR TLV& operator++() { return *this = {begin + length, end}; }
