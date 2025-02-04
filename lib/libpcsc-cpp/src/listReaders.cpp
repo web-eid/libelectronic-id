@@ -24,10 +24,9 @@
 
 #include "Context.hpp"
 
-#include <cstring>
-#include <memory>
 #include <algorithm>
 #include <map>
+#include <memory>
 
 namespace
 {
@@ -42,30 +41,13 @@ inline DWORD updateReaderNamesBuffer(const SCARDCONTEXT ctx, string_t::value_typ
     return bufferLengthOut;
 }
 
-std::vector<const string_t::value_type*> getReaderNamePointerList(const string_t& readerNames)
-{
-    auto readerNamePointerList = std::vector<const string_t::value_type*> {};
-
-    if (readerNames.empty())
-        return readerNamePointerList;
-
-    // Reader names are \0 separated and end with double \0.
-#ifdef _WIN32
-    for (const string_t::value_type* name = readerNames.c_str(); *name; name += wcslen(name) + 1) {
-#else
-    for (const string_t::value_type* name = readerNames.c_str(); *name; name += strlen(name) + 1) {
-#endif
-        readerNamePointerList.push_back(name);
-    }
-
-    return readerNamePointerList;
-}
-
 std::vector<SCARD_READERSTATE> getReaderStates(const SCARDCONTEXT ctx, const string_t& readerNames)
 {
     auto readerStates = std::vector<SCARD_READERSTATE> {};
-    for (const auto& readerNamePointer : getReaderNamePointerList(readerNames)) {
-        readerStates.push_back({readerNamePointer,
+    // Reader names are \0 separated and end with double \0.
+    for (const auto* name = readerNames.c_str(); *name;
+         name += string_t::traits_type::length(name) + 1) {
+        readerStates.push_back({name,
                                 nullptr,
                                 SCARD_STATE_UNAWARE,
                                 SCARD_STATE_UNAWARE,
@@ -76,7 +58,7 @@ std::vector<SCARD_READERSTATE> getReaderStates(const SCARDCONTEXT ctx, const str
     }
 
     if (readerStates.empty())
-        return {};
+        return readerStates;
 
     SCard(GetStatusChange, ctx, 0U, readerStates.data(), DWORD(readerStates.size()));
 
