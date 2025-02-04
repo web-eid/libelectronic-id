@@ -131,7 +131,7 @@ struct ResponseApdu
 
     friend std::string operator+(std::string&& lhs, const ResponseApdu& rhs)
     {
-        return lhs + rhs.data + byte_vector {rhs.sw1, rhs.sw2};
+        return std::move(lhs) + rhs.data + byte_vector {rhs.sw1, rhs.sw2};
     }
 };
 
