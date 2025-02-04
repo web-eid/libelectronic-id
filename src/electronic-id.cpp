@@ -52,8 +52,18 @@ constexpr auto constructor(const Reader& /*reader*/)
     return std::make_unique<Pkcs11ElectronicID>(value);
 }
 
+// Workaround gcc 14.2 bug
+struct VectorComparator
+{
+    constexpr bool operator()(const std::vector<unsigned char>& a,
+                              const std::vector<unsigned char>& b) const
+    {
+        return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    }
+};
+
 // Supported cards.
-const std::map<byte_vector, ElectronicIDConstructor> SUPPORTED_ATRS {
+const std::map<byte_vector, ElectronicIDConstructor, VectorComparator> SUPPORTED_ATRS {
     // EstEID Idemia v1.0
     {{0x3b, 0xdb, 0x96, 0x00, 0x80, 0xb1, 0xfe, 0x45, 0x1f, 0x83, 0x00,
       0x12, 0x23, 0x3f, 0x53, 0x65, 0x49, 0x44, 0x0f, 0x90, 0x00, 0xf1},

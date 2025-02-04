@@ -51,11 +51,12 @@ private:
     KeyInfo authKeyRef() const override;
     KeyInfo signKeyRef() const override;
 
-    const byte_vector& readEF_File(byte_vector file,
-                                   std::map<byte_vector, byte_vector>& cache) const;
-    const byte_vector& readDCODInfo(byte_type type,
-                                    std::map<byte_vector, byte_vector>& cache) const;
-    KeyInfo readPrKDInfo(byte_type keyID, std::map<byte_vector, byte_vector>& cache) const;
+    template <class C>
+    const byte_vector& readEF_File(byte_vector file, C& cache) const;
+    template <class C>
+    const byte_vector& readDCODInfo(byte_type type, C& cache) const;
+    template <class C>
+    KeyInfo readPrKDInfo(byte_type keyID, C& cache) const;
 
     struct Private;
     std::unique_ptr<Private> data;
