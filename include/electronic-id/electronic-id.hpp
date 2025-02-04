@@ -42,7 +42,7 @@ public:
     using byte_type = pcsc_cpp::byte_type;
     using Signature = std::pair<byte_vector, SignatureAlgorithm>;
 
-    enum Type {
+    enum Type : uint8_t {
         EstEID,
         FinEID,
         LatEID,
@@ -125,7 +125,6 @@ public:
 
     const pcsc_cpp::Reader& reader() const { return _reader; }
     const ElectronicID& eid() const { return *_eid; }
-    const ElectronicID::ptr eidPtr() const { return _eid; }
 
 private:
     pcsc_cpp::Reader _reader;
@@ -216,7 +215,7 @@ class MsCryptoApiError : public Error
 class AutoSelectFailed : public Error
 {
 public:
-    enum class Reason {
+    enum class Reason : uint8_t {
         SERVICE_NOT_RUNNING,
         NO_READERS,
         SINGLE_READER_NO_CARD,
@@ -241,7 +240,7 @@ public:
     template <typename T>
     using observer_ptr = T*;
 
-    enum class Status {
+    enum class Status : uint8_t {
         RETRY_ALLOWED,
         INVALID_PIN_LENGTH,
         PIN_ENTRY_TIMEOUT,

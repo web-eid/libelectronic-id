@@ -33,12 +33,11 @@ TEST(pcsc_cpp_test, listReaders)
     auto readers = listReaders();
     for (const auto& reader : readers) {
 #ifdef _WIN32
-        std::wcout << L"Reader name: '" << reader.name << L"', status: '"
-                   << std::wstring(reader.statusString().cbegin(), reader.statusString().cend())
-                   << L"'" << std::endl;
+        std::wcout << L"Reader name: '" << reader.name << L"', card status: '"
+                   << (reader.isCardPresent ? L"PRESENT" : L"ABSENT") << L"'" << std::endl;
 #else
-        std::cout << "Reader name: '" << reader.name << "', status: '" << reader.statusString()
-                  << "'" << std::endl;
+        std::cout << "Reader name: '" << reader.name << "', card status: '"
+                  << (reader.isCardPresent ? "PRESENT" : "ABSENT") << "'" << std::endl;
 #endif
     }
 }

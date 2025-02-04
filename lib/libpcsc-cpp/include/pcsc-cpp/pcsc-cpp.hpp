@@ -22,11 +22,11 @@
 
 #pragma once
 
-#include "flag-set-cpp/flag_set.hpp"
-
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 // The rule of five (C++ Core guidelines C.21).
@@ -254,39 +254,14 @@ private:
 };
 
 /** Reader provides card reader information, status and gives access to the smart card in it. */
-class Reader
+struct Reader
 {
-public:
-    enum class Status {
-        UNAWARE,
-        IGNORE,
-        CHANGED,
-        UNKNOWN,
-        UNAVAILABLE,
-        EMPTY,
-        PRESENT,
-        ATRMATCH,
-        EXCLUSIVE,
-        INUSE,
-        MUTE,
-        UNPOWERED,
-        _
-    };
-
-    Reader(ContextPtr context, string_t name, byte_vector cardAtr, flag_set<Status> status);
-
     SmartCard::ptr connectToCard() const { return std::make_unique<SmartCard>(ctx, name, cardAtr); }
 
-    bool isCardInserted() const { return status[Status::PRESENT]; }
-
-    std::string statusString() const;
-
+    const ContextPtr ctx;
     const string_t name;
     const byte_vector cardAtr;
-    const flag_set<Status> status;
-
-private:
-    ContextPtr ctx;
+    const bool isCardPresent;
 };
 
 /**
