@@ -51,7 +51,7 @@ std::vector<CardInfo::ptr> listMsCryptoApiElectronicIDs()
         nullptr,
         L"Dummy reader for MS CryptoAPI tokens"s,
         {},
-        flag_set<pcsc_cpp::Reader::Status> {pcsc_cpp::Reader::Status::PRESENT},
+        true,
     };
 
     PCCERT_CONTEXT cert = nullptr;
