@@ -233,7 +233,7 @@ public:
         bool& inProgress;
     };
 
-    SmartCard(const ContextPtr& context, const string_t& readerName, byte_vector atr);
+    SmartCard(ContextPtr context, string_t readerName, byte_vector atr);
     SmartCard(); // Null object constructor.
     ~SmartCard();
     PCSC_CPP_DISABLE_COPY_MOVE(SmartCard);
@@ -245,9 +245,12 @@ public:
 
     Protocol protocol() const { return _protocol; }
     const byte_vector& atr() const { return _atr; }
+    const string_t& name() const { return _name; }
 
 private:
+    ContextPtr ctx;
     CardImplPtr card;
+    string_t _name;
     byte_vector _atr;
     Protocol _protocol = Protocol::UNDEFINED;
     bool transactionInProgress = false;
