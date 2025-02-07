@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-inline electronic_id::CardInfo::ptr autoSelectSupportedCard() {
+inline electronic_id::ElectronicID::ptr autoSelectSupportedCard() {
     using namespace electronic_id;
 
     auto cardList = availableSupportedCards();

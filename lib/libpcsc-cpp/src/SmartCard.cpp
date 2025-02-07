@@ -288,9 +288,10 @@ SmartCard::TransactionGuard::~TransactionGuard()
     }
 }
 
-SmartCard::SmartCard(const ContextPtr& contex, const string_t& readerName, byte_vector atr) :
-    card(std::make_unique<CardImpl>(connectToCard(contex->handle(), readerName))),
-    _atr(std::move(atr)), _protocol(convertToSmartCardProtocol(card->protocol()))
+SmartCard::SmartCard(ContextPtr context, string_t readerName, byte_vector atr) :
+    ctx(std::move(context)), card(std::make_unique<CardImpl>(connectToCard(ctx->handle(), readerName))),
+    _name(std::move(readerName)), _atr(std::move(atr)),
+    _protocol(convertToSmartCardProtocol(card->protocol()))
 {
     // TODO: debug("Card ATR -> " + bytes2hexstr(atr))
 }
