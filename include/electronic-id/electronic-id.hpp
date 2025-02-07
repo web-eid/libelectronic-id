@@ -114,26 +114,9 @@ bool isCardSupported(const pcsc_cpp::byte_vector& atr);
 
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader);
 
-/** Aggregates reader and electronic ID objects for communicating with and inspecting the eID card.
- */
-class CardInfo
-{
-public:
-    using ptr = std::shared_ptr<CardInfo>;
-
-    CardInfo(pcsc_cpp::Reader r, ElectronicID::ptr e) : _reader(std::move(r)), _eid(std::move(e)) {}
-
-    const pcsc_cpp::Reader& reader() const { return _reader; }
-    const ElectronicID& eid() const { return *_eid; }
-
-private:
-    pcsc_cpp::Reader _reader;
-    ElectronicID::ptr _eid;
-};
-
-/** Automatic card selection that either returns a vector of card info pointers with available
+/** Automatic card selection that either returns a vector of electronic ID pointers with available
  * supported cards or throws AutoSelectFailed. */
-std::vector<CardInfo::ptr> availableSupportedCards();
+std::vector<ElectronicID::ptr> availableSupportedCards();
 
 /** Base class for fatal errors in parameters or environment conditions that do not allow retrying.
  */

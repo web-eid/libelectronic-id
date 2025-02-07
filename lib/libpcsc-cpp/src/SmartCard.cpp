@@ -278,7 +278,7 @@ SmartCard::TransactionGuard::TransactionGuard(const CardImpl& card, bool& inProg
     inProgress = true;
 }
 
-SmartCard::TransactionGuard::~TransactionGuard()
+SmartCard::TransactionGuard::~TransactionGuard() noexcept
 {
     inProgress = false;
     try {
@@ -288,15 +288,17 @@ SmartCard::TransactionGuard::~TransactionGuard()
     }
 }
 
-SmartCard::SmartCard(const ContextPtr& contex, const string_t& readerName, byte_vector atr) :
-    card(std::make_unique<CardImpl>(connectToCard(contex->handle(), readerName))),
-    _atr(std::move(atr)), _protocol(convertToSmartCardProtocol(card->protocol()))
+SmartCard::SmartCard(ContextPtr context, string_t readerName, byte_vector atr) :
+    ctx(std::move(context)),
+    card(std::make_unique<CardImpl>(connectToCard(ctx->handle(), readerName))),
+    _readerName(std::move(readerName)), _atr(std::move(atr)),
+    _protocol(convertToSmartCardProtocol(card->protocol()))
 {
     // TODO: debug("Card ATR -> " + bytes2hexstr(atr))
 }
 
 SmartCard::SmartCard() = default;
-SmartCard::~SmartCard() = default;
+SmartCard::~SmartCard() noexcept = default;
 
 SmartCard::TransactionGuard SmartCard::beginTransaction()
 {

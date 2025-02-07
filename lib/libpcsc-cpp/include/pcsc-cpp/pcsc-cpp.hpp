@@ -225,7 +225,7 @@ public:
     {
     public:
         TransactionGuard(const CardImpl& CardImpl, bool& inProgress);
-        ~TransactionGuard();
+        ~TransactionGuard() noexcept;
         PCSC_CPP_DISABLE_COPY_MOVE(TransactionGuard);
 
     private:
@@ -233,9 +233,9 @@ public:
         bool& inProgress;
     };
 
-    SmartCard(const ContextPtr& context, const string_t& readerName, byte_vector atr);
+    SmartCard(ContextPtr context, string_t readerName, byte_vector atr);
     SmartCard(); // Null object constructor.
-    ~SmartCard();
+    ~SmartCard() noexcept;
     PCSC_CPP_DISABLE_COPY_MOVE(SmartCard);
 
     TransactionGuard beginTransaction();
@@ -245,9 +245,12 @@ public:
 
     Protocol protocol() const { return _protocol; }
     const byte_vector& atr() const { return _atr; }
+    const string_t& readerName() const { return _readerName; }
 
 private:
+    ContextPtr ctx;
     CardImplPtr card;
+    string_t _readerName;
     byte_vector _atr;
     Protocol _protocol = Protocol::UNDEFINED;
     bool transactionInProgress = false;

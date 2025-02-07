@@ -36,14 +36,14 @@ TEST(electronic_id_test, authenticate)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->eid().name() << '\n';
+    std::cout << "Selected card: " << cardInfo->name() << '\n';
 
-    byte_vector cert = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
+    byte_vector cert = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
 
     std::cout << "Does the reader have a PIN-pad? "
-              << (cardInfo->eid().smartcard().readerHasPinPad() ? "yes" : "no") << '\n';
+              << (cardInfo->smartcard().readerHasPinPad() ? "yes" : "no") << '\n';
 
-    switch (cardInfo->eid().authSignatureAlgorithm()) {
+    switch (cardInfo->authSignatureAlgorithm()) {
     case JsonWebSignatureAlgorithm::ES384:
     case JsonWebSignatureAlgorithm::RS256:
     case JsonWebSignatureAlgorithm::PS256:
@@ -55,7 +55,7 @@ TEST(electronic_id_test, authenticate)
             "currently supported");
     }
 
-    GTEST_ASSERT_GE(cardInfo->eid().authPinRetriesLeft().first, 0U);
+    GTEST_ASSERT_GE(cardInfo->authPinRetriesLeft().first, 0U);
 
     byte_vector pin {'1', '2', '3', '4'};
     pin.reserve(64);
@@ -64,9 +64,9 @@ TEST(electronic_id_test, authenticate)
               << std::string_view(reinterpret_cast<const char*>(pin.data()), pin.size()) << '\n';
 
     const byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
-    const JsonWebSignatureAlgorithm hashAlgo = cardInfo->eid().authSignatureAlgorithm();
+    const JsonWebSignatureAlgorithm hashAlgo = cardInfo->authSignatureAlgorithm();
     const byte_vector hash = calculateDigest(hashAlgo.hashAlgorithm(), dataToSign);
-    auto signature = cardInfo->eid().signWithAuthKey(std::move(pin), hash);
+    auto signature = cardInfo->signWithAuthKey(std::move(pin), hash);
 
     std::cout << "Authentication signature: " << signature << '\n';
 
