@@ -37,25 +37,24 @@ static void signing(HashAlgorithm hashAlgo)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->eid().name() << '\n';
+    std::cout << "Selected card: " << cardInfo->name() << '\n';
 
-    if (!cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo)) {
+    if (!cardInfo->isSupportedSigningHashAlgorithm(hashAlgo)) {
         std::string skip = "Card does not support hashing algorithm: " + std::string(hashAlgo);
         GTEST_SUCCESS_(skip.c_str());
         return;
     }
 
-    byte_vector cert = cardInfo->eid().getCertificate(CertificateType::SIGNING);
+    byte_vector cert = cardInfo->getCertificate(CertificateType::SIGNING);
 
-    GTEST_ASSERT_GE(cardInfo->eid().signingPinRetriesLeft().first, 0U);
+    GTEST_ASSERT_GE(cardInfo->signingPinRetriesLeft().first, 0U);
 
     byte_vector pin;
-    if (cardInfo->eid().name() == "EstEID IDEMIA v1")
+    if (cardInfo->name() == "EstEID IDEMIA v1")
         pin = {'1', '2', '3', '4', '5'}; // EstIDEMIA test card default PIN2
-    else if (cardInfo->eid().name() == "LatEID IDEMIA v1"
-             || cardInfo->eid().name() == "LatEID IDEMIA v2")
+    else if (cardInfo->name() == "LatEID IDEMIA v1" || cardInfo->name() == "LatEID IDEMIA v2")
         pin = {'1', '2', '3', '4', '5', '6'}; // LatIDEMIA test card default PIN2
-    else if (cardInfo->eid().name() == "FinEID v3" || cardInfo->eid().name() == "FinEID v4")
+    else if (cardInfo->name() == "FinEID v3" || cardInfo->name() == "FinEID v4")
         pin = {'1', '2', '3', '4', '5', '6'}; // FinEID custom PIN
     else
         throw std::runtime_error("TEST signing: Unknown card");
@@ -66,7 +65,7 @@ static void signing(HashAlgorithm hashAlgo)
     const byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!'};
     const byte_vector hash = calculateDigest(hashAlgo, dataToSign);
 
-    auto signature = cardInfo->eid().signWithSigningKey(std::move(pin), hash, hashAlgo);
+    auto signature = cardInfo->signWithSigningKey(std::move(pin), hash, hashAlgo);
 
     std::cout << "Signing signature: " << signature.first << '\n';
 

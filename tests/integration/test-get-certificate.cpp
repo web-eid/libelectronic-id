@@ -36,13 +36,13 @@ TEST(electronic_id_test, getCertificate)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->eid().name() << '\n';
+    std::cout << "Selected card: " << cardInfo->name() << '\n';
 
-    auto certificate = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
+    auto certificate = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
 
     std::cout << "Authentication certificate: " << certificate << '\n';
 
-    certificate = cardInfo->eid().getCertificate(CertificateType::SIGNING);
+    certificate = cardInfo->getCertificate(CertificateType::SIGNING);
 
     std::cout << "Signing certificate: " << certificate << '\n';
 }

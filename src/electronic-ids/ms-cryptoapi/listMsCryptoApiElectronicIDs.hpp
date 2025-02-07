@@ -27,6 +27,6 @@
 namespace electronic_id
 {
 
-std::vector<CardInfo::ptr> listMsCryptoApiElectronicIDs();
+std::vector<ElectronicID::ptr> listMsCryptoApiElectronicIDs();
 
 }

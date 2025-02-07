@@ -36,7 +36,7 @@ namespace electronic_id
 
 // Enumerates all certificates and converts the valid hardware-based ones to MsCryptoApiElectronicID
 // objects.
-std::vector<CardInfo::ptr> listMsCryptoApiElectronicIDs()
+std::vector<ElectronicID::ptr> listMsCryptoApiElectronicIDs()
 {
     HCERTSTORE sys =
         CertOpenStore(CERT_STORE_PROV_SYSTEM, X509_ASN_ENCODING, 0,
@@ -46,13 +46,7 @@ std::vector<CardInfo::ptr> listMsCryptoApiElectronicIDs()
     }
     auto closeCertStore = stdext::make_scope_exit([=]() { CertCloseStore(sys, 0); });
 
-    std::vector<CardInfo::ptr> msCryptoApiElectronicIDs;
-    pcsc_cpp::Reader dummyReader {
-        nullptr,
-        L"Dummy reader for MS CryptoAPI tokens"s,
-        {},
-        true,
-    };
+    std::vector<ElectronicID::ptr> msCryptoApiElectronicIDs;
 
     PCCERT_CONTEXT cert = nullptr;
     while ((cert = CertEnumCertificatesInStore(sys, cert)) != nullptr) {
@@ -121,8 +115,7 @@ std::vector<CardInfo::ptr> listMsCryptoApiElectronicIDs()
             continue; // TODO: log.
         }
         algo.resize(size / 2 - 1);
-        // TODO: use algo.starts_with(L"EC") when migrating to C++20.
-        if (algo != L"RSA" && algo.rfind(L"EC", 0) != 0) {
+        if (algo != L"RSA" && !algo.starts_with(L"EC")) {
             // We only support RSA and ECC algorithms.
             continue; // TODO: log.
         }
@@ -147,7 +140,7 @@ std::vector<CardInfo::ptr> listMsCryptoApiElectronicIDs()
                                                              std::move(certData), certType,
                                                              algo == L"RSA", key, freeKey);
 
-        msCryptoApiElectronicIDs.push_back(std::make_shared<CardInfo>(dummyReader, std::move(eid)));
+        msCryptoApiElectronicIDs.push_back(std::move(eid));
     }
 
     // CertEnumCertificatesInStore() function frees the CERT_CONTEXT referenced by non-NULL values
