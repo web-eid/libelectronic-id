@@ -23,27 +23,12 @@
 #include "pcsc-cpp/pcsc-cpp.hpp"
 #include "pcsc-cpp/pcsc-cpp-utils.hpp"
 
-#include <sstream>
+#include <algorithm>
 #include <iomanip>
+#include <sstream>
 
 using namespace pcsc_cpp;
 using namespace std::string_literals;
-
-#ifdef HIBYTE
-#undef HIBYTE
-#endif
-#ifdef LOBYTE
-#undef LOBYTE
-#endif
-
-constexpr byte_type HIBYTE(size_t w) noexcept
-{
-    return static_cast<byte_type>((w >> 8) & 0xff);
-}
-constexpr byte_type LOBYTE(size_t w) noexcept
-{
-    return static_cast<byte_type>(w & 0xff);
-}
 
 namespace
 {
@@ -93,14 +78,9 @@ void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& 
     }
 }
 
-size_t readDataLengthFromAsn1(const SmartCard& card)
+uint16_t readDataLengthFromAsn1(const SmartCard& card)
 {
-    // p1 - offset size first byte, 0
-    // p2 - offset size second byte, 0
-    // le - number of bytes to read, need 4 bytes from start for length
-    const CommandApdu readBinary4Bytes {0x00, 0xb0, 0x00, 0x00, 0x04};
-
-    auto response = card.transmit(readBinary4Bytes);
+    auto response = card.transmit(CommandApdu::readBinary(0, 0x04));
 
     // Verify expected DER header, first byte must be SEQUENCE.
     if (response.data[0] != DER_SEQUENCE_TYPE_TAG) {
@@ -121,7 +101,7 @@ size_t readDataLengthFromAsn1(const SmartCard& card)
     }
 
     // Read 2-byte length field at offset 2 and 3 and add the 4 DER length bytes.
-    const auto length = size_t((response.data[2] << 8) + response.data[3] + 4);
+    const uint16_t length = toSW(response.data[2], response.data[3]) + 4;
     if (length < 128 || length > 0x0f00) {
         // TODO: more specific exception
         THROW(Error,
@@ -132,29 +112,20 @@ size_t readDataLengthFromAsn1(const SmartCard& card)
     return length;
 }
 
-byte_vector readBinary(const SmartCard& card, const size_t length, byte_type blockLength)
+byte_vector readBinary(const SmartCard& card, const uint16_t length, byte_type blockLength)
 {
-    auto lengthCounter = length;
     auto resultBytes = byte_vector {};
-
-    for (size_t offset = 0; lengthCounter != 0;
-         offset += blockLength, lengthCounter -= blockLength) {
-
-        if (blockLength > lengthCounter) {
-            blockLength = byte_type(lengthCounter);
+    while (resultBytes.size() < length) {
+        blockLength = byte_type(std::min<size_t>(length - resultBytes.size(), blockLength));
+        auto response =
+            card.transmit(CommandApdu::readBinary(uint16_t(resultBytes.size()), blockLength));
+        if (response.data.size() != blockLength) {
+            THROW(Error,
+                  "readBinary(): Invalid length received: "s + std::to_string(response.data.size())
+                      + " excpected: " + std::to_string(blockLength));
         }
-
-        CommandApdu readBinary {0x00, 0xb0, HIBYTE(offset), LOBYTE(offset), blockLength};
-        auto response = card.transmit(readBinary);
-
         resultBytes.insert(resultBytes.end(), response.data.cbegin(), response.data.cend());
     }
-
-    if (resultBytes.size() != length) {
-        // TODO: more specific exception
-        THROW(Error, "readBinary(): Invalid length: "s + std::to_string(resultBytes.size()));
-    }
-
     return resultBytes;
 }
 
