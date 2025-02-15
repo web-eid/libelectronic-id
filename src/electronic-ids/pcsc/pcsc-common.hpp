@@ -23,6 +23,7 @@
 #pragma once
 
 #include "electronic-id/electronic-id.hpp"
+#include "../TLV.hpp"
 
 #include "pcsc-cpp/pcsc-cpp-utils.hpp"
 
@@ -31,16 +32,26 @@
 namespace electronic_id
 {
 
-inline pcsc_cpp::byte_vector getCertificate(pcsc_cpp::SmartCard& card,
-                                            const pcsc_cpp::CommandApdu& selectCertFileCmd)
+inline pcsc_cpp::byte_vector readFile(pcsc_cpp::SmartCard& card,
+                                      const pcsc_cpp::CommandApdu& select,
+                                      pcsc_cpp::byte_type blockLength = 0x00)
 {
-    static const pcsc_cpp::byte_type MAX_LE_VALUE = 0xb5;
-
-    transmitApduWithExpectedResponse(card, selectCertFileCmd);
-
-    const auto length = readDataLengthFromAsn1(card);
-
-    return readBinary(card, length, MAX_LE_VALUE);
+    auto response = card.transmit(select);
+    if (!response.isOK()) {
+        THROW(SmartCardError, "Failed to select EF file");
+    }
+    TLV fci(response.data);
+    if (fci.tag != 0x62) {
+        THROW(SmartCardError, "Failed to read EF file length");
+    }
+    TLV size = fci[0x80];
+    if (!size) {
+        size = fci[0x81];
+    }
+    if (size.length != 2) {
+        THROW(SmartCardError, "Failed to read EF file length");
+    }
+    return pcsc_cpp::readBinary(card, pcsc_cpp::toSW(*size.begin, *(size.begin + 1)), blockLength);
 }
 
 PCSC_CPP_CONSTEXPR_VECTOR inline pcsc_cpp::byte_vector
@@ -74,50 +85,45 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
         response = card.transmit(verifyPin);
     }
 
-    if (response.isOK()) {
-        return;
-    }
-
     // NOTE: in case card-specific error handling logic is needed,
     // move response error handling to ElectronicID.getVerifyPinError().
-
-    using Status = pcsc_cpp::ResponseApdu::Status;
-    using pcsc_cpp::toSW;
-
     switch (response.toSW()) {
+        using pcsc_cpp::toSW;
+        using enum pcsc_cpp::ResponseApdu::Status;
+        using enum VerifyPinFailed::Status;
+    case toSW(OK, 0x00):
+        return;
     // Fail, retry allowed unless SW2 == 0xc0.
-    case toSW(Status::VERIFICATION_FAILED, 0xc0):
-        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_BLOCKED, &response);
+    case toSW(VERIFICATION_FAILED, 0xc0):
+        throw VerifyPinFailed(PIN_BLOCKED, &response);
     // Fail, PIN pad PIN entry errors, retry allowed.
-    case toSW(Status::VERIFICATION_CANCELLED, 0x00):
-        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_TIMEOUT, &response);
-    case toSW(Status::VERIFICATION_CANCELLED, 0x01):
-        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_CANCEL, &response);
-    case toSW(Status::VERIFICATION_CANCELLED, 0x03):
-        throw VerifyPinFailed(VerifyPinFailed::Status::INVALID_PIN_LENGTH, &response);
-    case toSW(Status::VERIFICATION_CANCELLED, 0x04):
-        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_ENTRY_DISABLED, &response);
+    case toSW(VERIFICATION_CANCELLED, 0x00):
+        throw VerifyPinFailed(PIN_ENTRY_TIMEOUT, &response);
+    case toSW(VERIFICATION_CANCELLED, 0x01):
+        throw VerifyPinFailed(PIN_ENTRY_CANCEL, &response);
+    case toSW(VERIFICATION_CANCELLED, 0x03):
+        throw VerifyPinFailed(INVALID_PIN_LENGTH, &response);
+    case toSW(VERIFICATION_CANCELLED, 0x04):
+        throw VerifyPinFailed(PIN_ENTRY_DISABLED, &response);
     // Fail, invalid PIN length, retry allowed.
-    case toSW(Status::WRONG_LENGTH, 0x00):
-    case toSW(Status::WRONG_PARAMETERS, 0x80):
-        throw VerifyPinFailed(VerifyPinFailed::Status::INVALID_PIN_LENGTH, &response);
+    case toSW(WRONG_LENGTH, 0x00):
+    case toSW(WRONG_PARAMETERS, 0x80):
+        throw VerifyPinFailed(INVALID_PIN_LENGTH, &response);
     // Fail, retry not allowed.
-    case toSW(Status::COMMAND_NOT_ALLOWED, 0x83):
-        throw VerifyPinFailed(VerifyPinFailed::Status::PIN_BLOCKED, &response);
+    case toSW(COMMAND_NOT_ALLOWED, 0x83):
+        throw VerifyPinFailed(PIN_BLOCKED, &response);
     default:
-        if (response.sw1 == Status::VERIFICATION_FAILED) {
-            throw VerifyPinFailed(VerifyPinFailed::Status::RETRY_ALLOWED, &response,
-                                  response.sw2 & 0x0f);
+        if (response.sw1 == VERIFICATION_FAILED) {
+            throw VerifyPinFailed(RETRY_ALLOWED, &response, response.sw2 & 0x0f);
         }
-        break;
+
+        // There are other known response codes like 0x6985 (old and new are PIN same), 0x6402
+        // (re-entered PIN is different) that only apply during PIN change, we treat them as unknown
+        // errors here.
+
+        // Other unknown errors.
+        throw VerifyPinFailed(UNKNOWN_ERROR, &response);
     }
-
-    // There are other known response codes like 0x6985 (old and new are PIN same), 0x6402
-    // (re-entered PIN is different) that only apply during PIN change, we treat them as unknown
-    // errors here.
-
-    // Other unknown errors.
-    throw VerifyPinFailed(VerifyPinFailed::Status::UNKNOWN_ERROR, &response);
 }
 
 inline pcsc_cpp::byte_vector internalAuthenticate(pcsc_cpp::SmartCard& card,
