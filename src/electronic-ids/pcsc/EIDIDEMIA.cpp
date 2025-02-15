@@ -46,8 +46,8 @@ const auto ADF1_AID = CommandApdu::select(
 const auto ADF2_AID = CommandApdu::select(0x04,
                                           {0x51, 0x53, 0x43, 0x44, 0x20, 0x41, 0x70, 0x70, 0x6C,
                                            0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E});
-const auto AUTH_CERT = CommandApdu::select(0x09, {0xAD, 0xF1, 0x34, 0x01});
-const auto SIGN_CERT = CommandApdu::select(0x09, {0xAD, 0xF2, 0x34, 0x1F});
+const auto AUTH_CERT = CommandApdu::selectEF(0x09, {0xAD, 0xF1, 0x34, 0x01});
+const auto SIGN_CERT = CommandApdu::selectEF(0x09, {0xAD, 0xF2, 0x34, 0x1F});
 
 } // namespace
 
@@ -69,7 +69,8 @@ void EIDIDEMIA::selectADF2() const
 byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
 {
     selectMain();
-    return electronic_id::getCertificate(*card, type.isAuthentication() ? AUTH_CERT : SIGN_CERT);
+    // Set block lenght to 0xC0 to workaround for the 2018 v2 card, with reader Alcor Micro AU9540
+    return readFile(*card, type.isAuthentication() ? AUTH_CERT : SIGN_CERT, 0xC0);
 }
 
 EIDIDEMIA::KeyInfo EIDIDEMIA::authKeyRef() const
@@ -143,7 +144,7 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(byte_type pinR
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA ODD failed with error " + response);
     }
-    TLV info = TLV::path(response.data, 0x70, 0xBF8100 | ref, 0xA0);
+    TLV info = TLV::path(TLV(response.data), 0x70, 0xBF8100 | ref, 0xA0);
     TLV max = info[0x9A];
     TLV tries = info[0x9B];
     if (max && tries) {

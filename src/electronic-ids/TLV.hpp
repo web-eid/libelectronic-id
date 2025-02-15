@@ -117,11 +117,6 @@ struct TLV
         }
         return TLV({});
     }
-    template <typename... Tags>
-    static PCSC_CPP_CONSTEXPR_VECTOR TLV path(const byte_vector& data, uint32_t tag, Tags... tags)
-    {
-        return path(TLV(data), tag, tags...);
-    }
 
     constexpr operator bool() const noexcept { return begin < end; }
 };

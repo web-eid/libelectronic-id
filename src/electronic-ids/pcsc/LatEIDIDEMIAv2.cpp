@@ -63,7 +63,7 @@ byte_vector LatEIDIDEMIAV2::getCertificateImpl(const CertificateType type) const
     auto info =
         readDCODInfo(CERT_FILE_REF, type.isAuthentication() ? data->authCache : data->signCache);
     if (TLV id = TLV::path(info, 0x30, 0xA1, 0x30, 0x30, 0x04)) {
-        return electronic_id::getCertificate(*card, CommandApdu::select(0x02, {id.begin, id.end}));
+        return readFile(*card, CommandApdu::selectEF(0x02, {id.begin, id.end}));
     }
     THROW(SmartCardError, "EF.CD reference not found");
 }
@@ -109,29 +109,25 @@ EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::signKeyRef() const
 }
 
 template <class C>
-const byte_vector& LatEIDIDEMIAV2::readEF_File(byte_vector file, C& cache) const
+TLV LatEIDIDEMIAV2::readEF_File(byte_vector file, C& cache) const
 {
     if (auto it = cache.find(file); it != cache.end()) {
-        return it->second;
+        return TLV(it->second);
     }
-    auto response = card->transmit({0x00, 0xA4, 0x02, 0x04, file, 0x00});
-    if (!response.isOK()) {
-        THROW(SmartCardError, "Failed to read EF file");
-    }
-    TLV size = TLV::path(response.data, 0x62, 0x80);
-    if (!size || size.length != 2) {
-        THROW(SmartCardError, "Failed to read EF file length");
-    }
-    return cache[std::move(file)] =
-               readBinary(*card, size_t(*size.begin << 8) + *(size.begin + 1), 0xFF);
+    return TLV(cache[std::move(file)] = readFile(*card, CommandApdu::selectEF(0x02, file)));
 }
 
 template <class C>
-const byte_vector& LatEIDIDEMIAV2::readDCODInfo(byte_type type, C& cache) const
+TLV LatEIDIDEMIAV2::readDCODInfo(byte_type type, C& cache) const
 {
     const auto info = readEF_File(EF_OD, cache);
-    if (auto file = TLV::path(info, type, 0x30, 0x04); file && file.length == 2) {
-        return readEF_File({file.begin, file.end}, cache);
+    for (TLV ref(info); ref; ++ref) {
+        if (ref.tag != type) {
+            continue;
+        }
+        if (auto file = ref[0x30][0x04]; file && file.length == 2) {
+            return readEF_File({file.begin, file.end}, cache);
+        }
     }
     THROW(SmartCardError, "EF.DCOD reference not found");
 }
@@ -139,12 +135,11 @@ const byte_vector& LatEIDIDEMIAV2::readDCODInfo(byte_type type, C& cache) const
 template <class C>
 EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::readPrKDInfo(byte_type keyID, C& cache) const
 {
-    auto info = readDCODInfo(PRIV_FILE_REF, cache);
-    if (info.empty()) {
+    TLV prKD = readDCODInfo(PRIV_FILE_REF, cache);
+    if (!prKD) {
         THROW(SmartCardError, "EF.PrKD reference not found");
     }
-    TLV prKD(info);
-    TLV key = TLV::path(prKD.child(), 0x30);
+    TLV key = prKD[0x30];
     key = TLV::path(++key, 0x30, 0x02);
     return {key.length == 2 ? *std::next(key.begin) : keyID, prKD.tag == 0xA0};
 }

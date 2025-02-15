@@ -29,6 +29,8 @@
 namespace electronic_id
 {
 
+struct TLV;
+
 class LatEIDIDEMIAV2 : public EIDIDEMIA
 {
 public:
@@ -52,9 +54,9 @@ private:
     KeyInfo signKeyRef() const override;
 
     template <class C>
-    const byte_vector& readEF_File(byte_vector file, C& cache) const;
+    TLV readEF_File(byte_vector file, C& cache) const;
     template <class C>
-    const byte_vector& readDCODInfo(byte_type type, C& cache) const;
+    TLV readDCODInfo(byte_type type, C& cache) const;
     template <class C>
     KeyInfo readPrKDInfo(byte_type keyID, C& cache) const;
 

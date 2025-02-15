@@ -23,33 +23,15 @@
 #include "pcsc-cpp/pcsc-cpp.hpp"
 #include "pcsc-cpp/pcsc-cpp-utils.hpp"
 
-#include <sstream>
+#include <algorithm>
 #include <iomanip>
+#include <sstream>
 
 using namespace pcsc_cpp;
 using namespace std::string_literals;
 
-#ifdef HIBYTE
-#undef HIBYTE
-#endif
-#ifdef LOBYTE
-#undef LOBYTE
-#endif
-
-constexpr byte_type HIBYTE(size_t w) noexcept
-{
-    return static_cast<byte_type>((w >> 8) & 0xff);
-}
-constexpr byte_type LOBYTE(size_t w) noexcept
-{
-    return static_cast<byte_type>(w & 0xff);
-}
-
 namespace
 {
-
-const byte_type DER_SEQUENCE_TYPE_TAG = 0x30;
-const byte_type DER_TWO_BYTE_LENGTH = 0x82;
 
 class UnexpectedResponseError : public Error
 {
@@ -93,68 +75,25 @@ void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& 
     }
 }
 
-size_t readDataLengthFromAsn1(const SmartCard& card)
+byte_vector readBinary(const SmartCard& card, const uint16_t length, byte_type blockLength)
 {
-    // p1 - offset size first byte, 0
-    // p2 - offset size second byte, 0
-    // le - number of bytes to read, need 4 bytes from start for length
-    const CommandApdu readBinary4Bytes {0x00, 0xb0, 0x00, 0x00, 0x04};
-
-    auto response = card.transmit(readBinary4Bytes);
-
-    // Verify expected DER header, first byte must be SEQUENCE.
-    if (response.data[0] != DER_SEQUENCE_TYPE_TAG) {
-        // TODO: more specific exception
-        THROW(Error,
-              "readDataLengthFromAsn1(): First byte must be SEQUENCE (0x30), but is "s
-                  + int2hexstr(response.data[0]));
-    }
-
-    // TODO: support other lenghts besides 2.
-    // Assume 2-byte length, so second byte must be 0x82.
-    if (response.data[1] != DER_TWO_BYTE_LENGTH) {
-        // TODO: more specific exception
-        THROW(Error,
-              "readDataLengthFromAsn1(): Second byte must be two-byte length indicator "s
-              "(0x82), but is "s
-                  + int2hexstr(response.data[1]));
-    }
-
-    // Read 2-byte length field at offset 2 and 3 and add the 4 DER length bytes.
-    const auto length = size_t((response.data[2] << 8) + response.data[3] + 4);
-    if (length < 128 || length > 0x0f00) {
-        // TODO: more specific exception
-        THROW(Error,
-              "readDataLengthFromAsn1(): Unexpected data length in DER header: "s
-                  + std::to_string(length));
-    }
-
-    return length;
-}
-
-byte_vector readBinary(const SmartCard& card, const size_t length, byte_type blockLength)
-{
-    auto lengthCounter = length;
-    auto resultBytes = byte_vector {};
-
-    for (size_t offset = 0; lengthCounter != 0;
-         offset += blockLength, lengthCounter -= blockLength) {
-
-        if (blockLength > lengthCounter) {
-            blockLength = byte_type(lengthCounter);
+    byte_vector resultBytes;
+    resultBytes.reserve(length);
+    while (resultBytes.size() < length) {
+        byte_type chunk = byte_type(std::min<size_t>(length - resultBytes.size(), blockLength));
+        auto response = card.transmit(CommandApdu::readBinary(uint16_t(resultBytes.size()), chunk));
+        if (chunk > 0 && response.data.size() != chunk) {
+            THROW(Error,
+                  "Length mismatch, expected "s + std::to_string(chunk) + ", received "
+                      + std::to_string(response.data.size()) + " bytes");
         }
-
-        CommandApdu readBinary {0x00, 0xb0, HIBYTE(offset), LOBYTE(offset), blockLength};
-        auto response = card.transmit(readBinary);
-
         resultBytes.insert(resultBytes.end(), response.data.cbegin(), response.data.cend());
     }
-
     if (resultBytes.size() != length) {
-        // TODO: more specific exception
-        THROW(Error, "readBinary(): Invalid length: "s + std::to_string(resultBytes.size()));
+        THROW(Error,
+              "Length mismatch, expected "s + std::to_string(length) + ", received "
+                  + std::to_string(resultBytes.size()) + " bytes");
     }
-
     return resultBytes;
 }
 

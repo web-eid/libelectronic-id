@@ -43,9 +43,9 @@ namespace
 
 const auto SELECT_MAIN_AID = CommandApdu::select(
     0x04, {0xa0, 0x00, 0x00, 0x00, 0x63, 0x50, 0x4b, 0x43, 0x53, 0x2d, 0x31, 0x35});
-const auto SELECT_AUTH_CERT_FILE = CommandApdu::select(0x08, {0x43, 0x31});
-const auto SELECT_SIGN_CERT_FILE_V3 = CommandApdu::select(0x08, {0x50, 0x16, 0x43, 0x35});
-const auto SELECT_SIGN_CERT_FILE_V4 = CommandApdu::select(0x08, {0x50, 0x16, 0x43, 0x32});
+const auto SELECT_AUTH_CERT_FILE = CommandApdu::selectEF(0x08, {0x43, 0x31});
+const auto SELECT_SIGN_CERT_FILE_V3 = CommandApdu::selectEF(0x08, {0x50, 0x16, 0x43, 0x35});
+const auto SELECT_SIGN_CERT_FILE_V4 = CommandApdu::selectEF(0x08, {0x50, 0x16, 0x43, 0x32});
 
 constexpr byte_type PIN_PADDING_CHAR = 0x00;
 constexpr byte_type AUTH_PIN_REFERENCE = 0x11;
@@ -64,8 +64,8 @@ namespace electronic_id
 byte_vector FinEIDv3::getCertificateImpl(const CertificateType type) const
 {
     transmitApduWithExpectedResponse(*card, SELECT_MAIN_AID);
-    return electronic_id::getCertificate(
-        *card, type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V3);
+    return readFile(*card,
+                    type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V3);
 }
 
 byte_vector FinEIDv3::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
@@ -179,8 +179,8 @@ ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinRe
 byte_vector FinEIDv4::getCertificateImpl(const CertificateType type) const
 {
     transmitApduWithExpectedResponse(*card, SELECT_MAIN_AID);
-    return electronic_id::getCertificate(
-        *card, type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V4);
+    return readFile(*card,
+                    type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V4);
 }
 
 byte_vector FinEIDv4::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const

@@ -182,9 +182,9 @@ struct CommandApdu
     constexpr operator const byte_vector&() const { return d; }
 
     /**
-     * A helper function to create a SELECT command APDU.
+     * A helper function to create a SELECT FILE command APDU.
      *
-     * The ISO 7816-4 Section 6.11 SELECT command has the form:
+     * The ISO 7816-4 Section 6.11 SELECT FILE command has the form:
      *   CLA = 0x00
      *   INS = 0xA4
      *   P1  = varies, see below.
@@ -193,6 +193,7 @@ struct CommandApdu
      *
      * The P1 parameter for the SELECT command controls the selection mode,
      * we use the following modes:
+     *   0x02 = Select EF under current DF,
      *   0x04 = Select AID (application identifier),
      *          direct selection by DF (dedicated file, directory) name.
      *   0x08 = Select from MF (master file, root directory).
@@ -201,6 +202,32 @@ struct CommandApdu
     static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu select(byte_type p1, byte_vector file)
     {
         return {0x00, 0xA4, p1, 0x0C, std::move(file)};
+    }
+
+    /**
+     * A helper function to create a SELECT EF command APDU.
+     *
+     * Same as select() but with P2 set to 0x04 and returns the file identifier as data.
+     */
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu selectEF(byte_type p1, byte_vector file)
+    {
+        return {0x00, 0xA4, p1, 0x04, std::move(file), 0x00};
+    }
+
+    /**
+     * A helper function to create a READ BINARY command APDU.
+     *
+     * The ISO 7816-4 Section 6.1 READ BINARY command has the form:
+     *   CLA = 0x00
+     *   INS = 0xB0
+     *   P1, P2 = if bit8=0 in P1, then P1||P2 is the offset of the first byte to be read in data units from the
+     * beginning of the file.
+     *   Lc and Data field = Empty
+     *   Le  = Number of bytes to be read
+     */
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu readBinary(uint16_t pos, byte_type le)
+    {
+        return {0x00, 0xb0, byte_type(pos >> 8), byte_type(pos), le};
     }
 
     byte_vector d;
@@ -279,11 +306,8 @@ std::vector<Reader> listReaders();
 /** Transmit APDU command and verify that expected response is received. */
 void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command);
 
-/** Read data length from currently selected file header, file must be ASN.1-encoded. */
-size_t readDataLengthFromAsn1(const SmartCard& card);
-
 /** Read lenght bytes from currently selected binary file in blockLength-sized chunks. */
-byte_vector readBinary(const SmartCard& card, const size_t length, byte_type blockLength);
+byte_vector readBinary(const SmartCard& card, const uint16_t length, byte_type blockLength = 0x00);
 
 // Errors.
 
