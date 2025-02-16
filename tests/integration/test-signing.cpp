@@ -26,7 +26,6 @@
 #include "gtest/gtest.h"
 
 #include <algorithm>
-#include <iostream>
 
 using namespace electronic_id;
 using namespace pcsc_cpp;
@@ -37,7 +36,7 @@ static void signing(HashAlgorithm hashAlgo)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->name() << '\n';
+    printCardInfo(*cardInfo);
 
     if (!cardInfo->isSupportedSigningHashAlgorithm(hashAlgo)) {
         std::string skip = "Card does not support hashing algorithm: " + std::string(hashAlgo);

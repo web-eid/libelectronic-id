@@ -24,8 +24,6 @@
 
 #include "gtest/gtest.h"
 
-#include <iostream>
-
 using namespace pcsc_cpp;
 
 TEST(electronic_id_test, getCertificate)
@@ -36,7 +34,7 @@ TEST(electronic_id_test, getCertificate)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->name() << '\n';
+    printCardInfo(*cardInfo);
 
     auto certificate = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
 
