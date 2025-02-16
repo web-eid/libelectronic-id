@@ -25,8 +25,6 @@
 
 #include "gtest/gtest.h"
 
-#include <iostream>
-
 TEST(electronic_id_test, authenticate)
 {
     using namespace electronic_id;
@@ -36,7 +34,7 @@ TEST(electronic_id_test, authenticate)
 
     EXPECT_TRUE(cardInfo);
 
-    std::cout << "Selected card: " << cardInfo->name() << '\n';
+    printCardInfo(*cardInfo);
 
     byte_vector cert = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
 
