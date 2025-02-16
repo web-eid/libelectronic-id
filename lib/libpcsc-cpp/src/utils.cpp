@@ -79,8 +79,10 @@ std::ostream& operator<<(std::ostream& os, const pcsc_cpp::byte_vector& data)
 
 std::string operator+(std::string lhs, const byte_vector& rhs)
 {
+    auto pos = lhs.size();
     lhs.reserve(lhs.size() + rhs.size() * 2);
     std::ostringstream hexStringBuilder(std::move(lhs));
+    hexStringBuilder.seekp(std::streamoff(pos));
     hexStringBuilder << rhs;
     return hexStringBuilder.str();
 }
