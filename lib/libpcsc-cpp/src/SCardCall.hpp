@@ -35,39 +35,31 @@
 namespace pcsc_cpp
 {
 
-inline std::string buildErrorMessage(const char* callerFunctionName, const char* scardFunctionName,
-                                     const LONG result, const char* file, int line)
+template <auto Func, typename... Args>
+inline void SCardCall(const char* callerFunctionName, const char* file, int line,
+                      const char* scardFunctionName, Args&&... args)
 {
-    return std::string(scardFunctionName) + " returned " + int2hexstr(result) + " in "
-        + removeAbsolutePathPrefix(file) + ':' + std::to_string(line) + ':' + callerFunctionName;
-}
+    const LONG result = Func(std::forward<Args>(args)...);
+    auto buildErrorMessage = [&] {
+        return std::string(scardFunctionName) + " returned " + int2hexstr(result) + " in "
+            + removeAbsolutePathPrefix(file) + ':' + std::to_string(line) + ':'
+            + callerFunctionName;
+    };
 
-template <typename Func, typename... Args>
-void SCardCall(const char* callerFunctionName, const char* file, int line,
-               const char* scardFunctionName, Func scardFunction, Args... args)
-{
-    // TODO: Add logging - or is exception error message enough?
-
-    const LONG result = scardFunction(args...);
-
-    // TODO: Add more cases when needed.
     switch (result) {
     case SCARD_S_SUCCESS:
         return;
     case LONG(SCARD_E_NO_SERVICE):
     case LONG(SCARD_E_SERVICE_STOPPED):
-        throw ScardServiceNotRunningError(
-            buildErrorMessage(callerFunctionName, scardFunctionName, result, file, line));
+        throw ScardServiceNotRunningError(buildErrorMessage());
     case LONG(SCARD_E_NO_READERS_AVAILABLE):
     case LONG(SCARD_E_READER_UNAVAILABLE):
-        throw ScardNoReadersError(
-            buildErrorMessage(callerFunctionName, scardFunctionName, result, file, line));
+        throw ScardNoReadersError(buildErrorMessage());
     case LONG(SCARD_E_NO_SMARTCARD):
 #ifdef _WIN32
     case ERROR_NO_MEDIA_IN_DRIVE:
 #endif // _WIN32
-        throw ScardNoCardError(
-            buildErrorMessage(callerFunctionName, scardFunctionName, result, file, line));
+        throw ScardNoCardError(buildErrorMessage());
     case LONG(SCARD_E_NOT_READY):
     case LONG(SCARD_E_INVALID_VALUE):
     case LONG(SCARD_E_COMM_DATA_LOST):
@@ -75,22 +67,18 @@ void SCardCall(const char* callerFunctionName, const char* file, int line,
 #ifdef _WIN32
     case ERROR_IO_DEVICE:
 #endif // _WIN32
-        throw ScardCardCommunicationFailedError(
-            buildErrorMessage(callerFunctionName, scardFunctionName, result, file, line));
+        throw ScardCardCommunicationFailedError(buildErrorMessage());
     case LONG(SCARD_W_REMOVED_CARD):
-        throw ScardCardRemovedError(
-            buildErrorMessage(callerFunctionName, scardFunctionName, result, file, line));
+        throw ScardCardRemovedError(buildErrorMessage());
     case LONG(SCARD_E_NOT_TRANSACTED):
-        throw ScardTransactionFailedError(
-            buildErrorMessage(callerFunctionName, scardFunctionName, result, file, line));
+        throw ScardTransactionFailedError(buildErrorMessage());
     default:
-        throw ScardError(
-            buildErrorMessage(callerFunctionName, scardFunctionName, result, file, line));
+        throw ScardError(buildErrorMessage());
     }
 }
 
 } // namespace pcsc_cpp
 
 #define SCard(APIFunctionName, ...)                                                                \
-    SCardCall(__FUNCTION__, __FILE__, __LINE__, "SCard" #APIFunctionName, SCard##APIFunctionName,  \
-              __VA_ARGS__)
+    SCardCall<SCard##APIFunctionName>(__FUNCTION__, __FILE__, __LINE__, "SCard" #APIFunctionName,  \
+                                      __VA_ARGS__)
