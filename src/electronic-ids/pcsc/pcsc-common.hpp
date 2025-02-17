@@ -64,7 +64,7 @@ inline void verifyPin(pcsc_cpp::SmartCard& card, pcsc_cpp::byte_type p2,
 
     if (card.readerHasPinPad()) {
         const pcsc_cpp::CommandApdu verifyPin {0x00, 0x20, 0x00, p2,
-                                               addPaddingToPin({}, paddingLength, paddingChar)};
+                                               pcsc_cpp::byte_vector(paddingLength, paddingChar)};
         response = card.transmitCTL(verifyPin, 0, pinMinLength);
 
     } else {
