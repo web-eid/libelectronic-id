@@ -162,7 +162,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
 ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinReference) const
 {
     const pcsc_cpp::CommandApdu GET_DATA {
-        0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}, 0x00};
+        0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}};
     const auto response = card->transmit(GET_DATA);
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA failed with error " + response);
