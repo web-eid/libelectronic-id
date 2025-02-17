@@ -71,6 +71,7 @@ add_subdirectory(tests/lib/libpcsc-mock)
 add_executable(${MOCK_TEST_EXE}
   tests/mock/test-select-card-reader-and-card.cpp
   tests/mock/test-connect-to-card-transmit-apdus.cpp
+  tests/mock/test-byte-vector-string-operator.cpp
 )
 
 target_link_libraries(${MOCK_TEST_EXE}
