@@ -65,37 +65,6 @@ std::vector<SCARD_READERSTATE> getReaderStates(const SCARDCONTEXT ctx, const str
     return readerStates;
 }
 
-inline flag_set<Reader::Status> flagSetFromReaderState(const DWORD readerState)
-{
-    if (!readerState) {
-        return flag_set<Reader::Status> {Reader::Status::UNAWARE};
-    }
-
-    static const std::map<DWORD, Reader::Status> READER_STATUS_MAP = {
-        // SCARD_STATE_UNAWARE is zero and covered with (!readerState) above.
-        {SCARD_STATE_IGNORE, Reader::Status::IGNORE},
-        {SCARD_STATE_CHANGED, Reader::Status::CHANGED},
-        {SCARD_STATE_UNKNOWN, Reader::Status::UNKNOWN},
-        {SCARD_STATE_UNAVAILABLE, Reader::Status::UNAVAILABLE},
-        {SCARD_STATE_EMPTY, Reader::Status::EMPTY},
-        {SCARD_STATE_PRESENT, Reader::Status::PRESENT},
-        {SCARD_STATE_ATRMATCH, Reader::Status::ATRMATCH},
-        {SCARD_STATE_EXCLUSIVE, Reader::Status::EXCLUSIVE},
-        {SCARD_STATE_INUSE, Reader::Status::INUSE},
-        {SCARD_STATE_MUTE, Reader::Status::MUTE},
-        {SCARD_STATE_UNPOWERED, Reader::Status::UNPOWERED}};
-
-    auto result = flag_set<Reader::Status> {};
-
-    for (const auto& [key, value] : READER_STATUS_MAP) {
-        if (readerState & key) {
-            result.set(value);
-        }
-    }
-
-    return result;
-}
-
 string_t populateReaderNames(const SCARDCONTEXT ctx)
 {
     // Buffer length is in characters, not bytes.
@@ -121,12 +90,14 @@ std::vector<Reader> listReaders()
 
     try {
         auto readerNames = populateReaderNames(ctx->handle());
-
-        for (const auto& readerState : getReaderStates(ctx->handle(), readerNames)) {
-            readers.emplace_back(
-                ctx, readerState.szReader,
-                byte_vector {readerState.rgbAtr, std::next(readerState.rgbAtr, readerState.cbAtr)},
-                flagSetFromReaderState(readerState.dwEventState));
+        auto readerStates = getReaderStates(ctx->handle(), readerNames);
+        readers.reserve(readerStates.size());
+        for (const auto& readerState : readerStates) {
+            readers.push_back(
+                {ctx, readerState.szReader,
+                 byte_vector {std::begin(readerState.rgbAtr),
+                              std::next(std::begin(readerState.rgbAtr), readerState.cbAtr)},
+                 bool(readerState.dwEventState & SCARD_STATE_PRESENT)});
         }
     } catch (const ScardNoReadersError& /* e */) {
     }
