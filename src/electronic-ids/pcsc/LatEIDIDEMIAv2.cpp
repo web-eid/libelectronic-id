@@ -60,7 +60,7 @@ inline byte_vector readEF_File(const SmartCard& card, const byte_vector& file)
         THROW(SmartCardError, "Failed to read EF file length");
     }
     pos += byte_vector::difference_type(findLength.size());
-    return readBinary(card, size_t(*pos << 8) + *(pos + 1), 0xFF);
+    return readBinary(card, toSW(*pos, *(pos + 1)));
 }
 
 inline byte_vector readEF_PrKD(const SmartCard& card)
