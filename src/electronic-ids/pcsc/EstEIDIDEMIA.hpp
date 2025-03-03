@@ -24,29 +24,22 @@
 
 #include "EIDIDEMIA.hpp"
 
+// ESTEID specification:
+// https://installer.id.ee/media/id2019/TD-ID1-Chip-App.pdf
+
 namespace electronic_id
 {
 
 class EstEIDIDEMIAV1 : public EIDIDEMIA
 {
 public:
-    explicit EstEIDIDEMIAV1(pcsc_cpp::SmartCard::ptr _card) : EIDIDEMIA(std::move(_card)) {}
+    using EIDIDEMIA::EIDIDEMIA;
 
 private:
-    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
-    {
-        return JsonWebSignatureAlgorithm::ES384;
-    }
     PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
-
-    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
     PinMinMaxLength signingPinMinMaxLength() const override { return {5, 12}; }
-
     std::string name() const override { return "EstEID IDEMIA v1"; }
     Type type() const override { return EstEID; }
-
-    void selectAuthSecurityEnv() const override;
-    pcsc_cpp::byte_type selectSignSecurityEnv() const override;
 };
 
 } // namespace electronic_id

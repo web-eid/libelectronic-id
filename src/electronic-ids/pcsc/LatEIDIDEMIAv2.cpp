@@ -22,6 +22,8 @@
 
 #include "LatEIDIDEMIAv2.hpp"
 
+#include "../TLV.hpp"
+
 #include "pcsc-common.hpp"
 
 #include <array>
@@ -30,65 +32,21 @@
 using namespace pcsc_cpp;
 using namespace electronic_id;
 
-struct KeyInfo
-{
-    bool isECC;
-    byte_type id;
-};
-
 struct LatEIDIDEMIAV2::Private
 {
+    std::map<byte_vector, byte_vector> authCache;
+    std::map<byte_vector, byte_vector> signCache;
     std::optional<KeyInfo> authKeyInfo;
     std::optional<KeyInfo> signKeyInfo;
 };
 
 namespace
 {
-constexpr byte_type DEFAULT_AUTH_KEY_ID = 0x81;
-constexpr byte_type DEFAULT_SIGN_KEY_ID = 0x9F;
 
-inline byte_vector readEF_File(const SmartCard& card, const byte_vector& file)
-{
-    auto response = card.transmit({0x00, 0xA4, 0x02, 0x04, file, 0x00});
-    if (!response.isOK()) {
-        THROW(SmartCardError, "Failed to read EF file");
-    }
-    static constexpr std::array findLength {0x80, 0x02};
-    auto pos = std::search(response.data.cbegin(), response.data.cend(), findLength.cbegin(),
-                           findLength.cend());
-    if (pos == response.data.cend()) {
-        THROW(SmartCardError, "Failed to read EF file length");
-    }
-    pos += byte_vector::difference_type(findLength.size());
-    return readBinary(card, size_t(*pos << 8) + *(pos + 1), 0xFF);
-}
+const byte_vector EF_OD {0x50, 0x31};
+constexpr byte_type PRIV_FILE_REF = 0xA0;
+constexpr byte_type CERT_FILE_REF = 0xA4;
 
-inline byte_vector readEF_PrKD(const SmartCard& card)
-{
-    static const byte_vector EF_OD {0x50, 0x31};
-    const auto info = readEF_File(card, EF_OD);
-    static constexpr std::array file {0xA0, 0x06, 0x30, 0x04, 0x04, 0x02};
-    auto pos = std::search(info.cbegin(), info.cend(), file.cbegin(), file.cend());
-    if (pos == info.cend()) {
-        THROW(SmartCardError, "EF.PrKD reference not found");
-    }
-    pos += byte_vector::difference_type(file.size());
-    return readEF_File(card, {*pos, *(pos + 1)});
-}
-
-inline KeyInfo readPrKDInfo(const SmartCard& card, byte_type keyID)
-{
-    const auto data = readEF_PrKD(card);
-    if (data.empty()) {
-        return {false, keyID};
-    }
-    static constexpr std::array needle {0x02, 0x02, 0x00};
-    if (auto pos = std::search(data.cbegin(), data.cend(), needle.cbegin(), needle.cend());
-        pos != data.cend()) {
-        return {data[0] == 0xA0, *(pos + byte_vector::difference_type(needle.size()))};
-    }
-    return {data[0] == 0xA0, keyID};
-}
 } // namespace
 
 LatEIDIDEMIAV2::LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card) :
@@ -98,12 +56,24 @@ LatEIDIDEMIAV2::LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card) :
 
 LatEIDIDEMIAV2::~LatEIDIDEMIAV2() = default;
 
+byte_vector LatEIDIDEMIAV2::getCertificateImpl(const CertificateType type) const
+{
+    selectMain();
+    type.isAuthentication() ? selectADF1() : selectADF2();
+    auto info =
+        readDCODInfo(CERT_FILE_REF, type.isAuthentication() ? data->authCache : data->signCache);
+    if (TLV id = TLV::path(info, 0x30, 0xA1, 0x30, 0x30, 0x04)) {
+        return electronic_id::getCertificate(*card, CommandApdu::select(0x02, {id.begin, id.end}));
+    }
+    THROW(SmartCardError, "EF.CD reference not found");
+}
+
 JsonWebSignatureAlgorithm LatEIDIDEMIAV2::authSignatureAlgorithm() const
 {
     if (!data->authKeyInfo.has_value()) {
         auto transactionGuard = card->beginTransaction();
         selectADF1();
-        data->authKeyInfo = readPrKDInfo(*card, DEFAULT_AUTH_KEY_ID);
+        authKeyRef();
     }
     return data->authKeyInfo->isECC ? JsonWebSignatureAlgorithm::ES384
                                     : JsonWebSignatureAlgorithm::RS256;
@@ -114,7 +84,7 @@ const std::set<SignatureAlgorithm>& LatEIDIDEMIAV2::supportedSigningAlgorithms()
     if (!data->signKeyInfo.has_value()) {
         auto transactionGuard = card->beginTransaction();
         selectADF2();
-        data->signKeyInfo = readPrKDInfo(*card, DEFAULT_SIGN_KEY_ID);
+        signKeyRef();
     }
     const static std::set<SignatureAlgorithm> RS256_SIGNATURE_ALGO {
         {SignatureAlgorithm::RS256},
@@ -122,20 +92,59 @@ const std::set<SignatureAlgorithm>& LatEIDIDEMIAV2::supportedSigningAlgorithms()
     return data->signKeyInfo->isECC ? ELLIPTIC_CURVE_SIGNATURE_ALGOS() : RS256_SIGNATURE_ALGO;
 }
 
-void LatEIDIDEMIAV2::selectAuthSecurityEnv() const
+EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::authKeyRef() const
 {
     if (!data->authKeyInfo.has_value()) {
-        data->authKeyInfo = readPrKDInfo(*card, DEFAULT_AUTH_KEY_ID);
+        data->authKeyInfo = readPrKDInfo(EIDIDEMIA::authKeyRef().id, data->authCache);
     }
-    selectSecurityEnv(*card, 0xA4, data->authKeyInfo->isECC ? 0x04 : 0x02, data->authKeyInfo->id,
-                      name());
+    return data->authKeyInfo.value();
 }
 
-byte_type LatEIDIDEMIAV2::selectSignSecurityEnv() const
+EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::signKeyRef() const
 {
     if (!data->signKeyInfo.has_value()) {
-        data->signKeyInfo = readPrKDInfo(*card, DEFAULT_SIGN_KEY_ID);
+        data->signKeyInfo = readPrKDInfo(EIDIDEMIA::signKeyRef().id, data->signCache);
     }
-    return selectSecurityEnv(*card, 0xB6, data->signKeyInfo->isECC ? 0x54 : 0x42,
-                             data->signKeyInfo->id, name());
+    return data->signKeyInfo.value();
+}
+
+const byte_vector& LatEIDIDEMIAV2::readEF_File(byte_vector file,
+                                               std::map<byte_vector, byte_vector>& cache) const
+{
+    if (auto it = cache.find(file); it != cache.end()) {
+        return it->second;
+    }
+    auto response = card->transmit({0x00, 0xA4, 0x02, 0x04, file, 0x00});
+    if (!response.isOK()) {
+        THROW(SmartCardError, "Failed to read EF file");
+    }
+    TLV size = TLV::path(response.data, 0x62, 0x80);
+    if (!size || size.length != 2) {
+        THROW(SmartCardError, "Failed to read EF file length");
+    }
+    return cache[std::move(file)] =
+               readBinary(*card, size_t(*size.begin << 8) + *(size.begin + 1), 0xFF);
+}
+
+const byte_vector& LatEIDIDEMIAV2::readDCODInfo(byte_type type,
+                                                std::map<byte_vector, byte_vector>& cache) const
+{
+    const auto info = readEF_File(EF_OD, cache);
+    if (auto file = TLV::path(info, type, 0x30, 0x04); file && file.length == 2) {
+        return readEF_File({file.begin, file.end}, cache);
+    }
+    THROW(SmartCardError, "EF.DCOD reference not found");
+}
+
+EIDIDEMIA::KeyInfo LatEIDIDEMIAV2::readPrKDInfo(byte_type keyID,
+                                                std::map<byte_vector, byte_vector>& cache) const
+{
+    auto info = readDCODInfo(PRIV_FILE_REF, cache);
+    if (info.empty()) {
+        THROW(SmartCardError, "EF.PrKD reference not found");
+    }
+    TLV prKD(info);
+    TLV key = TLV::path(prKD.child(), 0x30);
+    key = TLV::path(++key, 0x30, 0x02);
+    return {key.length == 2 ? *std::next(key.begin) : keyID, prKD.tag == 0xA0};
 }

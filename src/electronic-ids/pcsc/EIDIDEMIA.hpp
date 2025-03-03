@@ -30,22 +30,37 @@ namespace electronic_id
 class EIDIDEMIA : public PcscElectronicID
 {
 public:
+    struct KeyInfo
+    {
+        byte_type id;
+        bool isECC;
+    };
+
     explicit EIDIDEMIA(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
 
 protected:
     byte_vector getCertificateImpl(const CertificateType type) const override;
 
     PinRetriesRemainingAndMax authPinRetriesLeftImpl() const override;
-    virtual void selectAuthSecurityEnv() const = 0;
+    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
+    {
+        return JsonWebSignatureAlgorithm::ES384;
+    }
+    virtual KeyInfo authKeyRef() const;
     byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
 
     PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const override;
-    virtual pcsc_cpp::byte_type selectSignSecurityEnv() const = 0;
+    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
+    {
+        return ELLIPTIC_CURVE_SIGNATURE_ALGOS();
+    }
+    virtual KeyInfo signKeyRef() const;
     Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
     PinRetriesRemainingAndMax pinRetriesLeft(byte_type pinReference) const;
 
+    void selectMain() const;
     void selectADF1() const;
     void selectADF2() const;
 };
