@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0)
+cmake_minimum_required(VERSION 3.22)
 if(POLICY CMP0092)
   cmake_policy(SET CMP0092 NEW)
 endif()
@@ -16,10 +16,10 @@ add_library(${PROJECT_NAME}
   src/electronic-ids/common.hpp
   src/electronic-ids/common.cpp
   src/electronic-ids/scope.hpp
+  src/electronic-ids/TLV.hpp
   src/electronic-ids/x509.hpp
   src/electronic-ids/pcsc/EIDIDEMIA.cpp
   src/electronic-ids/pcsc/EIDIDEMIA.hpp
-  src/electronic-ids/pcsc/EstEIDIDEMIA.cpp
   src/electronic-ids/pcsc/EstEIDIDEMIA.hpp
   src/electronic-ids/pcsc/FinEID.cpp
   src/electronic-ids/pcsc/FinEID.hpp

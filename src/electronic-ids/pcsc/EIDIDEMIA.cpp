@@ -33,6 +33,8 @@ namespace
 constexpr byte_type PIN_PADDING_CHAR = 0xFF;
 constexpr byte_type AUTH_PIN_REFERENCE = 0x01;
 constexpr byte_type SIGN_PIN_REFERENCE = 0x85;
+constexpr byte_type DEFAULT_AUTH_KEY_ID = 0x81;
+constexpr byte_type DEFAULT_SIGN_KEY_ID = 0x9F;
 
 const auto MAIN_AID = CommandApdu::select(0x04,
                                           {0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07,
@@ -47,6 +49,11 @@ const auto SIGN_CERT = CommandApdu::select(0x09, {0xAD, 0xF2, 0x34, 0x1F});
 
 } // namespace
 
+void EIDIDEMIA::selectMain() const
+{
+    transmitApduWithExpectedResponse(*card, MAIN_AID);
+}
+
 void EIDIDEMIA::selectADF1() const
 {
     transmitApduWithExpectedResponse(*card, ADF1_AID);
@@ -59,14 +66,20 @@ void EIDIDEMIA::selectADF2() const
 
 byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
 {
-    transmitApduWithExpectedResponse(*card, MAIN_AID);
+    selectMain();
     return electronic_id::getCertificate(*card, type.isAuthentication() ? AUTH_CERT : SIGN_CERT);
+}
+
+EIDIDEMIA::KeyInfo EIDIDEMIA::authKeyRef() const
+{
+    return {DEFAULT_AUTH_KEY_ID, true};
 }
 
 byte_vector EIDIDEMIA::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
 {
     selectADF1();
-    selectAuthSecurityEnv();
+    auto [keyId, isECC] = authKeyRef();
+    selectSecurityEnv(*card, 0xA4, isECC ? 0x04 : 0x02, keyId, name());
 
     verifyPin(*card, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength().first,
               authPinMinMaxLength().second, PIN_PADDING_CHAR);
@@ -80,8 +93,13 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector&
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::authPinRetriesLeftImpl() const
 {
-    transmitApduWithExpectedResponse(*card, MAIN_AID);
+    selectMain();
     return pinRetriesLeft(AUTH_PIN_REFERENCE);
+}
+
+EIDIDEMIA::KeyInfo EIDIDEMIA::signKeyRef() const
+{
+    return {DEFAULT_SIGN_KEY_ID, true};
 }
 
 ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
@@ -89,9 +107,9 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
                                                           const HashAlgorithm hashAlgo) const
 {
     selectADF2();
-    pcsc_cpp::byte_type algo = selectSignSecurityEnv();
+    auto [keyRef, isECC] = signKeyRef();
+    selectSecurityEnv(*card, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
     auto tmp = hash;
-    bool isECC = algo == 0x54;
     if (isECC) {
         constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
         if (tmp.size() < ECDSA384_INPUT_LENGTH) {

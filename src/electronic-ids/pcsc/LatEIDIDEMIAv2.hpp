@@ -24,6 +24,8 @@
 
 #include "EIDIDEMIA.hpp"
 
+#include <map>
+
 namespace electronic_id
 {
 
@@ -35,6 +37,8 @@ public:
     PCSC_CPP_DISABLE_COPY_MOVE(LatEIDIDEMIAV2);
 
 private:
+    byte_vector getCertificateImpl(const CertificateType type) const override;
+
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override;
     PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
 
@@ -44,8 +48,14 @@ private:
     std::string name() const override { return "LatEID IDEMIA v2"; }
     Type type() const override { return LatEID; }
 
-    void selectAuthSecurityEnv() const override;
-    pcsc_cpp::byte_type selectSignSecurityEnv() const override;
+    KeyInfo authKeyRef() const override;
+    KeyInfo signKeyRef() const override;
+
+    const byte_vector& readEF_File(byte_vector file,
+                                   std::map<byte_vector, byte_vector>& cache) const;
+    const byte_vector& readDCODInfo(byte_type type,
+                                    std::map<byte_vector, byte_vector>& cache) const;
+    KeyInfo readPrKDInfo(byte_type keyID, std::map<byte_vector, byte_vector>& cache) const;
 
     struct Private;
     std::unique_ptr<Private> data;
