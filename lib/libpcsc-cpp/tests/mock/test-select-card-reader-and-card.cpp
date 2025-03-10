@@ -38,7 +38,7 @@ TEST(pcsc_cpp_test, listReadersSuccess)
 #else
     EXPECT_EQ(readers[0].name, "PcscMock-reader");
 #endif
-    EXPECT_EQ(readers[0].statusString(), "PRESENT");
+    EXPECT_EQ(readers[0].isCardInserted, true);
 }
 
 TEST(pcsc_cpp_test, listReadersNoReaders)
