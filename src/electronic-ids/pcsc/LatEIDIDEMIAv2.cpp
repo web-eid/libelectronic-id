@@ -122,8 +122,7 @@ const byte_vector& LatEIDIDEMIAV2::readEF_File(byte_vector file,
     if (!size || size.length != 2) {
         THROW(SmartCardError, "Failed to read EF file length");
     }
-    return cache[std::move(file)] =
-               readBinary(*card, size_t(*size.begin << 8) + *(size.begin + 1), 0xFF);
+    return cache[std::move(file)] = readBinary(*card, toSW(*size.begin, *(size.begin + 1)), 0xFF);
 }
 
 const byte_vector& LatEIDIDEMIAV2::readDCODInfo(byte_type type,
