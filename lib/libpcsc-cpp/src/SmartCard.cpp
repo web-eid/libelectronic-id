@@ -57,19 +57,6 @@ constexpr SmartCard::Protocol convertToSmartCardProtocol(const DWORD protocol)
     }
 }
 
-std::pair<SCARDHANDLE, DWORD> connectToCard(const SCARDCONTEXT ctx, const string_t& readerName)
-{
-    const unsigned requestedProtocol =
-        SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1; // Let PCSC auto-select protocol.
-    DWORD protocolOut = SCARD_PROTOCOL_UNDEFINED;
-    SCARDHANDLE cardHandle = 0;
-
-    SCard(Connect, ctx, readerName.c_str(), DWORD(SCARD_SHARE_SHARED), requestedProtocol,
-          &cardHandle, &protocolOut);
-
-    return {cardHandle, protocolOut};
-}
-
 template <class K, class V = uint32_t, class D, size_t dsize, typename Func>
 constexpr std::map<K, V> parseTLV(const std::array<D, dsize>& data, DWORD size, Func transform)
 {
@@ -96,9 +83,13 @@ namespace pcsc_cpp
 class CardImpl
 {
 public:
-    explicit CardImpl(std::pair<SCARDHANDLE, DWORD> cardParams) :
-        cardHandle(cardParams.first), _protocol {cardParams.second, sizeof(SCARD_IO_REQUEST)}
+    explicit CardImpl(const SCARDCONTEXT ctx, const string_t& readerName)
     {
+        const unsigned requestedProtocol =
+            SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1; // Let PCSC auto-select protocol.
+        SCard(Connect, ctx, readerName.c_str(), DWORD(SCARD_SHARE_SHARED), requestedProtocol,
+              &cardHandle, &_protocol.dwProtocol);
+
         // TODO: debug("Protocol: " + to_string(protocol()))
         try {
             DWORD size = 0;
@@ -124,7 +115,7 @@ public:
         }
     }
 
-    ~CardImpl()
+    ~CardImpl() noexcept
     {
         if (cardHandle) {
             // Cannot throw in destructor, so cannot use the SCard() macro here.
@@ -161,6 +152,9 @@ public:
 
         auto response = toResponse(std::move(responseBytes), responseLength);
 
+        if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
+            getResponseWithLE(response, commandBytes);
+        }
         if (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
             getMoreResponseData(response);
         }
@@ -213,8 +207,8 @@ public:
     DWORD protocol() const { return _protocol.dwProtocol; }
 
 private:
-    SCARDHANDLE cardHandle;
-    const SCARD_IO_REQUEST _protocol;
+    SCARDHANDLE cardHandle {};
+    SCARD_IO_REQUEST _protocol {SCARD_PROTOCOL_UNDEFINED, sizeof(SCARD_IO_REQUEST)};
     std::map<DRIVER_FEATURES, uint32_t> features;
     uint32_t id_vendor {};
     uint32_t id_product {};
@@ -232,25 +226,20 @@ private:
 
         // Let expected errors through for handling in upper layers or in if blocks below.
         switch (response.sw1) {
-        case ResponseApdu::OK:
-        case ResponseApdu::MORE_DATA_AVAILABLE: // See the if block after next.
-        case ResponseApdu::VERIFICATION_FAILED:
-        case ResponseApdu::VERIFICATION_CANCELLED:
-        case ResponseApdu::WRONG_LENGTH:
-        case ResponseApdu::COMMAND_NOT_ALLOWED:
-        case ResponseApdu::WRONG_PARAMETERS:
-        case ResponseApdu::WRONG_LE_LENGTH: // See next if block.
-            break;
+            using enum ResponseApdu::Status;
+        case OK:
+        case MORE_DATA_AVAILABLE:
+        case WRONG_LE_LENGTH:
+        case VERIFICATION_FAILED:
+        case VERIFICATION_CANCELLED:
+        case WRONG_LENGTH:
+        case COMMAND_NOT_ALLOWED:
+        case WRONG_PARAMETERS:
+            return response;
         default:
             THROW(Error,
                   "Error response: '" + response + "', protocol " + std::to_string(protocol()));
         }
-
-        if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
-            THROW(Error, "Wrong LE length (SW1=0x6C) in response, please set LE");
-        }
-
-        return response;
     }
 
     void getMoreResponseData(ResponseApdu& response) const
@@ -269,6 +258,13 @@ private:
         response.sw1 = ResponseApdu::OK;
         response.sw2 = 0;
     }
+
+    void getResponseWithLE(ResponseApdu& response, byte_vector command) const
+    {
+        size_t pos = command.size() <= 5 ? 4 : 5 + command[4];
+        command[pos] = response.sw2;
+        response = transmitBytes(command);
+    }
 };
 
 SmartCard::TransactionGuard::TransactionGuard(const CardImpl& card, bool& inProgress) :
@@ -278,7 +274,7 @@ SmartCard::TransactionGuard::TransactionGuard(const CardImpl& card, bool& inProg
     inProgress = true;
 }
 
-SmartCard::TransactionGuard::~TransactionGuard()
+SmartCard::TransactionGuard::~TransactionGuard() noexcept
 {
     inProgress = false;
     try {
@@ -289,14 +285,14 @@ SmartCard::TransactionGuard::~TransactionGuard()
 }
 
 SmartCard::SmartCard(const ContextPtr& contex, const string_t& readerName, byte_vector atr) :
-    card(std::make_unique<CardImpl>(connectToCard(contex->handle(), readerName))),
+    card(std::make_unique<CardImpl>(contex->handle(), readerName)),
     _atr(std::move(atr)), _protocol(convertToSmartCardProtocol(card->protocol()))
 {
     // TODO: debug("Card ATR -> " + bytes2hexstr(atr))
 }
 
 SmartCard::SmartCard() = default;
-SmartCard::~SmartCard() = default;
+SmartCard::~SmartCard() noexcept = default;
 
 SmartCard::TransactionGuard SmartCard::beginTransaction()
 {
