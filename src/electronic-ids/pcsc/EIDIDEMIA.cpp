@@ -24,6 +24,8 @@
 
 #include "pcsc-common.hpp"
 
+#include "../TLV.hpp"
+
 using namespace pcsc_cpp;
 using namespace electronic_id;
 
@@ -136,22 +138,18 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::signingPinRetriesLeftImpl() c
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(byte_type pinReference) const
 {
+    auto ref = byte_type(pinReference & 0x0F);
     const pcsc_cpp::CommandApdu GET_DATA_ODD {
-        0x00,
-        0xCB,
-        0x3F,
-        0xFF,
-        {0x4D, 0x08, 0x70, 0x06, 0xBF, 0x81, byte_type(pinReference & 0x0F), 0x02, 0xA0, 0x80},
-        0x00};
+        0x00, 0xCB, 0x3F, 0xFF, {0x4D, 0x08, 0x70, 0x06, 0xBF, 0x81, ref, 0x02, 0xA0, 0x80}, 0x00};
     const auto response = card->transmit(GET_DATA_ODD);
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA ODD failed with error " + response);
     }
-    if (response.data.size() < 14) {
-        THROW(SmartCardError,
-              "Command GET DATA ODD failed: received data size "
-                  + std::to_string(response.data.size())
-                  + " is less than the expected size of the PIN remaining retries offset 14");
+    TLV info = TLV::path(response.data, 0x70, 0xBF8100 | ref, 0xA0);
+    TLV max = TLV::path(info.child(), 0x9A);
+    TLV tries = TLV::path(info.child(), 0x9B);
+    if (max && tries) {
+        return {*tries.begin, *max.begin};
     }
-    return {uint8_t(response.data[13]), uint8_t(response.data[10])};
+    THROW(SmartCardError, "Command GET DATA ODD failed: missing expected info");
 }
