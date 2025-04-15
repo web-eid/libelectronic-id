@@ -24,6 +24,8 @@
 
 #include "pcsc-common.hpp"
 
+#include "../TLV.hpp"
+
 using namespace pcsc_cpp;
 using namespace electronic_id;
 
@@ -108,23 +110,11 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
 {
     selectADF2();
     auto [keyRef, isECC] = signKeyRef();
-    selectSecurityEnv(*card, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
-    auto tmp = hash;
-    if (isECC) {
-        constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
-        if (tmp.size() < ECDSA384_INPUT_LENGTH) {
-            // Zero-pad hashes that are shorter than SHA-384.
-            tmp.insert(tmp.cbegin(), ECDSA384_INPUT_LENGTH - tmp.size(), 0x00);
-        } else if (tmp.size() > ECDSA384_INPUT_LENGTH) {
-            // Truncate hashes that are longer than SHA-384.
-            tmp.resize(ECDSA384_INPUT_LENGTH);
-        }
-    }
-
+    selectSecurityEnv(*card, 0xB6, isECC ? 0x24 + uint8_t(hashAlgo.hashByteLength()) : 0x42, keyRef, name());
     verifyPin(*card, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength().first,
               signingPinMinMaxLength().second, PIN_PADDING_CHAR);
 
-    return {computeSignature(*card, tmp, name()),
+    return {computeSignature(*card, hash, name()),
             {isECC ? SignatureAlgorithm::ES : SignatureAlgorithm::RS, hashAlgo}};
 }
 
@@ -136,22 +126,18 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::signingPinRetriesLeftImpl() c
 
 ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(byte_type pinReference) const
 {
+    auto ref = byte_type(pinReference & 0x0F);
     const pcsc_cpp::CommandApdu GET_DATA_ODD {
-        0x00,
-        0xCB,
-        0x3F,
-        0xFF,
-        {0x4D, 0x08, 0x70, 0x06, 0xBF, 0x81, byte_type(pinReference & 0x0F), 0x02, 0xA0, 0x80},
-        0x00};
+        0x00, 0xCB, 0x3F, 0xFF, {0x4D, 0x08, 0x70, 0x06, 0xBF, 0x81, ref, 0x02, 0xA0, 0x80}, 0x00};
     const auto response = card->transmit(GET_DATA_ODD);
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA ODD failed with error " + response);
     }
-    if (response.data.size() < 14) {
-        THROW(SmartCardError,
-              "Command GET DATA ODD failed: received data size "
-                  + std::to_string(response.data.size())
-                  + " is less than the expected size of the PIN remaining retries offset 14");
+    TLV info = TLV::path(response.data, 0x70, 0xBF8100 | ref, 0xA0);
+    TLV max = info[0x9A];
+    TLV tries = info[0x9B];
+    if (max && tries) {
+        return {*tries.begin, *max.begin};
     }
-    return {uint8_t(response.data[13]), uint8_t(response.data[10])};
+    THROW(SmartCardError, "Command GET DATA ODD failed: missing expected info");
 }
