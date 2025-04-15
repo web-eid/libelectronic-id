@@ -24,9 +24,10 @@
 
 #include "flag-set-cpp/flag_set.hpp"
 
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <vector>
-#include <limits>
 
 // The rule of five (C++ Core guidelines C.21).
 #define PCSC_CPP_DISABLE_COPY_MOVE(Class)                                                          \
