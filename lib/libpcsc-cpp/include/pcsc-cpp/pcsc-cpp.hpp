@@ -225,7 +225,7 @@ public:
     {
     public:
         TransactionGuard(const CardImpl& CardImpl, bool& inProgress);
-        ~TransactionGuard();
+        ~TransactionGuard() noexcept;
         PCSC_CPP_DISABLE_COPY_MOVE(TransactionGuard);
 
     private:
@@ -235,7 +235,7 @@ public:
 
     SmartCard(const ContextPtr& context, const string_t& readerName, byte_vector atr);
     SmartCard(); // Null object constructor.
-    ~SmartCard();
+    ~SmartCard() noexcept;
     PCSC_CPP_DISABLE_COPY_MOVE(SmartCard);
 
     TransactionGuard beginTransaction();
