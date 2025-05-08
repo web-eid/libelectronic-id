@@ -110,11 +110,21 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
 {
     selectADF2();
     auto [keyRef, isECC] = signKeyRef();
-    selectSecurityEnv(*card, 0xB6, isECC ? 0x24 + uint8_t(hashAlgo.hashByteLength()) : 0x42, keyRef, name());
+    selectSecurityEnv(*card, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
     verifyPin(*card, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength().first,
               signingPinMinMaxLength().second, PIN_PADDING_CHAR);
-
-    return {computeSignature(*card, hash, name()),
+    auto tmp = hash;
+    if (isECC) {
+        constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
+        if (tmp.size() < ECDSA384_INPUT_LENGTH) {
+            // Zero-pad hashes that are shorter than SHA-384.
+            tmp.insert(tmp.cbegin(), ECDSA384_INPUT_LENGTH - tmp.size(), 0x00);
+        } else if (tmp.size() > ECDSA384_INPUT_LENGTH) {
+            // Truncate hashes that are longer than SHA-384.
+            tmp.resize(ECDSA384_INPUT_LENGTH);
+        }
+    }
+    return {computeSignature(*card, tmp, name()),
             {isECC ? SignatureAlgorithm::ES : SignatureAlgorithm::RS, hashAlgo}};
 }
 
