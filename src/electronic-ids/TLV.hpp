@@ -38,7 +38,7 @@ namespace electronic_id
 struct TLV
 {
     using byte_vector = pcsc_cpp::byte_vector;
-    uint16_t tag {};
+    uint32_t tag {};
     uint32_t length {};
     byte_vector::const_iterator begin;
     byte_vector::const_iterator end;
@@ -57,10 +57,19 @@ struct TLV
 
         tag = *begin++;
         if ((tag & 0x1F) == 0x1F) { // Multi-byte tag
-            if (!*this) {
-                THROW(std::invalid_argument, "Invalid TLV: Unexpected end of tag");
-            }
-            tag = (tag << 8) | (*begin++);
+            constexpr uint8_t MAX_TAG_BYTES = sizeof(tag);
+            uint8_t tagBytes = 1;
+            do {
+                if (tagBytes >= MAX_TAG_BYTES) {
+                    THROW(std::invalid_argument,
+                          "Invalid TLV: Tag too long or too large for uint32_t");
+                }
+                if (!*this) {
+                    THROW(std::invalid_argument, "Invalid TLV: Unexpected end of tag");
+                }
+                tag = (tag << 8) | (*begin++);
+                ++tagBytes;
+            } while ((tag & 0x80) != 0x00);
         }
 
         if (!*this) {
@@ -87,15 +96,21 @@ struct TLV
 
     PCSC_CPP_CONSTEXPR_VECTOR TLV child() const { return {begin, begin + length}; }
 
+    PCSC_CPP_CONSTEXPR_VECTOR TLV operator[](uint32_t find) const
+    {
+        TLV tlv = child();
+        for (; tlv && tlv.tag != find; ++tlv);
+        return tlv;
+    }
     PCSC_CPP_CONSTEXPR_VECTOR TLV& operator++() { return *this = {begin + length, end}; }
 
     template <typename... Tags>
-    static PCSC_CPP_CONSTEXPR_VECTOR TLV path(TLV tlv, uint16_t tag, Tags... tags)
+    static PCSC_CPP_CONSTEXPR_VECTOR TLV path(TLV tlv, uint32_t tag, Tags... tags)
     {
         for (; tlv; ++tlv) {
             if (tlv.tag == tag) {
                 if constexpr (sizeof...(tags) > 0) {
-                    return path(tlv.child(), uint16_t(tags)...);
+                    return path(tlv.child(), uint32_t(tags)...);
                 }
                 return tlv;
             }
@@ -103,12 +118,12 @@ struct TLV
         return TLV({});
     }
     template <typename... Tags>
-    static PCSC_CPP_CONSTEXPR_VECTOR TLV path(const byte_vector& data, uint16_t tag, Tags... tags)
+    static PCSC_CPP_CONSTEXPR_VECTOR TLV path(const byte_vector& data, uint32_t tag, Tags... tags)
     {
         return path(TLV(data), tag, tags...);
     }
 
-    constexpr operator bool() const noexcept { return begin != end; }
+    constexpr operator bool() const noexcept { return begin < end; }
 };
 
 } // namespace electronic_id
