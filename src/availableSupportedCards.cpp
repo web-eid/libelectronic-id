@@ -26,28 +26,15 @@
 #include "electronic-ids/ms-cryptoapi/listMsCryptoApiElectronicIDs.hpp"
 #endif
 
-namespace
-{
-
-using namespace electronic_id;
-
-inline CardInfo::ptr connectToCard(const pcsc_cpp::Reader& reader)
-{
-    auto eid = getElectronicID(reader);
-    return std::make_shared<CardInfo>(reader, eid);
-}
-
-} // namespace
-
 namespace electronic_id
 {
 
-std::vector<CardInfo::ptr> availableSupportedCards()
+std::vector<ElectronicID::ptr> availableSupportedCards()
 {
     std::vector<pcsc_cpp::Reader> readers;
     try {
         readers = pcsc_cpp::listReaders();
-        std::vector<CardInfo::ptr> cards;
+        std::vector<ElectronicID::ptr> cards;
 
         auto seenCard = false;
         // The list may be empty, but we cannot throw yet due to the listMsCryptoApiElectronicIDs()
@@ -58,7 +45,7 @@ std::vector<CardInfo::ptr> availableSupportedCards()
             }
             seenCard = true;
             if (isCardSupported(reader.cardAtr)) {
-                cards.push_back(connectToCard(reader));
+                cards.push_back(getElectronicID(reader));
             }
         }
 

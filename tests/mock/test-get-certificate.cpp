@@ -40,17 +40,17 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     PcscMock::setAtr(ESTEID_IDEMIA_V1_ATR);
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);
-    EXPECT_EQ(cardInfo->eid().name(), "EstEID IDEMIA v1");
+    EXPECT_EQ(cardInfo->name(), "EstEID IDEMIA v1");
 
     PcscMock::setApduScript(ESTEID_IDEMIA_V1_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
-    auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
+    auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1031U);
 
-    auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
+    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 3U);
     EXPECT_EQ(authRetriesLeft.second, 3);
 
-    const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
+    const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
@@ -58,25 +58,24 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     authPin.reserve(12);
 
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
+    const auto authSignature = cardInfo->signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
         throw std::runtime_error("Signature is invalid");
     }
 
     PcscMock::setApduScript(ESTEID_IDEMIA_V1_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
-    auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
+    auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 1008U);
 
-    auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
+    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5'};
     signPin.reserve(12);
 
-    EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature =
-        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
+    EXPECT_EQ(cardInfo->isSupportedSigningHashAlgorithm(hashAlgo), true);
+    const auto signSignature = cardInfo->signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES384);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
@@ -91,17 +90,17 @@ TEST(electronic_id_test, selectCertificateFinV3)
 
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);
-    EXPECT_EQ(cardInfo->eid().name(), "FinEID v3");
+    EXPECT_EQ(cardInfo->name(), "FinEID v3");
 
     PcscMock::setApduScript(FINEID_V3_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
-    auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
+    auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1664U);
 
-    auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
+    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 5U);
     EXPECT_EQ(authRetriesLeft.second, 5);
 
-    const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
+    const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::PS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
@@ -109,25 +108,24 @@ TEST(electronic_id_test, selectCertificateFinV3)
     authPin.reserve(12);
 
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
+    const auto authSignature = cardInfo->signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
         throw std::runtime_error("Signature is invalid");
     }
 
     PcscMock::setApduScript(FINEID_V3_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
-    auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
+    auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 1487U);
 
-    auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
+    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 5U);
     EXPECT_EQ(signingRetriesLeft.second, 5);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     signPin.reserve(12);
 
-    EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature =
-        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
+    EXPECT_EQ(cardInfo->isSupportedSigningHashAlgorithm(hashAlgo), true);
+    const auto signSignature = cardInfo->signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES256);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
@@ -142,17 +140,17 @@ TEST(electronic_id_test, selectCertificateFinV4)
 
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);
-    EXPECT_EQ(cardInfo->eid().name(), "FinEID v4");
+    EXPECT_EQ(cardInfo->name(), "FinEID v4");
 
     PcscMock::setApduScript(FINEID_V4_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
-    auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
+    auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1087U);
 
-    auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
+    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 5U);
     EXPECT_EQ(authRetriesLeft.second, 5);
 
-    const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
+    const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
@@ -160,25 +158,24 @@ TEST(electronic_id_test, selectCertificateFinV4)
     authPin.reserve(12);
 
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
+    const auto authSignature = cardInfo->signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, true)) {
         throw std::runtime_error("Signature is invalid");
     }
 
     PcscMock::setApduScript(FINEID_V4_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
-    auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
+    auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 1144U);
 
-    auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
+    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 5U);
     EXPECT_EQ(signingRetriesLeft.second, 5);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     signPin.reserve(12);
 
-    EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature =
-        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
+    EXPECT_EQ(cardInfo->isSupportedSigningHashAlgorithm(hashAlgo), true);
+    const auto signSignature = cardInfo->signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::ES384);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
@@ -193,17 +190,17 @@ TEST(electronic_id_test, selectCertificateLatV2)
 
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);
-    EXPECT_EQ(cardInfo->eid().name(), "LatEID IDEMIA v2");
+    EXPECT_EQ(cardInfo->name(), "LatEID IDEMIA v2");
 
     PcscMock::setApduScript(LATEID_IDEMIA_V2_SELECT_AUTH_CERTIFICATE_AND_AUTHENTICATE);
-    auto certificateAuth = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);
+    auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1733U);
 
-    auto authRetriesLeft = cardInfo->eid().authPinRetriesLeft();
+    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
     EXPECT_EQ(authRetriesLeft.first, 3U);
     EXPECT_EQ(authRetriesLeft.second, 3);
 
-    const JsonWebSignatureAlgorithm authAlgo = cardInfo->eid().authSignatureAlgorithm();
+    const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
     const HashAlgorithm hashAlgo = authAlgo.hashAlgorithm();
 
@@ -211,25 +208,24 @@ TEST(electronic_id_test, selectCertificateLatV2)
     authPin.reserve(12);
 
     const auto hash = calculateDigest(hashAlgo, dataToSign);
-    const auto authSignature = cardInfo->eid().signWithAuthKey(std::move(authPin), hash);
+    const auto authSignature = cardInfo->signWithAuthKey(std::move(authPin), hash);
     if (!verify(hashAlgo, certificateAuth, dataToSign, authSignature, false)) {
         throw std::runtime_error("Signature is invalid");
     }
 
     PcscMock::setApduScript(LATEID_IDEMIA_V2_SELECT_SIGN_CERTIFICATE_AND_SIGNING);
-    auto certificateSign = cardInfo->eid().getCertificate(CertificateType::SIGNING);
+    auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 2124U);
 
-    auto signingRetriesLeft = cardInfo->eid().signingPinRetriesLeft();
+    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
     EXPECT_EQ(signingRetriesLeft.first, 3U);
     EXPECT_EQ(signingRetriesLeft.second, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     signPin.reserve(12);
 
-    EXPECT_EQ(cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo), true);
-    const auto signSignature =
-        cardInfo->eid().signWithSigningKey(std::move(signPin), hash, hashAlgo);
+    EXPECT_EQ(cardInfo->isSupportedSigningHashAlgorithm(hashAlgo), true);
+    const auto signSignature = cardInfo->signWithSigningKey(std::move(signPin), hash, hashAlgo);
     EXPECT_EQ(signSignature.second, SignatureAlgorithm::RS256);
     if (!verify(hashAlgo, certificateSign, dataToSign, signSignature.first, false)) {
         throw std::runtime_error("Signature is invalid");
