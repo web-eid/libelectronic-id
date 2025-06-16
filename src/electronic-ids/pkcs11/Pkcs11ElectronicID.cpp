@@ -77,17 +77,7 @@ inline fs::path croatianPkcs11ModulePath()
     fs::path eidPath = programFilesPath() / L"AKD/eID Middleware/pkcs11/AkdEidPkcs11_64.dll";
     return fs::exists(certiliaPath) ? certiliaPath : eidPath;
 #elif defined __APPLE__
-    // The driver provider installs the library to /usr/local/lib/pkcs11, but
-    // sandboxed applications cannot access /usr/local/ due to macOS restrictions.
-    // To make the solution work, the library libEidPkcs11.dylib and License.bin must be
-    // copied to /Library/AKD/pkcs11, which is accessible in sandboxed environments:
-    //
-    //  sudo mkdir -p /Library/AKD/pkcs11
-    //  sudo cp -a /usr/local/lib/pkcs11/{libEidPkcs11.dylib,License.bin} /Library/AKD/pkcs11/
-    //
-    // This workaround is required until the driver provider addresses the issue.
-    // NB! This is not tested.
-    return "/Library/AKD/pkcs11/libEidPkcs11.dylib";
+    return "/Library/AKD/eID Middleware/pkcs11/libEidPkcs11.so";
 #else // Linux
     fs::path certiliaPath = "/usr/lib/akd/certiliamiddleware/pkcs11/libEidPkcs11.so";
     fs::path eidPath = "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so";
