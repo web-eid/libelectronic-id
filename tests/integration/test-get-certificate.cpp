@@ -36,6 +36,8 @@ TEST(electronic_id_test, getCertificate)
 
     EXPECT_TRUE(cardInfo);
 
+    std::cout << "Selected Reader: " << cardInfo->reader().name
+              << " Protocol: " << int(cardInfo->eid().smartcard().protocol()) << '\n';
     std::cout << "Selected card: " << cardInfo->eid().name() << '\n';
 
     auto certificate = cardInfo->eid().getCertificate(CertificateType::AUTHENTICATION);

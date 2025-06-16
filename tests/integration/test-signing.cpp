@@ -37,6 +37,8 @@ static void signing(HashAlgorithm hashAlgo)
 
     EXPECT_TRUE(cardInfo);
 
+    std::cout << "Selected Reader: " << cardInfo->reader().name
+              << " Protocol: " << int(cardInfo->eid().smartcard().protocol()) << '\n';
     std::cout << "Selected card: " << cardInfo->eid().name() << '\n';
 
     if (!cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo)) {
