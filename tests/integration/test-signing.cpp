@@ -50,7 +50,7 @@ static void signing(HashAlgorithm hashAlgo)
     GTEST_ASSERT_GE(cardInfo->signingPinRetriesLeft().first, 0U);
 
     byte_vector pin;
-    if (cardInfo->name() == "EstEID IDEMIA v1")
+    if (cardInfo->name() == "EstEID IDEMIA v1" || cardInfo->name() == "EstEIDTHALES")
         pin = {'1', '2', '3', '4', '5'}; // EstIDEMIA test card default PIN2
     else if (cardInfo->name() == "LatEID IDEMIA v1" || cardInfo->name() == "LatEID IDEMIA v2")
         pin = {'1', '2', '3', '4', '5', '6'}; // LatIDEMIA test card default PIN2

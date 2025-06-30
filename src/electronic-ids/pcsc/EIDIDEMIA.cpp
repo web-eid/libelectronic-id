@@ -46,8 +46,8 @@ const auto ADF1_AID = CommandApdu::select(
 const auto ADF2_AID = CommandApdu::select(0x04,
                                           {0x51, 0x53, 0x43, 0x44, 0x20, 0x41, 0x70, 0x70, 0x6C,
                                            0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E});
-const auto AUTH_CERT = CommandApdu::select(0x09, {0xAD, 0xF1, 0x34, 0x01});
-const auto SIGN_CERT = CommandApdu::select(0x09, {0xAD, 0xF2, 0x34, 0x1F});
+const auto AUTH_CERT = CommandApdu::selectEF(0x09, {0xAD, 0xF1, 0x34, 0x01});
+const auto SIGN_CERT = CommandApdu::selectEF(0x09, {0xAD, 0xF2, 0x34, 0x1F});
 
 } // namespace
 
@@ -69,7 +69,7 @@ void EIDIDEMIA::selectADF2() const
 byte_vector EIDIDEMIA::getCertificateImpl(const CertificateType type) const
 {
     selectMain();
-    return electronic_id::getCertificate(*card, type.isAuthentication() ? AUTH_CERT : SIGN_CERT);
+    return readFile(*card, type.isAuthentication() ? AUTH_CERT : SIGN_CERT, 0xC0);
 }
 
 EIDIDEMIA::KeyInfo EIDIDEMIA::authKeyRef() const
@@ -83,8 +83,7 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector&
     auto [keyId, isECC] = authKeyRef();
     selectSecurityEnv(*card, 0xA4, isECC ? 0x04 : 0x02, keyId, name());
 
-    verifyPin(*card, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength().first,
-              authPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(*card, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength(), PIN_PADDING_CHAR);
 
     return internalAuthenticate(*card,
                                 authSignatureAlgorithm().isRSAWithPKCS1Padding()
@@ -111,8 +110,8 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(byte_vector&& pin,
     selectADF2();
     auto [keyRef, isECC] = signKeyRef();
     selectSecurityEnv(*card, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
-    verifyPin(*card, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength().first,
-              signingPinMinMaxLength().second, PIN_PADDING_CHAR);
+    verifyPin(*card, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength(),
+              PIN_PADDING_CHAR);
     auto tmp = hash;
     if (isECC) {
         constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
