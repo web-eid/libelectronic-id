@@ -32,42 +32,35 @@ namespace electronic_id
 class PcscElectronicID : public ElectronicID
 {
 public:
-    PcscElectronicID(pcsc_cpp::SmartCard::ptr _card) : ElectronicID(std::move(_card)) {}
+    explicit PcscElectronicID(pcsc_cpp::SmartCard&& _card) : ElectronicID(std::move(_card)) {}
 
 protected:
     byte_vector getCertificate(const CertificateType type) const override
     {
-        auto transactionGuard = card->beginTransaction();
-        return getCertificateImpl(type);
+        return getCertificateImpl(card.beginSession(), type);
     }
 
     byte_vector signWithAuthKey(byte_vector&& pin, const byte_vector& hash) const override
     {
         validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
-
-        auto transactionGuard = card->beginTransaction();
-        return signWithAuthKeyImpl(std::move(pin), hash);
+        return signWithAuthKeyImpl(card.beginSession(), std::move(pin), hash);
     }
 
     Signature signWithSigningKey(byte_vector&& pin, const byte_vector& hash,
                                  const HashAlgorithm hashAlgo) const override
     {
         validateSigningHash(*this, hashAlgo, hash);
-
-        auto transactionGuard = card->beginTransaction();
-        return signWithSigningKeyImpl(std::move(pin), hash, hashAlgo);
+        return signWithSigningKeyImpl(card.beginSession(), std::move(pin), hash, hashAlgo);
     }
 
     PinRetriesRemainingAndMax signingPinRetriesLeft() const override
     {
-        auto transactionGuard = card->beginTransaction();
-        return signingPinRetriesLeftImpl();
+        return signingPinRetriesLeftImpl(card.beginSession());
     }
 
     ElectronicID::PinRetriesRemainingAndMax authPinRetriesLeft() const override
     {
-        auto transactionGuard = card->beginTransaction();
-        return authPinRetriesLeftImpl();
+        return authPinRetriesLeftImpl(card.beginSession());
     }
 
     // The following pure virtual *Impl functions are the interface of all
@@ -75,16 +68,21 @@ protected:
     // they have to be implemented when adding a new electronic ID.
     // This design follows the non-virtual interface pattern.
 
-    virtual byte_vector getCertificateImpl(const CertificateType type) const = 0;
+    virtual byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                           const CertificateType type) const = 0;
 
-    virtual byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const = 0;
+    virtual byte_vector signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session,
+                                            byte_vector&& pin, const byte_vector& hash) const = 0;
 
-    virtual PinRetriesRemainingAndMax authPinRetriesLeftImpl() const = 0;
+    virtual PinRetriesRemainingAndMax
+    authPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const = 0;
 
-    virtual Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
+    virtual Signature signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session,
+                                             byte_vector&& pin, const byte_vector& hash,
                                              const HashAlgorithm hashAlgo) const = 0;
 
-    virtual PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const = 0;
+    virtual PinRetriesRemainingAndMax
+    signingPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const = 0;
 };
 
 } // namespace electronic_id
