@@ -61,22 +61,25 @@ constexpr byte_type RSA_PSS_ALGO = 0x05;
 namespace electronic_id
 {
 
-byte_vector FinEIDv3::getCertificateImpl(const CertificateType type) const
+byte_vector FinEIDv3::getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                         const CertificateType type) const
 {
-    transmitApduWithExpectedResponse(*card, SELECT_MAIN_AID);
-    return readFile(*card,
+    transmitApduWithExpectedResponse(session, SELECT_MAIN_AID);
+    return readFile(session,
                     type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V3);
 }
 
-byte_vector FinEIDv3::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
+byte_vector FinEIDv3::signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session,
+                                          byte_vector&& pin, const byte_vector& hash) const
 {
-    return sign(authSignatureAlgorithm().hashAlgorithm(), hash, std::move(pin), AUTH_PIN_REFERENCE,
-                authPinMinMaxLength(), AUTH_KEY_REFERENCE, RSA_PSS_ALGO, 0x00);
+    return sign(session, authSignatureAlgorithm().hashAlgorithm(), hash, std::move(pin),
+                AUTH_PIN_REFERENCE, authPinMinMaxLength(), AUTH_KEY_REFERENCE, RSA_PSS_ALGO, 0x00);
 }
 
-ElectronicID::PinRetriesRemainingAndMax FinEIDv3::authPinRetriesLeftImpl() const
+ElectronicID::PinRetriesRemainingAndMax
+FinEIDv3::authPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const
 {
-    return pinRetriesLeft(AUTH_PIN_REFERENCE);
+    return pinRetriesLeft(session, AUTH_PIN_REFERENCE);
 }
 
 const std::set<SignatureAlgorithm>& FinEIDv3::supportedSigningAlgorithms() const
@@ -84,20 +87,23 @@ const std::set<SignatureAlgorithm>& FinEIDv3::supportedSigningAlgorithms() const
     return ELLIPTIC_CURVE_SIGNATURE_ALGOS();
 }
 
-ElectronicID::Signature FinEIDv3::signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
-                                                         const HashAlgorithm hashAlgo) const
+ElectronicID::Signature
+FinEIDv3::signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                 const byte_vector& hash, const HashAlgorithm hashAlgo) const
 {
-    return {sign(hashAlgo, hash, std::move(pin), SIGNING_PIN_REFERENCE, signingPinMinMaxLength(),
-                 SIGNING_KEY_REFERENCE_V3, ECDSA_ALGO, 0x40),
+    return {sign(session, hashAlgo, hash, std::move(pin), SIGNING_PIN_REFERENCE,
+                 signingPinMinMaxLength(), SIGNING_KEY_REFERENCE_V3, ECDSA_ALGO, 0x40),
             {SignatureAlgorithm::ES, hashAlgo}};
 }
 
-ElectronicID::PinRetriesRemainingAndMax FinEIDv3::signingPinRetriesLeftImpl() const
+ElectronicID::PinRetriesRemainingAndMax
+FinEIDv3::signingPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const
 {
-    return pinRetriesLeft(SIGNING_PIN_REFERENCE);
+    return pinRetriesLeft(session, SIGNING_PIN_REFERENCE);
 }
 
-byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash, byte_vector&& pin,
+byte_vector FinEIDv3::sign(const pcsc_cpp::SmartCard::Session& session,
+                           const HashAlgorithm hashAlgo, const byte_vector& hash, byte_vector&& pin,
                            byte_type pinReference, PinMinMaxLength pinMinMaxLength,
                            byte_type keyReference, byte_type signatureAlgo, byte_type LE) const
 {
@@ -127,16 +133,16 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
         THROW(ArgumentFatalError, "No OID for algorithm " + std::string(hashAlgo));
     }
 
-    verifyPin(*card, pinReference, std::move(pin), pinMinMaxLength.first, pinMinMaxLength.second,
+    verifyPin(session, pinReference, std::move(pin), pinMinMaxLength.first, pinMinMaxLength.second,
               PIN_PADDING_CHAR);
     // Select security environment for COMPUTE SIGNATURE.
-    selectSecurityEnv(*card, 0xB6, signatureAlgo, keyReference, name());
+    selectSecurityEnv(session, 0xB6, signatureAlgo, keyReference, name());
 
     byte_vector tlv {0x90, byte_type(hash.size())};
     tlv.insert(tlv.cend(), hash.cbegin(), hash.cend());
 
     const CommandApdu computeSignature {0x00, 0x2A, 0x90, 0xA0, std::move(tlv)};
-    const auto response = card->transmit(computeSignature);
+    const auto response = session.transmit(computeSignature);
 
     if (response.sw1 == ResponseApdu::WRONG_LENGTH) {
         THROW(SmartCardError,
@@ -147,7 +153,7 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     }
 
     const CommandApdu getSignature {0x00, 0x2A, 0x9E, 0x9A, LE};
-    const auto signature = card->transmit(getSignature);
+    const auto signature = session.transmit(getSignature);
 
     if (signature.sw1 == ResponseApdu::WRONG_LENGTH) {
         THROW(SmartCardError, "Wrong data length in command GET SIGNATURE argument: " + response);
@@ -159,12 +165,13 @@ byte_vector FinEIDv3::sign(const HashAlgorithm hashAlgo, const byte_vector& hash
     return signature.data;
 }
 
-ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinReference) const
+ElectronicID::PinRetriesRemainingAndMax
+FinEIDv3::pinRetriesLeft(const pcsc_cpp::SmartCard::Session& session, byte_type pinReference) const
 {
     const auto GET_DATA = smartcard().protocol() == SmartCard::Protocol::T1
         ? CommandApdu {0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}, 0x00}
         : CommandApdu {0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}};
-    const auto response = card->transmit(GET_DATA);
+    const auto response = session.transmit(GET_DATA);
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA failed with error " + response);
     }
@@ -176,24 +183,27 @@ ElectronicID::PinRetriesRemainingAndMax FinEIDv3::pinRetriesLeft(byte_type pinRe
     return {uint8_t(response.data[20]), int8_t(5)};
 }
 
-byte_vector FinEIDv4::getCertificateImpl(const CertificateType type) const
+byte_vector FinEIDv4::getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                         const CertificateType type) const
 {
-    transmitApduWithExpectedResponse(*card, SELECT_MAIN_AID);
-    return readFile(*card,
+    transmitApduWithExpectedResponse(session, SELECT_MAIN_AID);
+    return readFile(session,
                     type.isAuthentication() ? SELECT_AUTH_CERT_FILE : SELECT_SIGN_CERT_FILE_V4);
 }
 
-byte_vector FinEIDv4::signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const
+byte_vector FinEIDv4::signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session,
+                                          byte_vector&& pin, const byte_vector& hash) const
 {
-    return sign(authSignatureAlgorithm().hashAlgorithm(), hash, std::move(pin), AUTH_PIN_REFERENCE,
-                authPinMinMaxLength(), AUTH_KEY_REFERENCE, ECDSA_ALGO, 0x60);
+    return sign(session, authSignatureAlgorithm().hashAlgorithm(), hash, std::move(pin),
+                AUTH_PIN_REFERENCE, authPinMinMaxLength(), AUTH_KEY_REFERENCE, ECDSA_ALGO, 0x60);
 }
 
-ElectronicID::Signature FinEIDv4::signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
-                                                         const HashAlgorithm hashAlgo) const
+ElectronicID::Signature
+FinEIDv4::signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                 const byte_vector& hash, const HashAlgorithm hashAlgo) const
 {
-    return {sign(hashAlgo, hash, std::move(pin), SIGNING_PIN_REFERENCE, signingPinMinMaxLength(),
-                 SIGNING_KEY_REFERENCE_V4, ECDSA_ALGO, 0x60),
+    return {sign(session, hashAlgo, hash, std::move(pin), SIGNING_PIN_REFERENCE,
+                 signingPinMinMaxLength(), SIGNING_KEY_REFERENCE_V4, ECDSA_ALGO, 0x60),
             {SignatureAlgorithm::ES, hashAlgo}};
 }
 

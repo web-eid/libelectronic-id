@@ -32,7 +32,7 @@ using namespace pcsc_cpp;
 namespace
 {
 
-SmartCard::ptr connectToCard()
+SmartCard connectToCard()
 {
     auto readers = listReaders();
     EXPECT_EQ(readers.size(), 1U);
@@ -46,8 +46,8 @@ TEST(pcsc_cpp_test, connectToCardSuccess)
 {
     auto card = connectToCard();
 
-    EXPECT_EQ(card->atr(), PcscMock::DEFAULT_CARD_ATR);
-    EXPECT_EQ(card->protocol(), SmartCard::Protocol::T1);
+    EXPECT_EQ(card.atr(), PcscMock::DEFAULT_CARD_ATR);
+    EXPECT_EQ(card.protocol(), SmartCard::Protocol::T1);
 }
 
 TEST(pcsc_cpp_test, transmitApduSuccess)
@@ -57,8 +57,8 @@ TEST(pcsc_cpp_test, transmitApduSuccess)
     CommandApdu command {PcscMock::DEFAULT_COMMAND_APDU[0], PcscMock::DEFAULT_COMMAND_APDU[1],
                          PcscMock::DEFAULT_COMMAND_APDU[2], PcscMock::DEFAULT_COMMAND_APDU[3]};
 
-    auto transactionGuard = card->beginTransaction();
-    auto response = card->transmit(command);
+    auto session = card.beginSession();
+    auto response = session.transmit(command);
 
     EXPECT_TRUE(response.isOK());
 }

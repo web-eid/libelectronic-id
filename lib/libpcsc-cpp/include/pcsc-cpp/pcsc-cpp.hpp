@@ -30,9 +30,11 @@
 #include <vector>
 
 // The rule of five (C++ Core guidelines C.21).
-#define PCSC_CPP_DISABLE_COPY_MOVE(Class)                                                          \
+#define PCSC_CPP_DISABLE_COPY(Class)                                                               \
     Class(const Class&) = delete;                                                                  \
-    Class& operator=(const Class&) = delete;                                                       \
+    Class& operator=(const Class&) = delete
+#define PCSC_CPP_DISABLE_COPY_MOVE(Class)                                                          \
+    PCSC_CPP_DISABLE_COPY(Class);                                                                  \
     Class(Class&&) = delete;                                                                       \
     Class& operator=(Class&&) = delete
 
@@ -235,7 +237,19 @@ struct CommandApdu
 
 /** Opaque class that wraps the PC/SC smart card resources like card handle and I/O protocol. */
 class CardImpl;
-using CardImplPtr = std::unique_ptr<CardImpl>;
+
+class SmartCard;
+
+/** Reader provides card reader information, status and gives access to the smart card in it. */
+struct Reader
+{
+    [[nodiscard]] SmartCard connectToCard() const;
+
+    const ContextPtr ctx;
+    const string_t name;
+    const byte_vector cardAtr;
+    const bool isCardPresent = false;
+};
 
 /** PIN pad PIN entry timer timeout */
 constexpr uint8_t PIN_PAD_PIN_ENTRY_TIMEOUT = 90; // 1 minute, 30 seconds
@@ -246,52 +260,37 @@ class SmartCard
 public:
     enum class Protocol { UNDEFINED, T0, T1 }; // AUTO = T0 | T1
 
-    using ptr = std::unique_ptr<SmartCard>;
-
-    class TransactionGuard
+    class Session
     {
     public:
-        TransactionGuard(const CardImpl& CardImpl, bool& inProgress);
-        ~TransactionGuard() noexcept;
-        PCSC_CPP_DISABLE_COPY_MOVE(TransactionGuard);
+        Session(const CardImpl& CardImpl);
+        ~Session() noexcept;
+        PCSC_CPP_DISABLE_COPY_MOVE(Session);
+
+        ResponseApdu transmit(const CommandApdu& command) const;
+        ResponseApdu transmitCTL(const CommandApdu& command, uint16_t lang, uint8_t minlen) const;
+        bool readerHasPinPad() const;
 
     private:
         const CardImpl& card;
-        bool& inProgress;
     };
 
-    SmartCard(ContextPtr context, string_t readerName, byte_vector atr);
-    SmartCard(); // Null object constructor.
+    SmartCard(Reader _reader);
+    SmartCard() noexcept; // Null object constructor.
+    SmartCard(SmartCard&& other) noexcept;
     ~SmartCard() noexcept;
-    PCSC_CPP_DISABLE_COPY_MOVE(SmartCard);
+    PCSC_CPP_DISABLE_COPY(SmartCard);
+    SmartCard& operator=(SmartCard&& other) noexcept = delete;
 
-    TransactionGuard beginTransaction();
-    ResponseApdu transmit(const CommandApdu& command) const;
-    ResponseApdu transmitCTL(const CommandApdu& command, uint16_t lang, uint8_t minlen) const;
+    [[nodiscard]] Session beginSession() const;
     bool readerHasPinPad() const;
-
-    Protocol protocol() const { return _protocol; }
-    const byte_vector& atr() const { return _atr; }
-    const string_t& readerName() const { return _readerName; }
+    Protocol protocol() const;
+    const byte_vector& atr() const { return reader.cardAtr; }
+    const string_t& readerName() const { return reader.name; }
 
 private:
-    ContextPtr ctx;
-    CardImplPtr card;
-    string_t _readerName;
-    byte_vector _atr;
-    Protocol _protocol = Protocol::UNDEFINED;
-    bool transactionInProgress = false;
-};
-
-/** Reader provides card reader information, status and gives access to the smart card in it. */
-struct Reader
-{
-    SmartCard::ptr connectToCard() const { return std::make_unique<SmartCard>(ctx, name, cardAtr); }
-
-    const ContextPtr ctx;
-    const string_t name;
-    const byte_vector cardAtr;
-    const bool isCardPresent;
+    Reader reader;
+    std::unique_ptr<CardImpl> card;
 };
 
 /**
@@ -304,10 +303,12 @@ std::vector<Reader> listReaders();
 // Utility functions.
 
 /** Transmit APDU command and verify that expected response is received. */
-void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command);
+void transmitApduWithExpectedResponse(const SmartCard::Session& session,
+                                      const CommandApdu& command);
 
 /** Read lenght bytes from currently selected binary file in blockLength-sized chunks. */
-byte_vector readBinary(const SmartCard& card, const uint16_t length, byte_type blockLength = 0x00);
+byte_vector readBinary(const SmartCard::Session& session, const uint16_t length,
+                       byte_type blockLength = 0x00);
 
 // Errors.
 

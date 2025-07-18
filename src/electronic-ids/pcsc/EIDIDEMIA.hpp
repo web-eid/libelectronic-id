@@ -36,33 +36,39 @@ public:
         bool isECC;
     };
 
-    explicit EIDIDEMIA(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
+    using PcscElectronicID::PcscElectronicID;
 
 protected:
-    byte_vector getCertificateImpl(const CertificateType type) const override;
+    byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                   const CertificateType type) const override;
 
-    PinRetriesRemainingAndMax authPinRetriesLeftImpl() const override;
+    PinRetriesRemainingAndMax
+    authPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const override;
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
     {
         return JsonWebSignatureAlgorithm::ES384;
     }
-    virtual KeyInfo authKeyRef() const;
-    byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
+    virtual KeyInfo authKeyRef(const pcsc_cpp::SmartCard::Session& session) const;
+    byte_vector signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                    const byte_vector& hash) const override;
 
-    PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const override;
+    PinRetriesRemainingAndMax
+    signingPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const override;
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
     {
         return ELLIPTIC_CURVE_SIGNATURE_ALGOS();
     }
-    virtual KeyInfo signKeyRef() const;
-    Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
+    virtual KeyInfo signKeyRef(const pcsc_cpp::SmartCard::Session& session) const;
+    Signature signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                     const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
-    PinRetriesRemainingAndMax pinRetriesLeft(byte_type pinReference) const;
+    static PinRetriesRemainingAndMax pinRetriesLeft(const pcsc_cpp::SmartCard::Session& session,
+                                                    byte_type pinReference);
 
-    void selectMain() const;
-    void selectADF1() const;
-    void selectADF2() const;
+    static void selectMain(const pcsc_cpp::SmartCard::Session& session);
+    static void selectADF1(const pcsc_cpp::SmartCard::Session& session);
+    static void selectADF2(const pcsc_cpp::SmartCard::Session& session);
 };
 
 } // namespace electronic_id

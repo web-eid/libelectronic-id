@@ -30,41 +30,48 @@ namespace electronic_id
 class FinEIDv3 : public PcscElectronicID
 {
 public:
-    FinEIDv3(pcsc_cpp::SmartCard::ptr _card) : PcscElectronicID(std::move(_card)) {}
+    using PcscElectronicID::PcscElectronicID;
 
 protected:
-    byte_vector getCertificateImpl(const CertificateType type) const override;
+    byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                   const CertificateType type) const override;
 
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
     {
         return JsonWebSignatureAlgorithm::PS256;
     }
     PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
-    PinRetriesRemainingAndMax authPinRetriesLeftImpl() const override;
+    PinRetriesRemainingAndMax
+    authPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const override;
 
     const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override;
     PinMinMaxLength signingPinMinMaxLength() const override { return {6, 12}; }
-    PinRetriesRemainingAndMax signingPinRetriesLeftImpl() const override;
+    PinRetriesRemainingAndMax
+    signingPinRetriesLeftImpl(const pcsc_cpp::SmartCard::Session& session) const override;
 
     std::string name() const override { return "FinEID v3"; }
     Type type() const override { return FinEID; }
 
-    byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
+    byte_vector signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                    const byte_vector& hash) const override;
 
-    Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
+    Signature signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                     const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
-    byte_vector sign(const HashAlgorithm hashAlgo, const byte_vector& hash, byte_vector&& pin,
-                     byte_type pinReference, PinMinMaxLength pinMinMaxLength,
-                     byte_type keyReference, byte_type signatureAlgo, byte_type LE) const;
+    byte_vector sign(const pcsc_cpp::SmartCard::Session& session, const HashAlgorithm hashAlgo,
+                     const byte_vector& hash, byte_vector&& pin, byte_type pinReference,
+                     PinMinMaxLength pinMinMaxLength, byte_type keyReference,
+                     byte_type signatureAlgo, byte_type LE) const;
 
-    PinRetriesRemainingAndMax pinRetriesLeft(byte_type pinReference) const;
+    PinRetriesRemainingAndMax pinRetriesLeft(const pcsc_cpp::SmartCard::Session& session,
+                                             byte_type pinReference) const;
 };
 
 class FinEIDv4 : public FinEIDv3
 {
 public:
-    FinEIDv4(pcsc_cpp::SmartCard::ptr _card) : FinEIDv3(std::move(_card)) {}
+    using FinEIDv3::FinEIDv3;
 
 private:
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
@@ -72,13 +79,16 @@ private:
         return JsonWebSignatureAlgorithm::ES384;
     }
 
-    byte_vector getCertificateImpl(const CertificateType type) const override;
+    byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                   const CertificateType type) const override;
 
     std::string name() const override { return "FinEID v4"; }
 
-    byte_vector signWithAuthKeyImpl(byte_vector&& pin, const byte_vector& hash) const override;
+    byte_vector signWithAuthKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                    const byte_vector& hash) const override;
 
-    Signature signWithSigningKeyImpl(byte_vector&& pin, const byte_vector& hash,
+    Signature signWithSigningKeyImpl(const pcsc_cpp::SmartCard::Session& session, byte_vector&& pin,
+                                     const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 };
 
