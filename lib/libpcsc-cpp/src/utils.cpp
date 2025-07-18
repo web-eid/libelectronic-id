@@ -67,21 +67,23 @@ std::string operator+(std::string lhs, const byte_vector& rhs)
     return hexStringBuilder.str();
 }
 
-void transmitApduWithExpectedResponse(const SmartCard& card, const CommandApdu& command)
+void transmitApduWithExpectedResponse(const SmartCard::Session& session, const CommandApdu& command)
 {
-    const auto response = card.transmit(command);
+    const auto response = session.transmit(command);
     if (!response.isOK()) {
         throw UnexpectedResponseError(command, response, __FILE__, __LINE__, __func__);
     }
 }
 
-byte_vector readBinary(const SmartCard& card, const uint16_t length, byte_type blockLength)
+byte_vector readBinary(const SmartCard::Session& session, const uint16_t length,
+                       byte_type blockLength)
 {
     byte_vector resultBytes;
     resultBytes.reserve(length);
     while (resultBytes.size() < length) {
         byte_type chunk = byte_type(std::min<size_t>(length - resultBytes.size(), blockLength));
-        auto response = card.transmit(CommandApdu::readBinary(uint16_t(resultBytes.size()), chunk));
+        auto response =
+            session.transmit(CommandApdu::readBinary(uint16_t(resultBytes.size()), chunk));
         if (chunk > 0 && response.data.size() != chunk) {
             THROW(Error,
                   "Length mismatch, expected "s + std::to_string(chunk) + ", received "

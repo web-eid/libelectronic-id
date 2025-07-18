@@ -98,12 +98,12 @@ public:
     virtual std::string name() const = 0;
     virtual Type type() const = 0;
 
-    virtual pcsc_cpp::SmartCard const& smartcard() const { return *card; }
+    virtual pcsc_cpp::SmartCard const& smartcard() const { return card; }
 
 protected:
-    ElectronicID(pcsc_cpp::SmartCard::ptr _card) : card(std::move(_card)) {}
+    ElectronicID(pcsc_cpp::SmartCard&& _card) noexcept : card(std::move(_card)) {}
 
-    pcsc_cpp::SmartCard::ptr card;
+    pcsc_cpp::SmartCard card;
 };
 
 using ElectronicIDConstructor = std::function<ElectronicID::ptr(const pcsc_cpp::Reader&)>;

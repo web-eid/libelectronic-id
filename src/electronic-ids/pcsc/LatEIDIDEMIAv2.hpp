@@ -34,12 +34,13 @@ struct TLV;
 class LatEIDIDEMIAV2 : public EIDIDEMIA
 {
 public:
-    explicit LatEIDIDEMIAV2(pcsc_cpp::SmartCard::ptr _card);
+    explicit LatEIDIDEMIAV2(pcsc_cpp::SmartCard&& _card);
     ~LatEIDIDEMIAV2() override;
     PCSC_CPP_DISABLE_COPY_MOVE(LatEIDIDEMIAV2);
 
 private:
-    byte_vector getCertificateImpl(const CertificateType type) const override;
+    byte_vector getCertificateImpl(const pcsc_cpp::SmartCard::Session& session,
+                                   const CertificateType type) const override;
 
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override;
     PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
@@ -50,15 +51,16 @@ private:
     std::string name() const override { return "LatEID IDEMIA v2"; }
     Type type() const override { return LatEID; }
 
-    KeyInfo authKeyRef() const override;
-    KeyInfo signKeyRef() const override;
+    KeyInfo authKeyRef(const pcsc_cpp::SmartCard::Session& session) const override;
+    KeyInfo signKeyRef(const pcsc_cpp::SmartCard::Session& session) const override;
 
     template <class C>
-    TLV readEF_File(byte_vector file, C& cache) const;
+    TLV readEF_File(const pcsc_cpp::SmartCard::Session& session, byte_vector file, C& cache) const;
     template <class C>
-    TLV readDCODInfo(byte_type type, C& cache) const;
+    TLV readDCODInfo(const pcsc_cpp::SmartCard::Session& session, byte_type type, C& cache) const;
     template <class C>
-    KeyInfo readPrKDInfo(byte_type keyID, C& cache) const;
+    KeyInfo readPrKDInfo(const pcsc_cpp::SmartCard::Session& session, byte_type keyID,
+                         C& cache) const;
 
     struct Private;
     std::unique_ptr<Private> data;
