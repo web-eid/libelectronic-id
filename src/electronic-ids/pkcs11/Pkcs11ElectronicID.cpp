@@ -218,8 +218,7 @@ const Pkcs11ElectronicIDModule& getModule(ElectronicID::Type eidType)
 } // namespace
 
 Pkcs11ElectronicID::Pkcs11ElectronicID(ElectronicID::Type type) :
-    ElectronicID {std::make_unique<pcsc_cpp::SmartCard>()}, module {getModule(type)},
-    manager {PKCS11CardManager::instance(module.path)}
+    ElectronicID {{}}, module {getModule(type)}, manager {PKCS11CardManager::instance(module.path)}
 {
     REQUIRE_NON_NULL(manager)
 

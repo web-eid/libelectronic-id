@@ -41,35 +41,6 @@
 namespace
 {
 
-using namespace pcsc_cpp;
-
-constexpr SmartCard::Protocol convertToSmartCardProtocol(const DWORD protocol)
-{
-    switch (protocol) {
-    case SCARD_PROTOCOL_UNDEFINED:
-        return SmartCard::Protocol::UNDEFINED;
-    case SCARD_PROTOCOL_T0:
-        return SmartCard::Protocol::T0;
-    case SCARD_PROTOCOL_T1:
-        return SmartCard::Protocol::T1;
-    default:
-        THROW(Error, "Unsupported card protocol: " + std::to_string(protocol));
-    }
-}
-
-std::pair<SCARDHANDLE, DWORD> connectToCard(const SCARDCONTEXT ctx, const string_t& readerName)
-{
-    const unsigned requestedProtocol =
-        SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1; // Let PCSC auto-select protocol.
-    DWORD protocolOut = SCARD_PROTOCOL_UNDEFINED;
-    SCARDHANDLE cardHandle = 0;
-
-    SCard(Connect, ctx, readerName.c_str(), DWORD(SCARD_SHARE_SHARED), requestedProtocol,
-          &cardHandle, &protocolOut);
-
-    return {cardHandle, protocolOut};
-}
-
 template <class K, class V = uint32_t, class D, size_t dsize, typename Func>
 constexpr std::map<K, V> parseTLV(const std::array<D, dsize>& data, DWORD size, Func transform)
 {
@@ -96,18 +67,26 @@ namespace pcsc_cpp
 class CardImpl
 {
 public:
-    explicit CardImpl(std::pair<SCARDHANDLE, DWORD> cardParams) :
-        cardHandle(cardParams.first), _protocol {cardParams.second, sizeof(SCARD_IO_REQUEST)}
+    explicit CardImpl(const Reader& reader)
     {
-        // TODO: debug("Protocol: " + to_string(protocol()))
+        constexpr unsigned requestedProtocol =
+            SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1; // Let PCSC auto-select protocol.
+        SCard(Connect, reader.ctx->handle(), reader.name.c_str(), DWORD(SCARD_SHARE_SHARED),
+              requestedProtocol, &cardHandle, &_protocol.dwProtocol);
+
         try {
             DWORD size = 0;
-            std::array<BYTE, 256> buf {};
-            SCard(Control, cardHandle, DWORD(CM_IOCTL_GET_FEATURE_REQUEST), nullptr, 0U, buf.data(),
-                  DWORD(buf.size()), &size);
-            features = parseTLV<DRIVER_FEATURES>(buf, size, [](uint32_t t) { return ntohl(t); });
+            std::array<PCSC_TLV_STRUCTURE, FEATURE_CCID_ESC_COMMAND> list {};
+            SCard(Control, cardHandle, DWORD(CM_IOCTL_GET_FEATURE_REQUEST), nullptr, 0U,
+                  list.data(), DWORD(list.size() * sizeof(PCSC_TLV_STRUCTURE)), &size);
+            if (size % sizeof(PCSC_TLV_STRUCTURE))
+                return;
+            for (const auto& f : list) {
+                features[DRIVER_FEATURES(f.tag)] = ntohl(f.value);
+            }
 
             if (auto ioctl = features.find(FEATURE_GET_TLV_PROPERTIES); ioctl != features.cend()) {
+                std::array<BYTE, 256> buf {};
                 SCard(Control, cardHandle, ioctl->second, nullptr, 0U, buf.data(),
                       DWORD(buf.size()), &size);
                 auto properties = parseTLV<TLV_PROPERTIES>(buf, size, [](uint32_t t) { return t; });
@@ -124,7 +103,7 @@ public:
         }
     }
 
-    ~CardImpl()
+    ~CardImpl() noexcept
     {
         if (cardHandle) {
             // Cannot throw in destructor, so cannot use the SCard() macro here.
@@ -210,11 +189,24 @@ public:
 
     void endTransaction() const { SCard(EndTransaction, cardHandle, DWORD(SCARD_LEAVE_CARD)); }
 
-    DWORD protocol() const { return _protocol.dwProtocol; }
+    SmartCard::Protocol protocol() const
+    {
+        switch (_protocol.dwProtocol) {
+            using enum SmartCard::Protocol;
+        case SCARD_PROTOCOL_UNDEFINED:
+            return UNDEFINED;
+        case SCARD_PROTOCOL_T0:
+            return T0;
+        case SCARD_PROTOCOL_T1:
+            return T1;
+        default:
+            THROW(Error, "Unsupported card protocol: " + std::to_string(_protocol.dwProtocol));
+        }
+    }
 
 private:
-    SCARDHANDLE cardHandle;
-    const SCARD_IO_REQUEST _protocol;
+    SCARDHANDLE cardHandle {};
+    SCARD_IO_REQUEST _protocol {SCARD_PROTOCOL_UNDEFINED, sizeof(SCARD_IO_REQUEST)};
     std::map<DRIVER_FEATURES, uint32_t> features;
     uint32_t id_vendor {};
     uint32_t id_product {};
@@ -243,7 +235,8 @@ private:
             break;
         default:
             THROW(Error,
-                  "Error response: '" + response + "', protocol " + std::to_string(protocol()));
+                  "Error response: '" + response + "', protocol "
+                      + std::to_string(_protocol.dwProtocol));
         }
 
         if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
@@ -271,16 +264,13 @@ private:
     }
 };
 
-SmartCard::TransactionGuard::TransactionGuard(const CardImpl& card, bool& inProgress) :
-    card(card), inProgress(inProgress)
+SmartCard::Session::Session(const CardImpl& card) : card(card)
 {
     card.beginTransaction();
-    inProgress = true;
 }
 
-SmartCard::TransactionGuard::~TransactionGuard() noexcept
+SmartCard::Session::~Session() noexcept
 {
-    inProgress = false;
     try {
         card.endTransaction();
     } catch (...) {
@@ -288,47 +278,47 @@ SmartCard::TransactionGuard::~TransactionGuard() noexcept
     }
 }
 
-SmartCard::SmartCard(ContextPtr context, string_t readerName, byte_vector atr) :
-    ctx(std::move(context)),
-    card(std::make_unique<CardImpl>(connectToCard(ctx->handle(), readerName))),
-    _readerName(std::move(readerName)), _atr(std::move(atr)),
-    _protocol(convertToSmartCardProtocol(card->protocol()))
+ResponseApdu SmartCard::Session::transmit(const CommandApdu& command) const
 {
-    // TODO: debug("Card ATR -> " + bytes2hexstr(atr))
+    return card.transmitBytes(command);
 }
 
-SmartCard::SmartCard() = default;
-SmartCard::~SmartCard() noexcept = default;
+ResponseApdu SmartCard::Session::transmitCTL(const CommandApdu& command, uint16_t lang,
+                                             uint8_t minlen) const
+{
+    return card.transmitBytesCTL(command, lang, minlen);
+}
 
-SmartCard::TransactionGuard SmartCard::beginTransaction()
+bool SmartCard::Session::readerHasPinPad() const
+{
+    return card.readerHasPinPad();
+}
+
+SmartCard::SmartCard(const Reader& reader) :
+    ctx(reader.ctx), card(std::make_unique<CardImpl>(reader)), _readerName(reader.name),
+    _atr(reader.cardAtr)
+{
+}
+
+SmartCard::SmartCard() noexcept = default;
+SmartCard::SmartCard(SmartCard&& other) noexcept = default;
+SmartCard::~SmartCard() noexcept = default;
+SmartCard& SmartCard::operator=(SmartCard&& other) noexcept = default;
+
+SmartCard::Session SmartCard::beginSession() const
 {
     REQUIRE_NON_NULL(card)
-    return {*card, transactionInProgress};
+    return {*card};
+}
+
+SmartCard::Protocol SmartCard::protocol() const
+{
+    return card ? card->protocol() : Protocol::UNDEFINED;
 }
 
 bool SmartCard::readerHasPinPad() const
 {
     return card ? card->readerHasPinPad() : false;
-}
-
-ResponseApdu SmartCard::transmit(const CommandApdu& command) const
-{
-    REQUIRE_NON_NULL(card)
-    if (!transactionInProgress) {
-        THROW(std::logic_error, "Call SmartCard::transmit() inside a transaction");
-    }
-
-    return card->transmitBytes(command);
-}
-
-ResponseApdu SmartCard::transmitCTL(const CommandApdu& command, uint16_t lang, uint8_t minlen) const
-{
-    REQUIRE_NON_NULL(card)
-    if (!transactionInProgress) {
-        THROW(std::logic_error, "Call SmartCard::transmit() inside a transaction");
-    }
-
-    return card->transmitBytesCTL(command, lang, minlen);
 }
 
 } // namespace pcsc_cpp
