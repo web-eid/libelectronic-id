@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: dnf install -y --setopt=install_weak_deps=False git gcc-c++ cmake gtest-devel openssl-devel pcsc-lite-devel
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Configure CMake
       run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S . -B build
