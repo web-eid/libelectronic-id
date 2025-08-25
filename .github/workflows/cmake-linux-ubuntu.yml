@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Install dependencies
       run: sudo apt update -qq && sudo apt install --no-install-recommends -y cmake libgtest-dev libpcsclite-dev

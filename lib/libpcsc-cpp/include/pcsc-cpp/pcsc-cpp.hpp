@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -164,6 +165,13 @@ struct CommandApdu
         d.push_back(le);
     }
 
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(const CommandApdu& other, byte_type le) : d(other.d)
+    {
+        size_t pos = d.size() <= 5 ? 4 : 5 + d[4]; // Case 1/2 or 3/4
+        d.resize(pos + 1);
+        d[pos] = le;
+    }
+
     PCSC_CPP_CONSTEXPR_VECTOR void clear() && noexcept
     {
         std::fill(d.begin(), d.end(), byte_type(0));
@@ -259,6 +267,22 @@ struct CommandApdu
         return verify(p2, std::move(emptyPin), paddingLength, paddingChar);
     }
 
+    /**
+     * A helper function to create a GET RESPONSE command APDU.
+     *
+     * The ISO 7816-4 Section 7.1 GET RESPONSE  command has the form:
+     *   CLA = 0x00
+     *   INS = 0xC0
+     *   P1, P2 = ‘0000’ (other values are RFU)
+     *   Lc and Data field = Empty
+     *   Le  = Maximum length of data expected in response
+     */
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu getResponse(byte_type le = 0x00)
+    {
+        return {0x00, 0xc0, 0x00, 0x00, le};
+    }
+
+private:
     byte_vector d;
 };
 

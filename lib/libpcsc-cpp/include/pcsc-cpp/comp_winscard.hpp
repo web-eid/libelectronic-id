@@ -83,9 +83,9 @@ enum TLV_PROPERTIES : uint8_t {
     TLV_PROPERTY_wIdProduct = 0x0C,
 };
 
-using PCSC_TLV_STRUCTURE = struct
+struct PCSC_TLV_STRUCTURE
 {
-    uint8_t tag;
+    DRIVER_FEATURES tag;
     uint8_t length;
     uint32_t value;
 };
@@ -130,7 +130,7 @@ enum bConfirmPIN : uint8_t {
     AdvancedModify = 1 << 2,
 };
 
-using PIN_VERIFY_STRUCTURE = struct
+struct PIN_VERIFY_STRUCTURE
 {
     uint8_t bTimerOut; // timeout in seconds (00 means use default timeout)
     uint8_t bTimerOut2; // timeout in seconds after first key stroke
