@@ -127,6 +127,7 @@ struct ResponseApdu
  */
 struct CommandApdu
 {
+    static constexpr size_t APDU_HEADER_AND_LC_SIZE = 5;
     static constexpr size_t MAX_DATA_SIZE = 255;
 
     // ISO 7816 part 4, Annex B.1, Case 1
@@ -161,6 +162,12 @@ struct CommandApdu
         d.reserve(d.size() + 1);
 #endif
         d.push_back(le);
+    }
+
+    PCSC_CPP_CONSTEXPR_VECTOR void clear() && noexcept
+    {
+        std::fill(d.begin(), d.end(), byte_type(0));
+        d.clear();
     }
 
     constexpr operator const byte_vector&() const { return d; }
@@ -212,6 +219,44 @@ struct CommandApdu
     static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu readBinary(uint16_t pos, byte_type le)
     {
         return {0x00, 0xb0, byte_type(pos >> 8), byte_type(pos), le};
+    }
+
+    /**
+     * A helper function to create a VERIFY command APDU.
+     * The ISO 7816-4 Section 6.12 VERIFY command has the form:
+     *   CLA = 0x00
+     *   INS = 0x20
+     *   P1  = Only P1=’00’ is valid (other values are RFU)
+     *   P2  = Qualifier of the reference data
+     *   Lc and Data field = Empty or verification data
+     *   Le  = Empty
+     */
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu verify(byte_type p2, byte_vector&& pin,
+                                                        size_t paddingLength,
+                                                        pcsc_cpp::byte_type paddingChar)
+    {
+        if (!pin.empty() && pin.capacity() < paddingLength + APDU_HEADER_AND_LC_SIZE) {
+            throw std::invalid_argument(
+                "PIN buffer does not have enough capacity to pad without reallocation");
+        }
+        if (pin.size() > paddingLength) {
+            throw std::invalid_argument("PIN length exceeds maximum length");
+        }
+        if (pin.size() < paddingLength) {
+            pin.insert(pin.end(), paddingLength - pin.size(), paddingChar);
+        }
+        return {0x00, 0x20, 0x00, p2, std::move(pin)};
+    }
+
+    /**
+     * A helper function to create a VERIFY command APDU with empty data field and only padding.
+     */
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu verify(byte_type p2, size_t paddingLength,
+                                                        pcsc_cpp::byte_type paddingChar)
+    {
+        byte_vector emptyPin;
+        emptyPin.reserve(paddingLength + APDU_HEADER_AND_LC_SIZE);
+        return verify(p2, std::move(emptyPin), paddingLength, paddingChar);
     }
 
     byte_vector d;
