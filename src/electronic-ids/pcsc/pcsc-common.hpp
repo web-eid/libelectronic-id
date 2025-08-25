@@ -87,19 +87,6 @@ inline pcsc_cpp::byte_vector readFile(const pcsc_cpp::SmartCard::Session& sessio
     return readBinary(session, pcsc_cpp::toSW(*size.begin, *(size.begin + 1)), blockLength);
 }
 
-PCSC_CPP_CONSTEXPR_VECTOR inline pcsc_cpp::byte_vector
-addPaddingToPin(pcsc_cpp::byte_vector&& pin, size_t paddingLength, pcsc_cpp::byte_type paddingChar)
-{
-    if (pin.capacity() < paddingLength) {
-        THROW(ProgrammingError,
-              "PIN buffer does not have enough capacity to pad without reallocation");
-    }
-    if (pin.size() < paddingLength) {
-        pin.insert(pin.end(), paddingLength - pin.size(), paddingChar);
-    }
-    return std::move(pin);
-}
-
 inline void verifyPin(const pcsc_cpp::SmartCard::Session& session, pcsc_cpp::byte_type p2,
                       pcsc_cpp::byte_vector&& pin, ElectronicID::PinMinMaxLength pinMinMax,
                       pcsc_cpp::byte_type paddingChar)
@@ -107,13 +94,12 @@ inline void verifyPin(const pcsc_cpp::SmartCard::Session& session, pcsc_cpp::byt
     pcsc_cpp::ResponseApdu response;
 
     if (session.readerHasPinPad()) {
-        const pcsc_cpp::CommandApdu verifyPin {
-            0x00, 0x20, 0x00, p2, pcsc_cpp::byte_vector(pinMinMax.second, paddingChar)};
-        response = session.transmitCTL(verifyPin, 0, pinMinMax.first);
+        response = session.transmitCTL(
+            pcsc_cpp::CommandApdu::verify(p2, std::move(pin), pinMinMax.second, paddingChar), 0,
+            pinMinMax.first);
     } else {
-        const pcsc_cpp::CommandApdu verifyPin {
-            0x00, 0x20, 0x00, p2, addPaddingToPin(std::move(pin), pinMinMax.second, paddingChar)};
-        response = session.transmit(verifyPin);
+        response = session.transmit(
+            pcsc_cpp::CommandApdu::verify(p2, std::move(pin), pinMinMax.second, paddingChar));
     }
 
     // NOTE: in case card-specific error handling logic is needed,
