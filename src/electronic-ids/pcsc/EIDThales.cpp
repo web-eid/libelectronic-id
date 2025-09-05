@@ -69,7 +69,7 @@ byte_vector EIDThales::getCertificateImpl(const SmartCard::Session& session,
 ElectronicID::PinInfo EIDThales::pinRetriesLeft(const SmartCard::Session& session,
                                                 byte_type pinReference, bool pinActive) const
 {
-    const auto GET_DATA = smartcard().protocol() == SmartCard::Protocol::T1
+    const auto& GET_DATA = smartcard().protocol() == SmartCard::Protocol::T1
         ? CommandApdu {0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}, 0x00}
         : CommandApdu {0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}};
     const auto response = session.transmit(GET_DATA);
