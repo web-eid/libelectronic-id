@@ -117,7 +117,9 @@ TLV LatEIDIDEMIAV2::readEF_File(const SmartCard::Session& session, byte_vector f
     if (auto it = cache.find(file); it != cache.end()) {
         return TLV(it->second);
     }
-    return TLV(cache[std::move(file)] = readFile(session, CommandApdu::selectEF(0x02, file)));
+    auto value = readFile(session, CommandApdu::selectEF(0x02, file));
+    auto it = cache.try_emplace(std::move(file), std::move(value)).first;
+    return TLV(it->second);
 }
 
 TLV LatEIDIDEMIAV2::readDCODInfo(const SmartCard::Session& session, byte_type type,
