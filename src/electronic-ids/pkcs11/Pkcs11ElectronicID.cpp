@@ -255,9 +255,9 @@ ElectronicID::PinMinMaxLength Pkcs11ElectronicID::authPinMinMaxLength() const
     return {authToken.minPinLen, authToken.maxPinLen};
 }
 
-ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::authPinRetriesLeft() const
+ElectronicID::PinInfo Pkcs11ElectronicID::authPinInfo() const
 {
-    return {authToken.retry, module.retryMax};
+    return {authToken.retry, module.retryMax, true};
 }
 
 pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(byte_vector&& pin,
@@ -295,9 +295,9 @@ ElectronicID::PinMinMaxLength Pkcs11ElectronicID::signingPinMinMaxLength() const
     return {signingToken.minPinLen, signingToken.maxPinLen};
 }
 
-ElectronicID::PinRetriesRemainingAndMax Pkcs11ElectronicID::signingPinRetriesLeft() const
+ElectronicID::PinInfo Pkcs11ElectronicID::signingPinInfo() const
 {
-    return {signingToken.retry, module.retryMax};
+    return {signingToken.retry, module.retryMax, true};
 }
 
 ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(byte_vector&& pin,

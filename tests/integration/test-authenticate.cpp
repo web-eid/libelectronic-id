@@ -53,7 +53,7 @@ TEST(electronic_id_test, authenticate)
             "currently supported");
     }
 
-    GTEST_ASSERT_GE(cardInfo->authPinRetriesLeft().first, 0U);
+    GTEST_ASSERT_GE(cardInfo->authPinInfo().retryCount, 0U);
 
     byte_vector pin {'1', '2', '3', '4'};
     pin.reserve(64);

@@ -24,8 +24,8 @@
 
 #include "enums.hpp"
 
-#include <optional>
 #include <functional>
+#include <optional>
 
 namespace electronic_id
 {
@@ -37,10 +37,16 @@ class ElectronicID
 public:
     using ptr = std::shared_ptr<ElectronicID>;
     using PinMinMaxLength = std::pair<uint8_t, uint8_t>;
-    using PinRetriesRemainingAndMax = std::pair<uint8_t, int8_t>;
     using byte_vector = pcsc_cpp::byte_vector;
     using byte_type = pcsc_cpp::byte_type;
     using Signature = std::pair<byte_vector, SignatureAlgorithm>;
+
+    struct PinInfo
+    {
+        uint8_t retryCount;
+        int8_t maxRetry;
+        bool pinActive;
+    };
 
     enum Type : uint8_t {
         EstEID,
@@ -68,7 +74,7 @@ public:
 
     virtual PinMinMaxLength authPinMinMaxLength() const = 0;
 
-    virtual PinRetriesRemainingAndMax authPinRetriesLeft() const = 0;
+    virtual PinInfo authPinInfo() const = 0;
 
     virtual pcsc_cpp::byte_vector signWithAuthKey(byte_vector&& pin,
                                                   const byte_vector& hash) const = 0;
@@ -80,7 +86,7 @@ public:
 
     virtual PinMinMaxLength signingPinMinMaxLength() const = 0;
 
-    virtual PinRetriesRemainingAndMax signingPinRetriesLeft() const = 0;
+    virtual PinInfo signingPinInfo() const = 0;
 
     virtual Signature signWithSigningKey(byte_vector&& pin, const byte_vector& hash,
                                          const HashAlgorithm hashAlgo) const = 0;

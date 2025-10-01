@@ -46,9 +46,9 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1031U);
 
-    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3U);
-    EXPECT_EQ(authRetriesLeft.second, 3);
+    auto authRetriesLeft = cardInfo->authPinInfo();
+    EXPECT_EQ(authRetriesLeft.retryCount, 3U);
+    EXPECT_EQ(authRetriesLeft.maxRetry, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
@@ -67,9 +67,9 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
     auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 1008U);
 
-    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3U);
-    EXPECT_EQ(signingRetriesLeft.second, 3);
+    auto signingRetriesLeft = cardInfo->signingPinInfo();
+    EXPECT_EQ(signingRetriesLeft.retryCount, 3U);
+    EXPECT_EQ(signingRetriesLeft.maxRetry, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5'};
     signPin.reserve(12);
@@ -96,9 +96,9 @@ TEST(electronic_id_test, selectCertificateFinV3)
     auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1664U);
 
-    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 5U);
-    EXPECT_EQ(authRetriesLeft.second, 5);
+    auto authRetriesLeft = cardInfo->authPinInfo();
+    EXPECT_EQ(authRetriesLeft.retryCount, 5U);
+    EXPECT_EQ(authRetriesLeft.maxRetry, 5);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::PS256);
@@ -117,9 +117,9 @@ TEST(electronic_id_test, selectCertificateFinV3)
     auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 1487U);
 
-    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 5U);
-    EXPECT_EQ(signingRetriesLeft.second, 5);
+    auto signingRetriesLeft = cardInfo->signingPinInfo();
+    EXPECT_EQ(signingRetriesLeft.retryCount, 5U);
+    EXPECT_EQ(signingRetriesLeft.maxRetry, 5);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     signPin.reserve(12);
@@ -146,9 +146,9 @@ TEST(electronic_id_test, selectCertificateFinV4)
     auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1087U);
 
-    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 5U);
-    EXPECT_EQ(authRetriesLeft.second, 5);
+    auto authRetriesLeft = cardInfo->authPinInfo();
+    EXPECT_EQ(authRetriesLeft.retryCount, 5U);
+    EXPECT_EQ(authRetriesLeft.maxRetry, 5);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::ES384);
@@ -167,9 +167,9 @@ TEST(electronic_id_test, selectCertificateFinV4)
     auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 1144U);
 
-    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 5U);
-    EXPECT_EQ(signingRetriesLeft.second, 5);
+    auto signingRetriesLeft = cardInfo->signingPinInfo();
+    EXPECT_EQ(signingRetriesLeft.retryCount, 5U);
+    EXPECT_EQ(signingRetriesLeft.maxRetry, 5);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     signPin.reserve(12);
@@ -196,9 +196,9 @@ TEST(electronic_id_test, selectCertificateLatV2)
     auto certificateAuth = cardInfo->getCertificate(CertificateType::AUTHENTICATION);
     EXPECT_EQ(certificateAuth.size(), 1733U);
 
-    auto authRetriesLeft = cardInfo->authPinRetriesLeft();
-    EXPECT_EQ(authRetriesLeft.first, 3U);
-    EXPECT_EQ(authRetriesLeft.second, 3);
+    auto authRetriesLeft = cardInfo->authPinInfo();
+    EXPECT_EQ(authRetriesLeft.retryCount, 3U);
+    EXPECT_EQ(authRetriesLeft.maxRetry, 3);
 
     const JsonWebSignatureAlgorithm authAlgo = cardInfo->authSignatureAlgorithm();
     EXPECT_EQ(authAlgo, JsonWebSignatureAlgorithm::RS256);
@@ -217,9 +217,9 @@ TEST(electronic_id_test, selectCertificateLatV2)
     auto certificateSign = cardInfo->getCertificate(CertificateType::SIGNING);
     EXPECT_EQ(certificateSign.size(), 2124U);
 
-    auto signingRetriesLeft = cardInfo->signingPinRetriesLeft();
-    EXPECT_EQ(signingRetriesLeft.first, 3U);
-    EXPECT_EQ(signingRetriesLeft.second, 3);
+    auto signingRetriesLeft = cardInfo->signingPinInfo();
+    EXPECT_EQ(signingRetriesLeft.retryCount, 3U);
+    EXPECT_EQ(signingRetriesLeft.maxRetry, 3);
 
     pcsc_cpp::byte_vector signPin {'1', '2', '3', '4', '5', '6'};
     signPin.reserve(12);

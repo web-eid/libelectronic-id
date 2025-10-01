@@ -48,17 +48,15 @@ namespace
 
 constexpr byte_type PIN_PADDING_CHAR = 0x00;
 constexpr byte_type ECDSA_ALGO = 0x04;
-constexpr byte_type SIGNING_PIN_REFERENCE = 0x82;
 
 const auto SELECT_MAIN_AID = CommandApdu::select(
     0x04, {0xa0, 0x00, 0x00, 0x00, 0x63, 0x50, 0x4b, 0x43, 0x53, 0x2d, 0x31, 0x35});
 
 } // namespace
 
-ElectronicID::PinRetriesRemainingAndMax
-EIDThales::authPinRetriesLeftImpl(const SmartCard::Session& session) const
+ElectronicID::PinInfo EIDThales::authPinInfoImpl(const SmartCard::Session& session) const
 {
-    return pinRetriesLeft(session, authPinReference());
+    return pinRetriesLeft(session, authPinReference(), true);
 }
 
 byte_vector EIDThales::getCertificateImpl(const SmartCard::Session& session,
@@ -68,8 +66,8 @@ byte_vector EIDThales::getCertificateImpl(const SmartCard::Session& session,
     return readFile(session, type.isAuthentication() ? authCertFile() : signCertFile());
 }
 
-ElectronicID::PinRetriesRemainingAndMax EIDThales::pinRetriesLeft(const SmartCard::Session& session,
-                                                                  byte_type pinReference) const
+ElectronicID::PinInfo EIDThales::pinRetriesLeft(const SmartCard::Session& session,
+                                                byte_type pinReference, bool pinActive) const
 {
     const auto GET_DATA = smartcard().protocol() == SmartCard::Protocol::T1
         ? CommandApdu {0x00, 0xCB, 0x00, 0xFF, {0xA0, 0x03, 0x83, 0x01, pinReference}, 0x00}
@@ -78,8 +76,9 @@ ElectronicID::PinRetriesRemainingAndMax EIDThales::pinRetriesLeft(const SmartCar
     if (!response.isOK()) {
         THROW(SmartCardError, "Command GET DATA failed with error " + response);
     }
-    if (TLV info = TLV(response.data).find(0xA0)[0xdf21]) {
-        return {*info.begin, maximumPinRetries()};
+    if (TLV info = TLV(response.data).find(0xA0); TLV count = info[0xdf21]) {
+        TLV pinChanged = info[0xdf2f];
+        return {*count.begin, maximumPinRetries(), pinActive || !pinChanged || *pinChanged.begin};
     }
     THROW(SmartCardError,
           "Command GET DATA failed: received data does not contain the PIN remaining retries info");
@@ -147,10 +146,9 @@ byte_vector EIDThales::sign(const SmartCard::Session& session, const HashAlgorit
     return std::move(signature.data);
 }
 
-ElectronicID::PinRetriesRemainingAndMax
-EIDThales::signingPinRetriesLeftImpl(const SmartCard::Session& session) const
+ElectronicID::PinInfo EIDThales::signingPinInfoImpl(const SmartCard::Session& session) const
 {
-    return pinRetriesLeft(session, SIGNING_PIN_REFERENCE);
+    return pinRetriesLeft(session, SIGNING_PIN_REFERENCE, true);
 }
 
 byte_vector EIDThales::signWithAuthKeyImpl(const SmartCard::Session& session, byte_vector&& pin,

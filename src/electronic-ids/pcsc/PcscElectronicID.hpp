@@ -65,15 +65,9 @@ protected:
         return signWithSigningKeyImpl(card.beginSession(), std::move(pin), hash, hashAlgo);
     }
 
-    PinRetriesRemainingAndMax signingPinRetriesLeft() const override
-    {
-        return signingPinRetriesLeftImpl(card.beginSession());
-    }
+    PinInfo signingPinInfo() const override { return signingPinInfoImpl(card.beginSession()); }
 
-    ElectronicID::PinRetriesRemainingAndMax authPinRetriesLeft() const override
-    {
-        return authPinRetriesLeftImpl(card.beginSession());
-    }
+    PinInfo authPinInfo() const override { return authPinInfoImpl(card.beginSession()); }
 
     // The following pure virtual *Impl functions are the interface of all
     // PC/SC electronic ID implementations,
@@ -86,15 +80,13 @@ protected:
     virtual byte_vector signWithAuthKeyImpl(const SmartCard::Session& session, byte_vector&& pin,
                                             const byte_vector& hash) const = 0;
 
-    virtual PinRetriesRemainingAndMax
-    authPinRetriesLeftImpl(const SmartCard::Session& session) const = 0;
+    virtual PinInfo authPinInfoImpl(const SmartCard::Session& session) const = 0;
 
     virtual Signature signWithSigningKeyImpl(const SmartCard::Session& session, byte_vector&& pin,
                                              const byte_vector& hash,
                                              const HashAlgorithm hashAlgo) const = 0;
 
-    virtual PinRetriesRemainingAndMax
-    signingPinRetriesLeftImpl(const SmartCard::Session& session) const = 0;
+    virtual PinInfo signingPinInfoImpl(const SmartCard::Session& session) const = 0;
 };
 
 } // namespace electronic_id

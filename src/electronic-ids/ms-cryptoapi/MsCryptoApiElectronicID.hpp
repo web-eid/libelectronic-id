@@ -78,9 +78,9 @@ private:
         return {PIN_LENGTH_PLACEHOLDER, PIN_LENGTH_PLACEHOLDER};
     }
 
-    PinRetriesRemainingAndMax authPinRetriesLeft() const override
+    PinInfo authPinInfo() const override
     {
-        return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER};
+        return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER, true};
     }
 
     byte_vector signWithAuthKey(byte_vector&& pin, const byte_vector& hash) const override;
@@ -92,9 +92,9 @@ private:
         return {PIN_LENGTH_PLACEHOLDER, PIN_LENGTH_PLACEHOLDER};
     }
 
-    PinRetriesRemainingAndMax signingPinRetriesLeft() const override
+    PinInfo signingPinInfo() const override
     {
-        return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER};
+        return {uint8_t(PIN_RETRY_COUNT_PLACEHOLDER), PIN_RETRY_COUNT_PLACEHOLDER, true};
     }
 
     Signature signWithSigningKey(byte_vector&& pin, const byte_vector& hash,

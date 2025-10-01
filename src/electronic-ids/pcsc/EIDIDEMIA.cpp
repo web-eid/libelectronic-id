@@ -107,8 +107,7 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(const SmartCard::Session& session, by
     return std::move(response.data);
 }
 
-ElectronicID::PinRetriesRemainingAndMax
-EIDIDEMIA::authPinRetriesLeftImpl(const SmartCard::Session& session) const
+ElectronicID::PinInfo EIDIDEMIA::authPinInfoImpl(const SmartCard::Session& session) const
 {
     selectMain(session);
     return pinRetriesLeft(session, AUTH_PIN_REFERENCE);
@@ -154,15 +153,14 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const SmartCard::Sessi
             {isECC ? SignatureAlgorithm::ES : SignatureAlgorithm::RS, hashAlgo}};
 }
 
-ElectronicID::PinRetriesRemainingAndMax
-EIDIDEMIA::signingPinRetriesLeftImpl(const SmartCard::Session& session) const
+ElectronicID::PinInfo EIDIDEMIA::signingPinInfoImpl(const SmartCard::Session& session) const
 {
     selectADF2(session);
     return pinRetriesLeft(session, SIGN_PIN_REFERENCE);
 }
 
-ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(const SmartCard::Session& session,
-                                                                  byte_type pinReference)
+ElectronicID::PinInfo EIDIDEMIA::pinRetriesLeft(const SmartCard::Session& session,
+                                                byte_type pinReference)
 {
     auto ref = byte_type(pinReference & 0x0F);
     const CommandApdu GET_DATA_ODD {
@@ -175,7 +173,7 @@ ElectronicID::PinRetriesRemainingAndMax EIDIDEMIA::pinRetriesLeft(const SmartCar
     TLV max = info[0x9A];
     TLV tries = info[0x9B];
     if (max && tries) {
-        return {*tries.begin, *max.begin};
+        return {*tries.begin, int8_t(*max.begin), true};
     }
     THROW(SmartCardError, "Command GET DATA ODD failed: missing expected info");
 }

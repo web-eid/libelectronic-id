@@ -5,6 +5,8 @@ on: [push, pull_request]
 env:
   BUILD_TYPE: RelWithDebInfo
   CMAKE_BUILD_PARALLEL_LEVEL: 3
+  VCPKG_MANIFEST_DIR: .github
+  VCPKG_INSTALLED_DIR: ${{ github.workspace }}/build/vcpkg_installed
 
 jobs:
   build:
@@ -14,15 +16,25 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Prepare vcpkg and libraries
-      uses: lukka/run-vcpkg@v7
+    - name: Cache vcpkg
+      uses: actions/cache@v4
       with:
-        vcpkgArguments: gtest:x64-windows openssl:x64-windows
-        vcpkgTriplet: x64-windows
-        vcpkgGitCommitId: 031ad89ce6c575df35a8e58707ad2c898446c63e
+        path: ${{ github.workspace }}/vcpkg_cache
+        key: vcpkg-${{ hashFiles(format('{0}/vcpkg.json', env.VCPKG_MANIFEST_DIR)) }}
+
+    - name: Prepare vcpkg and libraries
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgJsonGlob: ${{ env.VCPKG_MANIFEST_DIR }}/vcpkg.json
+        runVcpkgInstall: true
+      env:
+        VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg_cache,readwrite
 
     - name: Configure CMake
-      run: cmake -A x64 "-DCMAKE_TOOLCHAIN_FILE=${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" "-DCMAKE_BUILD_TYPE=${env:BUILD_TYPE}" -S . -B build
+      run: |
+        cmake -A x64 -S . -B build  "-DCMAKE_BUILD_TYPE=${env:BUILD_TYPE}" `
+          "-DCMAKE_TOOLCHAIN_FILE=${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" `
+          "-DVCPKG_MANIFEST_DIR=${{ env.VCPKG_MANIFEST_DIR }}"
 
     - name: Build
       run: cmake --build build --config ${env:BUILD_TYPE}
