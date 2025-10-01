@@ -42,21 +42,18 @@ protected:
     byte_vector getCertificateImpl(const SmartCard::Session& session,
                                    const CertificateType type) const override;
 
-    PinRetriesRemainingAndMax
-    authPinRetriesLeftImpl(const SmartCard::Session& session) const override;
+    PinInfo authPinInfoImpl(const SmartCard::Session& session) const override;
     virtual KeyInfo authKeyRef(const SmartCard::Session& session) const;
     byte_vector signWithAuthKeyImpl(const SmartCard::Session& session, byte_vector&& pin,
                                     const byte_vector& hash) const override;
 
-    PinRetriesRemainingAndMax
-    signingPinRetriesLeftImpl(const SmartCard::Session& session) const override;
+    PinInfo signingPinInfoImpl(const SmartCard::Session& session) const override;
     virtual KeyInfo signKeyRef(const SmartCard::Session& session) const;
     Signature signWithSigningKeyImpl(const SmartCard::Session& session, byte_vector&& pin,
                                      const byte_vector& hash,
                                      const HashAlgorithm hashAlgo) const override;
 
-    static PinRetriesRemainingAndMax pinRetriesLeft(const SmartCard::Session& session,
-                                                    byte_type pinReference);
+    static PinInfo pinRetriesLeft(const SmartCard::Session& session, byte_type pinReference);
 
     static void selectMain(const SmartCard::Session& session);
     static void selectADF1(const SmartCard::Session& session);

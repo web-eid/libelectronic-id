@@ -46,7 +46,7 @@ static void signing(HashAlgorithm hashAlgo)
 
     byte_vector cert = cardInfo->getCertificate(CertificateType::SIGNING);
 
-    GTEST_ASSERT_GE(cardInfo->signingPinRetriesLeft().first, 0U);
+    GTEST_ASSERT_GE(cardInfo->signingPinInfo().retryCount, 0U);
 
     byte_vector pin;
     if (cardInfo->name() == "EstEID IDEMIA v1" || cardInfo->name() == "EstEIDThales")

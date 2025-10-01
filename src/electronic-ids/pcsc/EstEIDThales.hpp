@@ -47,6 +47,11 @@ protected:
     }
     constexpr byte_type signingKeyReference() const override { return 0x05; }
     constexpr PinMinMaxLength signingPinMinMaxLength() const override { return {5, 12}; }
+    PinInfo signingPinInfoImpl(const SmartCard::Session& session) const override
+    {
+        // EstEID cards must change PIN2 first to use signing key
+        return pinRetriesLeft(session, SIGNING_PIN_REFERENCE, false);
+    }
 };
 
 } // namespace electronic_id

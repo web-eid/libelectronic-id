@@ -135,7 +135,7 @@ public:
         std::string serialNumber;
         CK_SLOT_ID slotID;
         std::vector<CK_BYTE> cert, certID;
-        int8_t retry;
+        uint8_t retry;
         bool pinpad;
         uint8_t minPinLen, maxPinLen;
     };
@@ -362,7 +362,7 @@ private:
         return objectHandle;
     }
 
-    static constexpr int8_t pinRetryCount(CK_FLAGS flags) noexcept
+    static constexpr uint8_t pinRetryCount(CK_FLAGS flags) noexcept
     {
         // As PKCS#11 does not provide an API for querying remaining PIN retries, we currently
         // simply assume max retry count of 3, which is quite common. We might need to revisit this
