@@ -64,7 +64,7 @@ byte_vector LatEIDIDEMIAV2::getCertificateImpl(const SmartCard::Session& session
     auto info = readDCODInfo(session, CERT_FILE_REF,
                              type.isAuthentication() ? data->authCache : data->signCache);
     if (TLV id = info.find(0x30)[0xA1][0x30][0x30][0x04]) {
-        return readFile(session, CommandApdu::selectEF(0x02, {id.begin, id.end}));
+        return readFile(session, CommandApdu::selectEF(0x02, {id.begin, id.end}), 0xC0);
     }
     THROW(SmartCardError, "EF.CD reference not found");
 }
