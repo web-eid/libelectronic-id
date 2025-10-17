@@ -91,7 +91,7 @@ struct TLV
             }
         }
 
-        if (std::distance(begin, end) < length) {
+        if (std::distance(begin, end) < decltype(begin)::difference_type(length)) {
             THROW(std::invalid_argument, "Invalid TLV: Insufficient value data");
         }
     }
