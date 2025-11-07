@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <optional>
+#include <set>
 
 namespace electronic_id
 {
