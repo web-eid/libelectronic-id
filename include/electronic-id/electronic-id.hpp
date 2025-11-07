@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <optional>
+#include <set>
 
 namespace electronic_id
 {
@@ -99,7 +100,7 @@ public:
      * By default, this function does nothing. It serves as an extension point for
      * Pkcs11ElectronicID which needs to release the PKCS#11 module before the application exits to
      * prevent potential crashes. */
-    virtual void release() const {}
+    virtual void release() const { }
 
     virtual std::string name() const = 0;
     virtual Type type() const = 0;
@@ -107,7 +108,7 @@ public:
     virtual pcsc_cpp::SmartCard const& smartcard() const { return card; }
 
 protected:
-    ElectronicID(pcsc_cpp::SmartCard&& _card) noexcept : card(std::move(_card)) {}
+    ElectronicID(pcsc_cpp::SmartCard&& _card) noexcept : card(std::move(_card)) { }
 
     pcsc_cpp::SmartCard card;
 };

@@ -37,7 +37,7 @@ JsonWebSignatureAlgorithm MsCryptoApiElectronicID::authSignatureAlgorithm() cons
 byte_vector MsCryptoApiElectronicID::signWithAuthKey(byte_vector&& /* pin */,
                                                      const byte_vector& hash) const
 {
-    if (certType != CertificateType::AUTHENTICATION) {
+    if (!certType.isAuthentication()) {
         THROW(WrongCertificateTypeError,
               "This electronic ID does not support signing with the authentication key. "
               "It contains a "
@@ -59,7 +59,7 @@ ElectronicID::Signature
 MsCryptoApiElectronicID::signWithSigningKey(byte_vector&& /* pin */, const byte_vector& hash,
                                             const HashAlgorithm hashAlgo) const
 {
-    if (certType != CertificateType::SIGNING) {
+    if (!certType.isSigning()) {
         THROW(WrongCertificateTypeError,
               "This electronic ID does not support signing with the digital signature key. "
               "It contains a "

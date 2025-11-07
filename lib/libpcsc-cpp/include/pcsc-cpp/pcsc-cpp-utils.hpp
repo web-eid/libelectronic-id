@@ -69,7 +69,5 @@ constexpr const char* removeAbsolutePathPrefix(std::string_view filePath)
 
 #define REQUIRE_NON_NULL(val)                                                                      \
     if (!(val)) {                                                                                  \
-        throw std::logic_error("Null " + std::string(#val) + " in "                                \
-                               + pcsc_cpp::removeAbsolutePathPrefix(__FILE__) + ':'                \
-                               + std::to_string(__LINE__) + ':' + __func__);                       \
+        THROW(std::logic_error, "Null " #val);                                                     \
     }
