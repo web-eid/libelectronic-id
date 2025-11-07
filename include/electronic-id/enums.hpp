@@ -24,8 +24,8 @@
 
 #include "pcsc-cpp/pcsc-cpp.hpp"
 
-#include <set>
 #include <string>
+#include <string_view>
 
 namespace electronic_id
 {
@@ -35,15 +35,17 @@ class CertificateType
 public:
     enum CertificateTypeEnum : int8_t { AUTHENTICATION, SIGNING, NONE = -1 };
 
-    CertificateType() = default;
-    constexpr CertificateType(const CertificateTypeEnum _value) : value(_value) {}
+    constexpr CertificateType() noexcept = default;
+    constexpr CertificateType(const CertificateTypeEnum _value) noexcept : value(_value) {}
 
-    bool isAuthentication() const { return value == AUTHENTICATION; }
+    constexpr bool isAuthentication() const noexcept { return value == AUTHENTICATION; }
+    constexpr bool isSigning() const noexcept { return value == SIGNING; }
 
-    bool isSigning() const { return value == SIGNING; }
-
-    constexpr bool operator==(const CertificateType other) const { return value == other.value; }
-    operator std::string() const;
+    constexpr bool operator==(const CertificateType other) const noexcept
+    {
+        return value == other.value;
+    }
+    operator std::string_view() const noexcept;
 
 private:
     CertificateTypeEnum value = NONE;
@@ -66,27 +68,27 @@ public:
         NONE = -1
     };
 
-    HashAlgorithm() = default;
-    constexpr HashAlgorithm(const HashAlgorithmEnum _value) : value(_value) {}
+    constexpr HashAlgorithm() = default;
+    constexpr HashAlgorithm(const HashAlgorithmEnum _value) noexcept : value(_value) {}
     // String conversion constructor.
-    HashAlgorithm(const std::string&);
+    explicit HashAlgorithm(const std::string&);
 
-    constexpr bool operator==(HashAlgorithmEnum other) const { return value == other; }
-    constexpr operator HashAlgorithmEnum() const { return value; }
+    constexpr bool operator==(HashAlgorithmEnum other) const noexcept { return value == other; }
+    constexpr operator HashAlgorithmEnum() const noexcept { return value; }
 
-    operator std::string() const;
+    operator std::string_view() const noexcept;
 
-    constexpr size_t hashByteLength() const
+    constexpr size_t hashByteLength() const noexcept
     {
-        return size_t(value <= SHA512 ? value / 8 : (value / 10) / 8);
+        return size_t((value <= SHA512 ? value : (value / 10)) / 8);
     }
 
-    constexpr bool isSHA2() const
+    constexpr bool isSHA2() const noexcept
     {
         return value >= HashAlgorithm::SHA224 && value <= HashAlgorithm::SHA512;
     }
 
-    constexpr bool isSHA3() const
+    constexpr bool isSHA3() const noexcept
     {
         return value >= HashAlgorithm::SHA3_224 && value <= HashAlgorithm::SHA3_512;
     }
@@ -136,26 +138,25 @@ public:
         NONE = -1
     };
 
-    constexpr SignatureAlgorithm(const SignatureAlgorithmEnum _value) : value(_value) {}
-    constexpr SignatureAlgorithm(const SignatureAlgorithmEnum key, const HashAlgorithm hash) :
+    constexpr SignatureAlgorithm(const SignatureAlgorithmEnum _value) noexcept : value(_value) {}
+    constexpr SignatureAlgorithm(const SignatureAlgorithmEnum key,
+                                 const HashAlgorithm hash) noexcept :
         value(SignatureAlgorithmEnum(key | int16_t(hash)))
     {
     }
 
-    constexpr bool operator==(HashAlgorithm other) const
+    constexpr bool operator==(HashAlgorithm other) const noexcept
     {
         return other.operator==(operator HashAlgorithm());
     }
-    constexpr bool operator==(SignatureAlgorithmEnum other) const { return value == other; }
-
-    constexpr operator HashAlgorithm() const
+    constexpr operator HashAlgorithm() const noexcept
     {
         return HashAlgorithm::HashAlgorithmEnum(value & ~(ES | PS | RS));
     }
 
-    constexpr operator SignatureAlgorithmEnum() const { return value; }
+    constexpr operator SignatureAlgorithmEnum() const noexcept { return value; }
 
-    operator std::string() const;
+    operator std::string_view() const noexcept;
 
 private:
     SignatureAlgorithmEnum value = NONE;
@@ -175,17 +176,16 @@ public:
         RS256, // RSASSA-PKCS1-v1_5
         RS384,
         RS512,
-        NONE = -1
     };
 
-    constexpr JsonWebSignatureAlgorithm(const JsonWebSignatureAlgorithmEnum _value) : value(_value)
+    constexpr JsonWebSignatureAlgorithm(const JsonWebSignatureAlgorithmEnum _value) :
+        value(validate(_value))
     {
     }
 
-    constexpr bool operator==(JsonWebSignatureAlgorithmEnum other) const { return value == other; }
-    constexpr operator JsonWebSignatureAlgorithmEnum() const { return value; }
+    constexpr operator JsonWebSignatureAlgorithmEnum() const noexcept { return value; }
 
-    operator std::string() const;
+    operator std::string_view() const noexcept;
 
     constexpr HashAlgorithm hashAlgorithm() const
     {
@@ -208,7 +208,7 @@ public:
         }
     }
 
-    constexpr bool isRSAWithPKCS1Padding()
+    constexpr bool isRSAWithPKCS1Padding() const noexcept
     {
         return value == RS256 || value == RS384 || value == RS512;
     }
@@ -216,7 +216,23 @@ public:
     constexpr size_t hashByteLength() const { return hashAlgorithm().hashByteLength(); }
 
 private:
-    JsonWebSignatureAlgorithmEnum value = NONE;
+    static constexpr JsonWebSignatureAlgorithmEnum validate(JsonWebSignatureAlgorithmEnum v)
+    {
+        switch (v) {
+        case ES256:
+        case ES384:
+        case ES512:
+        case PS256:
+        case PS384:
+        case PS512:
+        case RS256:
+        case RS384:
+        case RS512:
+            return v;
+        }
+        throw std::logic_error("Invalid JsonWebSignatureAlgorithm value");
+    }
+    JsonWebSignatureAlgorithmEnum value;
 };
 
 } // namespace electronic_id
