@@ -31,8 +31,8 @@
 #include <arpa/inet.h>
 #endif
 
+#include <algorithm>
 #include <array>
-#include <map>
 #include <utility>
 
 // TODO: Someday, maybe SCARD_SHARE_SHARED vs SCARD_SHARE_EXCLUSIVE and SCARD_RESET_CARD on
@@ -40,20 +40,6 @@
 
 namespace
 {
-
-template <class K, class V = uint32_t, class D, size_t dsize, typename Func>
-constexpr std::map<K, V> parseTLV(const std::array<D, dsize>& data, DWORD size, Func transform)
-{
-    std::map<K, V> result;
-    for (auto p = data.cbegin(); DWORD(std::distance(data.cbegin(), p)) < size;) {
-        auto tag = K(*p++);
-        V value {};
-        for (unsigned int i = 0, len = *p++; i < len; ++i)
-            value |= V(*p++) << 8 * i;
-        result[tag] = transform(value);
-    }
-    return result;
-}
 
 constexpr uint32_t VENDOR_HID_GLOBAL = 0x076B;
 constexpr uint32_t OMNIKEY_3x21 = 0x3031;
@@ -89,27 +75,29 @@ public:
 
         try {
             DWORD size = 0;
-            std::array<PCSC_TLV_STRUCTURE, FEATURE_CCID_ESC_COMMAND> list {};
             SCard(Control, cardHandle, DWORD(CM_IOCTL_GET_FEATURE_REQUEST), nullptr, 0U,
-                  list.data(), DWORD(list.size() * sizeof(PCSC_TLV_STRUCTURE)), &size);
+                  features.data(), DWORD(features.size() * sizeof(PCSC_TLV_STRUCTURE)), &size);
             if (size == 0 || size % sizeof(PCSC_TLV_STRUCTURE)) {
                 return; // No features available or malformed response.
             }
-            for (const auto& f : list) {
-                features[DRIVER_FEATURES(f.tag)] = ntohl(f.value);
+            for (auto& f : features) {
+                f.value = ntohl(f.value);
             }
 
-            if (auto ioctl = features.find(FEATURE_GET_TLV_PROPERTIES); ioctl != features.cend()) {
+            if (auto ioctl = feature(FEATURE_GET_TLV_PROPERTIES); ioctl != features.cend()) {
                 std::array<BYTE, 256> buf {};
-                SCard(Control, cardHandle, ioctl->second, nullptr, 0U, buf.data(),
-                      DWORD(buf.size()), &size);
-                auto properties = parseTLV<TLV_PROPERTIES>(buf, size, [](uint32_t t) { return t; });
-                if (auto vendor = properties.find(TLV_PROPERTY_wIdVendor);
-                    vendor != properties.cend())
-                    id_vendor = vendor->second;
-                if (auto product = properties.find(TLV_PROPERTY_wIdProduct);
-                    product != properties.cend())
-                    id_product = product->second;
+                SCard(Control, cardHandle, ioctl->value, nullptr, 0U, buf.data(), DWORD(buf.size()),
+                      &size);
+                for (auto p = buf.cbegin(); DWORD(std::distance(buf.cbegin(), p)) < size;) {
+                    auto tag = TLV_PROPERTIES(*p++);
+                    uint32_t value {};
+                    for (unsigned int i = 0, len = *p++; i < len; ++i)
+                        value |= uint32_t(*p++) << 8 * i;
+                    if (tag == TLV_PROPERTY_wIdVendor)
+                        id_vendor = value;
+                    if (tag == TLV_PROPERTY_wIdProduct)
+                        id_product = value;
+                }
             }
         } catch (const ScardError&) {
             // Ignore driver errors during card feature requests.
@@ -138,33 +126,20 @@ public:
             return false;
         if (getenv("SMARTCARDPP_NOPINPAD"))
             return false;
-        return features.contains(FEATURE_VERIFY_PIN_START)
-            || features.contains(FEATURE_VERIFY_PIN_DIRECT);
+        return feature(FEATURE_VERIFY_PIN_START) != features.cend()
+            || feature(FEATURE_VERIFY_PIN_DIRECT) != features.cend();
     }
 
-    ResponseApdu transmitBytes(const byte_vector& commandBytes) const
+    ResponseApdu transmitBytes(const CommandApdu& commandApdu) const
     {
         byte_vector responseBytes(ResponseApdu::MAX_SIZE, 0);
         auto responseLength = DWORD(responseBytes.size());
-
-        // TODO: debug("Sending:  " + bytes2hexstr(commandBytes))
-
-        SCard(Transmit, cardHandle, &_protocol, commandBytes.data(), DWORD(commandBytes.size()),
+        SCard(Transmit, cardHandle, &_protocol, commandApdu.d.data(), DWORD(commandApdu.d.size()),
               nullptr, responseBytes.data(), &responseLength);
-
-        auto response = toResponse(std::move(responseBytes), responseLength);
-
-        if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
-            getResponseWithLE(response, commandBytes);
-        }
-        if (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
-            getMoreResponseData(response);
-        }
-
-        return response;
+        return toResponse(std::move(responseBytes), responseLength);
     }
 
-    ResponseApdu transmitBytesCTL(const byte_vector& commandBytes, uint16_t lang,
+    ResponseApdu transmitBytesCTL(const CommandApdu& commandApdu, uint16_t lang,
                                   uint8_t minlen) const
     {
         uint8_t PINFrameOffset = 0;
@@ -182,20 +157,20 @@ public:
         data->bNumberMessage = CCIDDefaultInvitationMessage;
         data->wLangId = lang;
         data->bMsgIndex = NoInvitationMessage;
-        data->ulDataLength = uint32_t(commandBytes.size());
-        cmd.insert(cmd.cend(), commandBytes.cbegin(), commandBytes.cend());
+        data->ulDataLength = uint32_t(commandApdu.d.size());
+        cmd.insert(cmd.cend(), commandApdu.d.cbegin(), commandApdu.d.cend());
 
-        DWORD ioctl =
-            features.at(features.contains(FEATURE_VERIFY_PIN_START) ? FEATURE_VERIFY_PIN_START
-                                                                    : FEATURE_VERIFY_PIN_DIRECT);
+        auto ioctl = feature(FEATURE_VERIFY_PIN_START);
+        if (feature(FEATURE_VERIFY_PIN_START) == features.cend())
+            ioctl = feature(FEATURE_VERIFY_PIN_DIRECT);
         byte_vector responseBytes(ResponseApdu::MAX_SIZE, 0);
         auto responseLength = DWORD(responseBytes.size());
-        SCard(Control, cardHandle, ioctl, cmd.data(), DWORD(cmd.size()),
+        SCard(Control, cardHandle, ioctl->value, cmd.data(), DWORD(cmd.size()),
               LPVOID(responseBytes.data()), DWORD(responseBytes.size()), &responseLength);
 
-        if (auto finish = features.find(FEATURE_VERIFY_PIN_FINISH); finish != features.cend()) {
+        if (auto finish = feature(FEATURE_VERIFY_PIN_FINISH); finish != features.cend()) {
             responseLength = DWORD(responseBytes.size());
-            SCard(Control, cardHandle, finish->second, nullptr, 0U, LPVOID(responseBytes.data()),
+            SCard(Control, cardHandle, finish->value, nullptr, 0U, LPVOID(responseBytes.data()),
                   DWORD(responseBytes.size()), &responseLength);
         }
 
@@ -224,9 +199,15 @@ public:
 private:
     SCARDHANDLE cardHandle {};
     SCARD_IO_REQUEST _protocol {SCARD_PROTOCOL_UNDEFINED, sizeof(SCARD_IO_REQUEST)};
-    std::map<DRIVER_FEATURES, uint32_t> features;
+    std::array<PCSC_TLV_STRUCTURE, FEATURE_CCID_ESC_COMMAND> features {};
     uint32_t id_vendor {};
     uint32_t id_product {};
+
+    constexpr decltype(features)::const_iterator feature(DRIVER_FEATURES tag) const
+    {
+        return std::find_if(features.cbegin(), features.cend(),
+                            [tag](PCSC_TLV_STRUCTURE tlv) { return tlv.tag == tag; });
+    }
 
     ResponseApdu toResponse(byte_vector&& responseBytes, size_t responseLength) const
     {
@@ -266,31 +247,6 @@ private:
                       + std::to_string(_protocol.dwProtocol));
         }
     }
-
-    void getMoreResponseData(ResponseApdu& response) const
-    {
-        byte_vector getResponseCommand {0x00, 0xc0, 0x00, 0x00, 0x00};
-
-        ResponseApdu newResponse {response.sw1, response.sw2};
-
-        while (newResponse.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
-            getResponseCommand[4] = newResponse.sw2;
-            newResponse = transmitBytes(getResponseCommand);
-            response.data.insert(response.data.end(), newResponse.data.cbegin(),
-                                 newResponse.data.cend());
-        }
-
-        response.sw1 = ResponseApdu::OK;
-        response.sw2 = 0;
-    }
-
-    void getResponseWithLE(ResponseApdu& response, byte_vector command) const
-    {
-        size_t pos = command.size() <= 5 ? 4 : 5 + command[4]; // Case 1/2 or 3/4
-        command.resize(pos + 1);
-        command[pos] = response.sw2;
-        response = transmitBytes(command);
-    }
 };
 
 SmartCard::Session::Session(const CardImpl& card) : card(card)
@@ -309,7 +265,22 @@ SmartCard::Session::~Session() noexcept
 
 ResponseApdu SmartCard::Session::transmit(const CommandApdu& command) const
 {
-    return card.transmitBytes(command);
+    auto response = card.transmitBytes(command);
+    if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
+        response = card.transmitBytes(CommandApdu(command, response.sw2));
+    }
+    if (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
+        auto getResponseCommand = CommandApdu::getResponse();
+        while (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
+            getResponseCommand.d[4] = response.sw2;
+            auto newResponse = card.transmitBytes(getResponseCommand);
+            response.sw1 = newResponse.sw1;
+            response.sw2 = newResponse.sw2;
+            response.data.insert(response.data.end(), newResponse.data.cbegin(),
+                                 newResponse.data.cend());
+        }
+    }
+    return response;
 }
 
 ResponseApdu SmartCard::Session::transmitCTL(const CommandApdu& command, uint16_t lang,

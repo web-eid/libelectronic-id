@@ -30,6 +30,9 @@
 #include <vector>
 
 // The rule of five (C++ Core guidelines C.21).
+#define PCSC_CPP_DEFAULT_MOVE(Class)                                                               \
+    Class(Class&&) = default;                                                                      \
+    Class& operator=(Class&&) = default
 #define PCSC_CPP_DISABLE_COPY(Class)                                                               \
     Class(const Class&) = delete;                                                                  \
     Class& operator=(const Class&) = delete
@@ -162,7 +165,14 @@ struct CommandApdu
         d.push_back(le);
     }
 
-    constexpr operator const byte_vector&() const { return d; }
+    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(const CommandApdu& other, byte_type le) : d(other.d)
+    {
+        size_t pos = d.size() <= 5 ? 4 : 5 + d[4]; // Case 1/2 or 3/4
+        d.resize(pos + 1);
+        d[pos] = le;
+    }
+
+    virtual ~CommandApdu() noexcept = default;
 
     /**
      * A helper function to create a SELECT FILE command APDU.
@@ -211,6 +221,52 @@ struct CommandApdu
     static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu readBinary(uint16_t pos, byte_type le)
     {
         return {0x00, 0xb0, byte_type(pos >> 8), byte_type(pos), le};
+    }
+
+    /**
+     * A helper function to create a VERIFY command APDU.
+     * The ISO 7816-4 Section 6.12 VERIFY command has the form:
+     *   CLA = 0x00
+     *   INS = 0x20
+     *   P1  = Only P1=’00’ is valid (other values are RFU)
+     *   P2  = Qualifier of the reference data
+     *   Lc and Data field = Empty or verification data
+     *   Le  = Empty
+     */
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu verify(byte_type p2, byte_vector&& pin,
+                                                        size_t paddingLength,
+                                                        pcsc_cpp::byte_type paddingChar)
+    {
+        if (!pin.empty() && pin.capacity() < paddingLength + 5) {
+            throw std::invalid_argument(
+                "PIN buffer does not have enough capacity to pad without reallocation");
+        }
+        if (pin.size() < paddingLength) {
+            pin.insert(pin.end(), paddingLength - pin.size(), paddingChar);
+        }
+        struct VerifyApdu final : public CommandApdu
+        {
+            using CommandApdu::CommandApdu;
+            PCSC_CPP_DISABLE_COPY(VerifyApdu);
+            PCSC_CPP_DEFAULT_MOVE(VerifyApdu);
+            constexpr ~VerifyApdu() noexcept final { std::fill(d.begin(), d.end(), byte_type(0)); }
+        };
+        return VerifyApdu {0x00, 0x20, 0x00, p2, std::move(pin)};
+    }
+
+    /**
+     * A helper function to create a GET RESPONSE command APDU.
+     *
+     * The ISO 7816-4 Section 7.1 GET RESPONSE  command has the form:
+     *   CLA = 0x00
+     *   INS = 0xC0
+     *   P1, P2 = ‘0000’ (other values are RFU)
+     *   Lc and Data field = Empty
+     *   Le  = Maximum length of data expected in response
+     */
+    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu getResponse(byte_type le = 0x00)
+    {
+        return {0x00, 0xc0, 0x00, 0x00, le};
     }
 
     byte_vector d;
