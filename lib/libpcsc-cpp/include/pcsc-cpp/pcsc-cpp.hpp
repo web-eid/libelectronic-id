@@ -156,7 +156,8 @@ struct CommandApdu
                                           byte_vector data, byte_type le) :
         CommandApdu {cls, ins, p1, p2, std::move(data)}
     {
-#if defined(__GNUC__) && __GNUC__ == 15 // Apply workaround for GCC 15
+        // https://gcc.gnu.org/pipermail/gcc-patches/2025-February/676226.html
+#if defined(__GNUC__) && (__GNUC__ == 15 || __GNUC__ == 16) // Apply workaround for GCC 15, 16
         d.reserve(d.size() + 1);
 #endif
         d.push_back(le);
