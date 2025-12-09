@@ -21,7 +21,9 @@
  */
 
 #include "Pkcs11ElectronicID.hpp"
+#include "../scope.hpp"
 
+#include <algorithm>
 #include <map>
 
 #ifdef _WIN32
@@ -222,56 +224,53 @@ Pkcs11ElectronicID::Pkcs11ElectronicID(ElectronicID::Type type) :
 {
     REQUIRE_NON_NULL(manager)
 
-    bool seenAuthToken = false;
-    bool seenSigningToken = false;
-
     for (const auto& token : manager->tokens()) {
         const auto certType = certificateType(token.cert);
         if (certType.isAuthentication()) {
             authToken = token;
-            seenAuthToken = true;
         } else if (certType.isSigning()) {
             signingToken = token;
-            seenSigningToken = true;
         }
-    }
-    if (!(seenAuthToken && seenSigningToken)) {
-        THROW(SmartCardChangeRequiredError, "Either authentication or signing token is missing");
     }
 }
 
 pcsc_cpp::byte_vector Pkcs11ElectronicID::getCertificate(const CertificateType type) const
 {
-    return type.isAuthentication() ? authToken.cert : signingToken.cert;
+    return token(type).cert;
 }
 
 JsonWebSignatureAlgorithm Pkcs11ElectronicID::authSignatureAlgorithm() const
 {
-    return getAuthAlgorithmFromCert(authToken.cert);
+    return getAuthAlgorithmFromCert(token(CertificateType::AUTHENTICATION).cert);
 }
 
 ElectronicID::PinMinMaxLength Pkcs11ElectronicID::authPinMinMaxLength() const
 {
-    return {authToken.minPinLen, authToken.maxPinLen};
+    const auto& t = token(CertificateType::AUTHENTICATION);
+    return {t.minPinLen, t.maxPinLen};
 }
 
 ElectronicID::PinInfo Pkcs11ElectronicID::authPinInfo() const
 {
-    return {authToken.retry, module.retryMax, true};
+    return {token(CertificateType::AUTHENTICATION).retry, module.retryMax, true};
 }
 
 pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(byte_vector&& pin,
                                                           const byte_vector& hash) const
 {
+    auto clearPin = stdext::make_scope_exit([&pin] {
+        std::fill(pin.begin(), pin.end(), byte_type(0));
+        pin.clear();
+    });
     REQUIRE_NON_NULL(manager)
 
     try {
         validateAuthHashLength(authSignatureAlgorithm(), name(), hash);
 
-        const auto signature =
-            manager->sign(authToken, hash, authSignatureAlgorithm().hashAlgorithm(),
-                          module.providesExternalPinDialog,
-                          reinterpret_cast<const char*>(pin.data()), pin.size());
+        const auto signature = manager->sign(token(CertificateType::AUTHENTICATION), hash,
+                                             authSignatureAlgorithm().hashAlgorithm(),
+                                             module.providesExternalPinDialog,
+                                             reinterpret_cast<const char*>(pin.data()), pin.size());
         return signature.first;
     } catch (const VerifyPinFailed& e) {
         // Catch and rethrow the VerifyPinFailed error with -1 to inform the caller of the special
@@ -287,37 +286,42 @@ pcsc_cpp::byte_vector Pkcs11ElectronicID::signWithAuthKey(byte_vector&& pin,
 
 const std::set<SignatureAlgorithm>& Pkcs11ElectronicID::supportedSigningAlgorithms() const
 {
-    return getSignAlgorithmFromCert(signingToken.cert);
+    return getSignAlgorithmFromCert(token(CertificateType::SIGNING).cert);
 }
 
 ElectronicID::PinMinMaxLength Pkcs11ElectronicID::signingPinMinMaxLength() const
 {
-    return {signingToken.minPinLen, signingToken.maxPinLen};
+    const auto& t = token(CertificateType::SIGNING);
+    return {t.minPinLen, t.maxPinLen};
 }
 
 ElectronicID::PinInfo Pkcs11ElectronicID::signingPinInfo() const
 {
-    return {signingToken.retry, module.retryMax, true};
+    return {token(CertificateType::SIGNING).retry, module.retryMax, true};
 }
 
 ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(byte_vector&& pin,
                                                                const byte_vector& hash,
                                                                const HashAlgorithm hashAlgo) const
 {
+    auto clearPin = stdext::make_scope_exit([&pin] {
+        std::fill(pin.begin(), pin.end(), byte_type(0));
+        pin.clear();
+    });
     REQUIRE_NON_NULL(manager)
 
     try {
         validateSigningHash(*this, hashAlgo, hash);
 
         // TODO: add step for supported algo detection before sign(), see if () below.
-        auto signature =
-            manager->sign(signingToken, hash, hashAlgo, module.providesExternalPinDialog,
-                          reinterpret_cast<const char*>(pin.data()), pin.size());
+        auto signature = manager->sign(token(CertificateType::SIGNING), hash, hashAlgo,
+                                       module.providesExternalPinDialog,
+                                       reinterpret_cast<const char*>(pin.data()), pin.size());
 
-        if (!supportedSigningAlgorithms().count(signature.second)) {
+        if (!supportedSigningAlgorithms().contains(signature.second)) {
             THROW(SmartCardChangeRequiredError,
                   "Signature algorithm " + std::string(signature.second) + " is not supported by "
-                      + name());
+                      + std::string(name()));
         }
 
         return signature;
@@ -328,6 +332,20 @@ ElectronicID::Signature Pkcs11ElectronicID::signWithSigningKey(byte_vector&& pin
         }
         throw;
     }
+}
+
+const PKCS11CardManager::Token& Pkcs11ElectronicID::token(const CertificateType type) const
+{
+    if (type.isAuthentication()) {
+        if (authToken.cert.empty()) {
+            THROW(SmartCardChangeRequiredError, "Authentication token is missing");
+        }
+        return authToken;
+    }
+    if (signingToken.cert.empty()) {
+        THROW(SmartCardChangeRequiredError, "Signing token is missing");
+    }
+    return signingToken;
 }
 
 void Pkcs11ElectronicID::release() const

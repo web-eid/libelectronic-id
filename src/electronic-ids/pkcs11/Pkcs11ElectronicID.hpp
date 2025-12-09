@@ -72,6 +72,8 @@ private:
     std::string name() const override { return module.name; }
     Type type() const override { return module.type; }
 
+    const PKCS11CardManager::Token& token(const CertificateType type) const;
+
     const Pkcs11ElectronicIDModule& module;
     mutable std::shared_ptr<PKCS11CardManager> manager;
     PKCS11CardManager::Token authToken;
