@@ -49,14 +49,18 @@ static void signing(HashAlgorithm hashAlgo)
     GTEST_ASSERT_GE(cardInfo->signingPinInfo().retryCount, 0U);
 
     byte_vector pin;
-    if (cardInfo->name() == "EstEID IDEMIA v1" || cardInfo->name() == "EstEIDThales")
-        pin = {'1', '2', '3', '4', '5'}; // EstIDEMIA test card default PIN2
-    else if (cardInfo->name() == "LatEID IDEMIA v1" || cardInfo->name() == "LatEID IDEMIA v2")
-        pin = {'1', '2', '3', '4', '5', '6'}; // LatIDEMIA test card default PIN2
-    else if (cardInfo->name() == "FinEID v3" || cardInfo->name() == "FinEID v4")
-        pin = {'1', '2', '3', '4', '5', '6'}; // FinEID custom PIN
-    else
+    switch (cardInfo->type()) {
+        using enum ElectronicID::Type;
+    case ElectronicID::EstEID:
+        pin = {'1', '2', '3', '4', '5'}; // EstEID test card default PIN2
+        break;
+    case ElectronicID::LatEID: // LatIDEMIA test card default PIN2
+    case ElectronicID::FinEID: // FinEID custom PIN
+        pin = {'1', '2', '3', '4', '5', '6'};
+        break;
+    default:
         throw std::runtime_error("TEST signing: Unknown card");
+    }
     pin.reserve(64);
 
     std::cout << "WARNING! Using hard-coded PIN " << std::string(pin.cbegin(), pin.cend()) << '\n';
