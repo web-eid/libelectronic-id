@@ -39,6 +39,7 @@ add_library(${PROJECT_NAME}
     src/electronic-ids/ms-cryptoapi/MsCryptoApiElectronicID.cpp
     src/electronic-ids/ms-cryptoapi/MsCryptoApiElectronicID.hpp
   >
+  src/magic_enum/magic_enum.hpp
 )
 
 target_include_directories(${PROJECT_NAME}

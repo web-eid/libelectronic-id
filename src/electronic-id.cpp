@@ -211,11 +211,11 @@ const std::vector<MaskedATREntry> MASKED_ATRS = {
      constructor<ElectronicID::Type::LuxEID>},
 };
 
-const auto SUPPORTED_ALGORITHMS = std::map<std::string, HashAlgorithm> {
-    {"SHA-224"s, HashAlgorithm::SHA224},    {"SHA-256"s, HashAlgorithm::SHA256},
-    {"SHA-384"s, HashAlgorithm::SHA384},    {"SHA-512"s, HashAlgorithm::SHA512},
-    {"SHA3-224"s, HashAlgorithm::SHA3_224}, {"SHA3-256"s, HashAlgorithm::SHA3_256},
-    {"SHA3-384"s, HashAlgorithm::SHA3_384}, {"SHA3-512"s, HashAlgorithm::SHA3_512},
+const auto SUPPORTED_ALGORITHMS = std::map<std::string_view, HashAlgorithm> {
+    {"SHA-224", HashAlgorithm::SHA224},    {"SHA-256", HashAlgorithm::SHA256},
+    {"SHA-384", HashAlgorithm::SHA384},    {"SHA-512", HashAlgorithm::SHA512},
+    {"SHA3-224", HashAlgorithm::SHA3_224}, {"SHA3-256", HashAlgorithm::SHA3_256},
+    {"SHA3-384", HashAlgorithm::SHA3_384}, {"SHA3-512", HashAlgorithm::SHA3_512},
 };
 
 } // namespace
@@ -265,14 +265,14 @@ bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo)
 }
 
 AutoSelectFailed::AutoSelectFailed(Reason r) :
-    Error(std::string("Auto-select card failed, reason: ") + std::string(magic_enum::enum_name(r))),
+    Error(std::string("Auto-select card failed, reason: ").append(magic_enum::enum_name(r))),
     _reason(r)
 {
 }
 
 VerifyPinFailed::VerifyPinFailed(const Status s, const observer_ptr<pcsc_cpp::ResponseApdu> ra,
                                  const int8_t r) :
-    Error(std::string("Verify PIN failed, status: ") + std::string(magic_enum::enum_name(s))
+    Error(std::string("Verify PIN failed, status: ").append(magic_enum::enum_name(s))
           + (ra ? ", response: " + *ra : "")),
     _status(s), _retries(r)
 {
@@ -288,12 +288,14 @@ HashAlgorithm::HashAlgorithm(const std::string& algoName)
     value = SUPPORTED_ALGORITHMS.at(algoName);
 }
 
-HashAlgorithm::operator std::string() const
+HashAlgorithm::operator std::string_view() const noexcept
 {
     const auto algoNameValuePair =
         std::find_if(SUPPORTED_ALGORITHMS.cbegin(), SUPPORTED_ALGORITHMS.cend(),
                      [this](const auto& pair) { return pair.second == value; });
-    return algoNameValuePair != SUPPORTED_ALGORITHMS.cend() ? algoNameValuePair->first : "UNKNOWN";
+    if (algoNameValuePair != SUPPORTED_ALGORITHMS.cend())
+        return algoNameValuePair->first;
+    return "UNKNOWN";
 }
 
 std::string HashAlgorithm::allSupportedAlgorithmNames()
@@ -301,35 +303,36 @@ std::string HashAlgorithm::allSupportedAlgorithmNames()
     static const auto SUPPORTED_ALGORITHM_NAMES = std::accumulate(
         std::next(SUPPORTED_ALGORITHMS.begin()), SUPPORTED_ALGORITHMS.end(),
         std::string(SUPPORTED_ALGORITHMS.begin()->first),
-        [](auto result, const auto& value) { return result + ", "s + std::string(value.first); });
+        [](auto result, const auto& value) { return (result + ", ").append(value.first); });
     return SUPPORTED_ALGORITHM_NAMES;
 }
 
 pcsc_cpp::byte_vector HashAlgorithm::rsaOID(const HashAlgorithmEnum hash)
 {
     switch (hash) {
-    case HashAlgorithm::SHA224:
+        using enum HashAlgorithm::HashAlgorithmEnum;
+    case SHA224:
         return {0x30, 0x2d, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x04, 0x05, 0x00, 0x04, 0x1c};
-    case HashAlgorithm::SHA256:
+    case SHA256:
         return {0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20};
-    case HashAlgorithm::SHA384:
+    case SHA384:
         return {0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x02, 0x05, 0x00, 0x04, 0x30};
-    case HashAlgorithm::SHA512:
+    case SHA512:
         return {0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40};
-    case HashAlgorithm::SHA3_224:
+    case SHA3_224:
         return {0x30, 0x2d, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x07, 0x05, 0x00, 0x04, 0x1c};
-    case HashAlgorithm::SHA3_256:
+    case SHA3_256:
         return {0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x08, 0x05, 0x00, 0x04, 0x20};
-    case HashAlgorithm::SHA3_384:
+    case SHA3_384:
         return {0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x09, 0x05, 0x00, 0x04, 0x30};
-    case HashAlgorithm::SHA3_512:
+    case SHA3_512:
         return {0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
                 0x65, 0x03, 0x04, 0x02, 0x0A, 0x05, 0x00, 0x04, 0x40};
     default:
@@ -337,19 +340,19 @@ pcsc_cpp::byte_vector HashAlgorithm::rsaOID(const HashAlgorithmEnum hash)
     }
 }
 
-CertificateType::operator std::string() const
+CertificateType::operator std::string_view() const noexcept
 {
-    return std::string(magic_enum::enum_name(value));
+    return magic_enum::enum_name(value);
 }
 
-JsonWebSignatureAlgorithm::operator std::string() const
+JsonWebSignatureAlgorithm::operator std::string_view() const noexcept
 {
-    return std::string(magic_enum::enum_name(value));
+    return magic_enum::enum_name(value);
 }
 
-SignatureAlgorithm::operator std::string() const
+SignatureAlgorithm::operator std::string_view() const noexcept
 {
-    return std::string(magic_enum::enum_name(value));
+    return magic_enum::enum_name(value);
 }
 
 } // namespace electronic_id
