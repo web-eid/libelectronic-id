@@ -23,8 +23,11 @@
 #include "../common/selectcard.hpp"
 #include "../common/verify.hpp"
 
+#include "electronic-ids/pcsc/EstEIDIDEMIA.hpp"
+#include "electronic-ids/pcsc/FinEID.hpp"
+#include "electronic-ids/pcsc/LatEIDIDEMIAv2.hpp"
+
 #include "select-certificate-script.hpp"
-#include "atrs.hpp"
 
 #include <gtest/gtest.h>
 
@@ -37,7 +40,7 @@ const pcsc_cpp::byte_vector dataToSign {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 
 
 TEST(electronic_id_test, selectCertificateEstIDEMIA)
 {
-    PcscMock::setAtr(ESTEID_IDEMIA_V1_ATR);
+    PcscMock::setAtr(EstEIDIDEMIAV1::ATR_COSMO_8);
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);
     EXPECT_EQ(cardInfo->name(), "EstEID IDEMIA v1");
@@ -86,7 +89,7 @@ TEST(electronic_id_test, selectCertificateEstIDEMIA)
 
 TEST(electronic_id_test, selectCertificateFinV3)
 {
-    PcscMock::setAtr(FINEID_V3_ATR);
+    PcscMock::setAtr(FinEIDv3::ATR);
 
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);
@@ -136,7 +139,7 @@ TEST(electronic_id_test, selectCertificateFinV3)
 
 TEST(electronic_id_test, selectCertificateFinV4)
 {
-    PcscMock::setAtr(FINEID_V4_ATR);
+    PcscMock::setAtr(FinEIDv4::ATR);
 
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);
@@ -186,7 +189,7 @@ TEST(electronic_id_test, selectCertificateFinV4)
 
 TEST(electronic_id_test, selectCertificateLatV2)
 {
-    PcscMock::setAtr(LATEID_IDEMIA_V2_ATR);
+    PcscMock::setAtr(LatEIDIDEMIAV2::ATR_COSMO_8);
 
     auto cardInfo = autoSelectSupportedCard();
     EXPECT_TRUE(cardInfo);

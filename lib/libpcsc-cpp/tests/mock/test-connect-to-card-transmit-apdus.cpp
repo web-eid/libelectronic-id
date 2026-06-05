@@ -27,6 +27,8 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 using namespace pcsc_cpp;
 
 namespace
@@ -46,7 +48,7 @@ TEST(pcsc_cpp_test, connectToCardSuccess)
 {
     auto card = connectToCard();
 
-    EXPECT_EQ(card.atr(), PcscMock::DEFAULT_CARD_ATR);
+    EXPECT_TRUE(std::ranges::equal(card.atr(), PcscMock::DEFAULT_CARD_ATR));
     EXPECT_EQ(card.protocol(), SmartCard::Protocol::T1);
 }
 

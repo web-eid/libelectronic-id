@@ -22,7 +22,9 @@
 
 #include "electronic-id/electronic-id.hpp"
 
-#include "atrs.hpp"
+#include "electronic-ids/pcsc/FinEID.hpp"
+
+#include "pcsc-mock/pcsc-mock.hpp"
 
 #include <gtest/gtest.h>
 
@@ -36,7 +38,7 @@ const pcsc_cpp::Reader INVALID_ATR {
 
 TEST(electronic_id_test, getElectronicIDSuccessWithSupportedMaskedATR)
 {
-    PcscMock::setAtr(FINEID_V4_ATR);
+    PcscMock::setAtr(FinEIDv4::ATR);
     auto result = getElectronicID(pcsc_cpp::listReaders().front());
     EXPECT_TRUE(result);
     EXPECT_EQ(result->name(), "FinEID v4");

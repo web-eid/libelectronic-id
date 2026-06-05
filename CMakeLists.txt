@@ -45,6 +45,7 @@ add_library(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
   include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
 
 find_package(OpenSSL 3.0.0 REQUIRED)
@@ -73,7 +74,6 @@ set(MOCK_TEST_EXE lib${PROJECT_NAME}-test-mock)
 add_executable(${MOCK_TEST_EXE}
   tests/common/selectcard.hpp
   tests/common/verify.hpp
-  tests/mock/atrs.hpp
   tests/mock/select-certificate-script.hpp
   tests/mock/select-certificate-script-EST-IDEMIA.hpp
   tests/mock/select-certificate-script-FIN-V3.hpp
