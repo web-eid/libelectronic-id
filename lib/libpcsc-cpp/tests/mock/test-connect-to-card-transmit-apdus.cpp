@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
+
 using namespace pcsc_cpp;
 
 namespace
@@ -42,4 +44,37 @@ TEST(pcsc_cpp_test, transmitApduSuccess)
     auto response = session.transmit(command);
 
     EXPECT_TRUE(response.isOK());
+}
+
+TEST(pcsc_cpp_test, transmitStopsMoreDataAtSizeLimit)
+{
+    PcscMock::reset();
+
+    const auto getResponse = CommandApdu::getResponse();
+    byte_vector chunk(ResponseApdu::MAX_SIZE, 0x41);
+    chunk[ResponseApdu::MAX_DATA_SIZE] = ResponseApdu::MORE_DATA_AVAILABLE;
+    chunk[ResponseApdu::MAX_DATA_SIZE + 1] = 0x00;
+
+    // The 256th chunk brings the total to 65 536 bytes, exceeding the 65 535-byte limit.
+    const size_t chunkCount =
+        (std::numeric_limits<uint16_t>::max)() / ResponseApdu::MAX_DATA_SIZE + 1;
+    PcscMock::ApduScript script(chunkCount, {getResponse, chunk});
+
+    // The code must throw Error after chunk 256, without requesting more data.
+    // Expect READ BINARY next so the mock detects any extra GET RESPONSE.
+    // If a bug causes another GET RESPONSE, the mock throws PcscMockError instead
+    // of the expected Error, making EXPECT_THROW below fail.
+    const auto nextCommand = CommandApdu::readBinary(0, 1);
+    script.emplace_back(nextCommand, byte_vector {0x42, ResponseApdu::OK, 0x00});
+    PcscMock::setApduScript(script);
+
+    auto card = connectToCard();
+    auto session = card.beginSession();
+
+    EXPECT_THROW(session.transmit(getResponse), Error);
+    const auto response = session.transmit(nextCommand);
+    EXPECT_TRUE(response.isOK());
+    EXPECT_EQ(response.data, (byte_vector {0x42}));
+
+    PcscMock::reset();
 }
