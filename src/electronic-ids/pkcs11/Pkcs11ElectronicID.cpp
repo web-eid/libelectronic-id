@@ -224,6 +224,11 @@ Pkcs11ElectronicID::Pkcs11ElectronicID(ElectronicID::Type type) :
 {
     REQUIRE_NON_NULL(manager)
 
+    // Known limitation: if the PKCS#11 module exposes more than one authentication or
+    // signing token (e.g. multiple certificates on one card or multiple cards in multiple
+    // slots), only the last token of each type is used. Surfacing multiple tokens requires
+    // a larger refactor of the card-detection pipeline to return a vector of ElectronicIDs
+    // instead of a single one.
     for (const auto& token : manager->tokens()) {
         const auto certType = certificateType(token.cert);
         if (certType.isAuthentication()) {

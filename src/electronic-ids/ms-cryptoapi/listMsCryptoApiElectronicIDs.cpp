@@ -29,6 +29,9 @@
 #include "../scope.hpp"
 #include "../x509.hpp"
 
+#include <array>
+#include <string_view>
+
 using namespace std::string_literals;
 
 namespace electronic_id
@@ -108,13 +111,15 @@ std::vector<ElectronicID::ptr> listMsCryptoApiElectronicIDs()
             continue; // TODO: log.
         }
 
-        std::wstring algo(5, 0);
-        err = NCryptGetProperty(key, NCRYPT_ALGORITHM_GROUP_PROPERTY, PBYTE(algo.data()),
-                                DWORD(algo.size() + 1) * 2, &size, 0);
+        // Fixed-size buffer is intentional: only "RSA" (3) and "ECDSA" (5) are supported.
+        // 6 wchars = 5 chars + null terminator, fits all supported algorithm group names.
+        std::array<wchar_t, 6> algoBuf {};
+        err = NCryptGetProperty(key, NCRYPT_ALGORITHM_GROUP_PROPERTY, PBYTE(algoBuf.data()),
+                                DWORD(algoBuf.size()) * 2, &size, 0);
         if (FAILED(err)) {
             continue; // TODO: log.
         }
-        algo.resize(size / 2 - 1);
+        std::wstring_view algo(algoBuf.data());
         if (algo != L"RSA" && !algo.starts_with(L"EC")) {
             // We only support RSA and ECC algorithms.
             continue; // TODO: log.
