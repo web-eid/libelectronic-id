@@ -66,7 +66,8 @@ public:
 
             if (auto ioctl = feature(FEATURE_GET_TLV_PROPERTIES); ioctl != features.cend()) {
                 std::array<BYTE, 256> buf {};
-                SCard(Control, cardHandle, ioctl->value, nullptr, 0U, buf.data(), DWORD(buf.size()),
+                const DWORD controlCode = ioctl->value;
+                SCard(Control, cardHandle, controlCode, nullptr, 0U, buf.data(), DWORD(buf.size()),
                       &size);
                 for (auto p = buf.cbegin(); DWORD(std::distance(buf.cbegin(), p)) < size;) {
                     auto tag = TLV_PROPERTIES(*p++);
@@ -134,8 +135,9 @@ public:
     {
         uint8_t PINFrameOffset = 0;
         uint8_t PINLengthOffset = 0;
-        byte_vector cmd(sizeof(PIN_VERIFY_STRUCTURE));
-        auto* data = (PIN_VERIFY_STRUCTURE*)cmd.data();
+        const byte_vector& d = commandApdu;
+        byte_vector cmd(sizeof(PIN_VERIFY_STRUCTURE) + d.size());
+        auto* data = new (cmd.data()) PIN_VERIFY_STRUCTURE {};
         data->bTimerOut = PIN_PAD_PIN_ENTRY_TIMEOUT;
         data->bTimerOut2 = PIN_PAD_PIN_ENTRY_TIMEOUT;
         data->bmFormatString =
@@ -147,21 +149,22 @@ public:
         data->bNumberMessage = CCIDDefaultInvitationMessage;
         data->wLangId = lang;
         data->bMsgIndex = NoInvitationMessage;
-        const byte_vector& d = commandApdu;
         data->ulDataLength = uint32_t(d.size());
-        cmd.insert(cmd.cend(), d.cbegin(), d.cend());
+        std::copy(d.cbegin(), d.cend(), cmd.begin() + sizeof(PIN_VERIFY_STRUCTURE));
 
         auto ioctl = feature(FEATURE_VERIFY_PIN_START);
         if (feature(FEATURE_VERIFY_PIN_START) == features.cend())
             ioctl = feature(FEATURE_VERIFY_PIN_DIRECT);
         byte_vector responseBytes(ResponseApdu::MAX_SIZE, 0);
         auto responseLength = DWORD(responseBytes.size());
-        SCard(Control, cardHandle, ioctl->value, cmd.data(), DWORD(cmd.size()),
+        const DWORD controlCode = ioctl->value;
+        SCard(Control, cardHandle, controlCode, cmd.data(), DWORD(cmd.size()),
               LPVOID(responseBytes.data()), DWORD(responseBytes.size()), &responseLength);
 
         if (auto finish = feature(FEATURE_VERIFY_PIN_FINISH); finish != features.cend()) {
             responseLength = DWORD(responseBytes.size());
-            SCard(Control, cardHandle, finish->value, nullptr, 0U, LPVOID(responseBytes.data()),
+            const DWORD finishControlCode = finish->value;
+            SCard(Control, cardHandle, finishControlCode, nullptr, 0U, LPVOID(responseBytes.data()),
                   DWORD(responseBytes.size()), &responseLength);
         }
 
