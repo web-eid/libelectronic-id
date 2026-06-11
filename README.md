@@ -49,4 +49,3 @@ service, run them inside `build` directory with:
 ## Development guidelines
 
 - Format code with `scripts/clang-format.sh` before committing
-- See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
