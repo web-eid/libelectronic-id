@@ -103,7 +103,7 @@ struct MaskedATREntry
     {
     }
 
-    constexpr bool operator==(const byte_vector& atr) const
+    bool operator==(const byte_vector& atr) const
     {
         return std::equal(atr.cbegin(), atr.cend(), pattern.cbegin(), pattern.cend(),
                           [mask_ptr = mask.data()](byte_type a, byte_type p) mutable {
