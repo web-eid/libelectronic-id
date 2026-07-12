@@ -22,7 +22,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_compile_features(${PROJECT_NAME}
   PUBLIC
-  cxx_std_20
+  cxx_std_23
 )
 
 target_compile_options(${PROJECT_NAME} PUBLIC

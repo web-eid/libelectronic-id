@@ -26,6 +26,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace electronic_id
 {
@@ -36,7 +37,7 @@ public:
     enum CertificateTypeEnum : int8_t { AUTHENTICATION, SIGNING, NONE = -1 };
 
     constexpr CertificateType() noexcept = default;
-    constexpr CertificateType(const CertificateTypeEnum _value) noexcept : value(_value) {}
+    constexpr CertificateType(const CertificateTypeEnum _value) noexcept : value(_value) { }
 
     constexpr bool isAuthentication() const noexcept { return value == AUTHENTICATION; }
     constexpr bool isSigning() const noexcept { return value == SIGNING; }
@@ -64,12 +65,10 @@ public:
         SHA3_256 = 256 * 10,
         SHA3_384 = 384 * 10,
         SHA3_512 = 512 * 10,
-
-        NONE = -1
     };
 
     constexpr HashAlgorithm() = default;
-    constexpr HashAlgorithm(const HashAlgorithmEnum _value) noexcept : value(_value) {}
+    constexpr HashAlgorithm(const HashAlgorithmEnum _value) noexcept : value(_value) { }
     // String conversion constructor.
     explicit HashAlgorithm(const std::string&);
 
@@ -97,7 +96,7 @@ public:
     static pcsc_cpp::byte_vector rsaOID(const HashAlgorithmEnum hash);
 
 private:
-    HashAlgorithmEnum value = NONE;
+    HashAlgorithmEnum value;
 };
 
 /** Signature algorithms */
@@ -135,10 +134,10 @@ public:
         RS3_256 = RS | int16_t(HashAlgorithm::SHA3_256),
         RS3_384 = RS | int16_t(HashAlgorithm::SHA3_384),
         RS3_512 = RS | int16_t(HashAlgorithm::SHA3_512),
-        NONE = -1
+        NONE = -1,
     };
 
-    constexpr SignatureAlgorithm(const SignatureAlgorithmEnum _value) noexcept : value(_value) {}
+    constexpr SignatureAlgorithm(const SignatureAlgorithmEnum _value) noexcept : value(_value) { }
     constexpr SignatureAlgorithm(const SignatureAlgorithmEnum key,
                                  const HashAlgorithm hash) noexcept :
         value(SignatureAlgorithmEnum(key | int16_t(hash)))
@@ -187,7 +186,7 @@ public:
 
     operator std::string_view() const noexcept;
 
-    constexpr HashAlgorithm hashAlgorithm() const
+    constexpr HashAlgorithm hashAlgorithm() const noexcept
     {
         switch (value) {
         case ES256:
@@ -202,10 +201,8 @@ public:
         case PS512:
         case RS512:
             return HashAlgorithm::SHA512;
-        default:
-            throw std::logic_error("JsonWebSignatureAlgorithm::hashAlgorithm(): Invalid value "
-                                   + std::to_string(value));
         }
+        std::unreachable();
     }
 
     constexpr bool isRSAWithPKCS1Padding() const noexcept
@@ -213,7 +210,7 @@ public:
         return value == RS256 || value == RS384 || value == RS512;
     }
 
-    constexpr size_t hashByteLength() const { return hashAlgorithm().hashByteLength(); }
+    constexpr size_t hashByteLength() const noexcept { return hashAlgorithm().hashByteLength(); }
 
 private:
     static constexpr JsonWebSignatureAlgorithmEnum validate(JsonWebSignatureAlgorithmEnum v)

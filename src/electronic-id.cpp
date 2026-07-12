@@ -103,7 +103,7 @@ struct MaskedATREntry
     {
     }
 
-    bool operator==(const byte_vector& atr) const
+    PCSC_CPP_CONSTEXPR_VECTOR bool operator==(const byte_vector& atr) const
     {
         return std::equal(atr.cbegin(), atr.cend(), pattern.cbegin(), pattern.cend(),
                           [mask_ptr = mask.data()](byte_type a, byte_type p) mutable {
