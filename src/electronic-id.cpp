@@ -29,6 +29,7 @@
 
 #include "magic_enum/magic_enum.hpp"
 
+#include <functional>
 #include <map>
 #include <numeric>
 
@@ -38,6 +39,8 @@ using namespace std::string_literals;
 
 namespace
 {
+
+using ElectronicIDConstructor = std::function<ElectronicID::ptr(const Reader&)>;
 
 template <typename T>
 constexpr auto constructor(const Reader& reader)
@@ -221,25 +224,6 @@ const auto SUPPORTED_ALGORITHMS = std::map<std::string_view, HashAlgorithm> {
 namespace electronic_id
 {
 
-std::optional<ElectronicIDConstructor> findMaskedATR(const byte_vector& atr)
-{
-    if (auto i = std::find(MASKED_ATRS.cbegin(), MASKED_ATRS.cend(), atr);
-        i != MASKED_ATRS.cend()) {
-        return i->constructor;
-    }
-    return std::nullopt;
-}
-
-bool isCardSupported(const pcsc_cpp::byte_vector& atr)
-{
-    if (SUPPORTED_ATRS.contains(atr)) {
-        return true;
-    }
-
-    // If exact ATR match is not found, fall back to masked ATR lookup.
-    return findMaskedATR(atr).has_value();
-}
-
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 {
     if (auto it = SUPPORTED_ATRS.find(reader.cardAtr); it != SUPPORTED_ATRS.end()) {
@@ -247,13 +231,12 @@ ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
     }
 
     // If exact ATR match is not found, fall back to masked ATR lookup.
-    if (auto eIDConstructor = findMaskedATR(reader.cardAtr)) {
-        return (*eIDConstructor)(reader);
+    if (auto i = std::find(MASKED_ATRS.cbegin(), MASKED_ATRS.cend(), reader.cardAtr);
+        i != MASKED_ATRS.cend()) {
+        return i->constructor(reader);
     }
 
-    // It should be verified that the card is supported with isCardSupported() before
-    // calling getElectronicID(), so it is a programming error to reach this point.
-    THROW(ProgrammingError, "Card with ATR '" + reader.cardAtr + "' is not supported");
+    return nullptr;
 }
 
 bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo) const
