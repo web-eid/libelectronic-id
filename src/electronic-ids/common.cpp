@@ -37,10 +37,12 @@ const std::set<SignatureAlgorithm>& ELLIPTIC_CURVE_SIGNATURE_ALGOS()
 
 const std::set<SignatureAlgorithm>& RSA_SIGNATURE_ALGOS()
 {
+    // SHA3+RSA (RS3_*, PS3_*) omitted: no card implementation (PCSC or PKCS#11) supports it.
     const static std::set<SignatureAlgorithm> RS_ALGOS = {
-        SignatureAlgorithm::RS224,   SignatureAlgorithm::RS256,   SignatureAlgorithm::RS384,
-        SignatureAlgorithm::RS512,   SignatureAlgorithm::RS3_224, SignatureAlgorithm::RS3_256,
-        SignatureAlgorithm::RS3_384, SignatureAlgorithm::RS3_512,
+        SignatureAlgorithm::RS224,
+        SignatureAlgorithm::RS256,
+        SignatureAlgorithm::RS384,
+        SignatureAlgorithm::RS512,
     };
     return RS_ALGOS;
 }

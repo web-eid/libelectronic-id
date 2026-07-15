@@ -130,13 +130,17 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const SmartCard::Sessi
               PIN_PADDING_CHAR);
     auto tmp = hash;
     if (isECC) {
-        // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf 6.4
+        // FIPS 186-5 §6.4: when signing with an n-bit key, if the hash output is longer
+        // than n bits, take the leftmost n bits; if shorter, the hash integer value is
+        // used as-is (leading zeros are implicit). We normalise to 48 bytes to match the
+        // P-384 key used on these cards.
+        // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf
         constexpr size_t ECDSA384_INPUT_LENGTH = 384 / 8;
         if (tmp.size() < ECDSA384_INPUT_LENGTH) {
-            // Zero-pad hashes that are shorter than SHA-384.
+            // Prepend zeros — mathematically equivalent to the original integer value.
             tmp.insert(tmp.cbegin(), ECDSA384_INPUT_LENGTH - tmp.size(), 0x00);
         } else if (tmp.size() > ECDSA384_INPUT_LENGTH) {
-            // Truncate hashes that are longer than SHA-384.
+            // Keep the leftmost 48 bytes per FIPS 186-5 §6.4.
             tmp.resize(ECDSA384_INPUT_LENGTH);
         }
     }

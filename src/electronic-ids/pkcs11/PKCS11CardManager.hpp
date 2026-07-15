@@ -80,8 +80,10 @@ public:
         static std::unordered_map<std::string, std::weak_ptr<PKCS11CardManager>> instances;
 
         // There is no std::hash for std::filesystem::path, use the string value.
-        // Note that two different path strings that refer to the same filesystem location
-        // will be treated as different keys (e.g. /path/to/module and /path/to/../to/module).
+        // Known limitation: two path strings that resolve to the same file (e.g.
+        // /path/to/module and /path/to/../to/module) are treated as different keys and
+        // would load the module twice. This is safe in practice because all paths come
+        // from hardcoded constants in Pkcs11ElectronicID.cpp and are never user-supplied.
         std::string moduleStr = module.string();
 
         std::lock_guard<std::mutex> lock(mutex);
@@ -191,6 +193,9 @@ public:
         // If the module provides an external PIN dialog, login is not required.
         if (!providesExternalPinDialog) {
             try {
+                // The PIN buffer is cleared by the caller after C_Login returns. Whether
+                // the PKCS#11 module retains a copy of the PIN internally after this call
+                // is outside our control and is the module vendor's responsibility.
                 C(Login, session, CKU_USER, CK_CHAR_PTR(pin), CK_ULONG(pinSize));
             } catch (const VerifyPinFailed& e) {
                 if (e.status() != VerifyPinFailed::Status::RETRY_ALLOWED)
@@ -247,6 +252,11 @@ public:
     }
 
 private:
+    // Trust model: the module loaded here is a third-party vendor library installed by the
+    // OS administrator or card middleware package. Its integrity is gated by OS filesystem
+    // permissions on the hardcoded paths — not by web-eid code-signing. Every vendor
+    // module loaded this way runs inside the web-eid process and has access to PIN material
+    // and signing operations. This is an explicit trust delegation to the middleware vendor.
     PKCS11CardManager(const std::filesystem::path& module)
     {
         CK_C_GetFunctionList C_GetFunctionList = nullptr;
@@ -364,9 +374,11 @@ private:
 
     static constexpr uint8_t pinRetryCount(CK_FLAGS flags) noexcept
     {
-        // As PKCS#11 does not provide an API for querying remaining PIN retries, we currently
-        // simply assume max retry count of 3, which is quite common. We might need to revisit this
-        // in the future once it becomes a problem.
+        // PKCS#11 does not expose the exact remaining retry count — only flag buckets
+        // (locked / final-try / count-low). We map these to 0/1/2 and assume a maximum
+        // of 3, which is the most common value. Cards with a higher retry budget (e.g.
+        // FinEID v3 allows 5) will show "3 attempts left" in the UI when the actual count
+        // is higher. This is a known PKCS#11 protocol limitation with no workaround.
         if (flags & CKF_USER_PIN_LOCKED) {
             return 0;
         }
