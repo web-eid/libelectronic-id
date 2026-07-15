@@ -32,11 +32,7 @@
 #undef IGNORE
 #endif
 
-#ifdef __APPLE__
-#pragma pack(1)
-#else
 #pragma pack(push, 1)
-#endif
 
 #ifndef SCARD_CTL_CODE
 #define SCARD_CTL_CODE(code) (0x42000000 + (code))
@@ -148,8 +144,4 @@ struct PIN_VERIFY_STRUCTURE
     uint32_t ulDataLength; // length of Data to be sent to the ICC
 };
 
-#ifdef __APPLE__
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
