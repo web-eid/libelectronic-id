@@ -309,7 +309,7 @@ constexpr uint8_t PIN_PAD_PIN_ENTRY_TIMEOUT = 90; // 1 minute, 30 seconds
 class SmartCard
 {
 public:
-    enum class Protocol { UNDEFINED, T0, T1 }; // AUTO = T0 | T1
+    enum class Protocol : uint8_t { UNDEFINED, T0, T1 }; // AUTO = T0 | T1
 
     class Session
     {
