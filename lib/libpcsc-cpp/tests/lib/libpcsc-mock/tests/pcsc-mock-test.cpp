@@ -31,6 +31,8 @@
 #include <winscard.h>
 #endif
 
+#include <algorithm>
+#include <span>
 #include <vector>
 #include <string>
 
@@ -66,9 +68,8 @@ TEST(scard_mock_test, testScardCalls)
     readerName = readerStates[0].szReader;
     EXPECT_EQ(readerName, PcscMock::DEFAULT_READER_NAME);
 
-    auto atrBuf = readerStates[0].rgbAtr;
-    vector<unsigned char> atr(atrBuf, atrBuf + readerStates[0].cbAtr);
-    EXPECT_EQ(atr, PcscMock::DEFAULT_CARD_ATR);
+    EXPECT_TRUE(std::ranges::equal(std::span(readerStates[0].rgbAtr, readerStates[0].cbAtr),
+                                   PcscMock::DEFAULT_CARD_ATR));
 
     auto protocol = SCARD_PROTOCOL_T0;
     DWORD protocolOut = SCARD_PROTOCOL_UNDEFINED;

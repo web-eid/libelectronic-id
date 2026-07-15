@@ -28,6 +28,7 @@
 #include <vector>
 #include <stdexcept>
 #include <cstdint>
+#include <span>
 
 #ifdef _WIN32
 using MOCK_LONG = int32_t;
@@ -44,7 +45,9 @@ public:
 class PcscMock
 {
 public:
-    using byte_vector = std::vector<unsigned char>;
+    using byte_type = unsigned char;
+    using byte_vector = std::vector<byte_type>;
+    using byte_span = std::span<const byte_type>;
     // An APDU script is a list of request-response APDU pairs.
     using ApduScript = std::vector<std::pair<byte_vector, byte_vector>>;
     // Define local string type so that we can use wstring in Windows if needed.
@@ -97,10 +100,10 @@ public:
         self._stepCount = 0;
     }
 
-    static const byte_vector& atr() { return instance()._atr; }
-    static void setAtr(const byte_vector& atr) { instance()._atr = atr; }
+    static byte_span atr() { return instance()._atr; }
+    static void setAtr(byte_span atr) { instance()._atr = std::move(atr); }
 
-    static const byte_vector DEFAULT_CARD_ATR;
+    static constexpr byte_type DEFAULT_CARD_ATR[] {0x1, 0x2, 0x3, 0x4};
     static const string_t DEFAULT_READER_NAME;
 
     static const byte_vector DEFAULT_COMMAND_APDU;
@@ -125,7 +128,7 @@ private:
 
     std::set<std::string> _recordedCalls;
     std::map<std::string, MOCK_LONG> _scardCallReturnValues;
-    byte_vector _atr = DEFAULT_CARD_ATR;
+    byte_span _atr = DEFAULT_CARD_ATR;
     ApduScript _script = DEFAULT_SCRIPT;
     size_t _stepCount = 0;
 };

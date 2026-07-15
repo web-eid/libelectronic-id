@@ -29,66 +29,53 @@
 
 #include "magic_enum/magic_enum.hpp"
 
+#include <algorithm>
 #include <map>
 #include <numeric>
+#include <span>
 
 using namespace pcsc_cpp;
 using namespace electronic_id;
-using namespace std::string_literals;
 
 namespace
 {
 
+using ElectronicIDConstructor = std::function<ElectronicID::ptr(const Reader&)>;
+
 template <typename T>
-constexpr auto constructor(const Reader& reader)
+ElectronicID::ptr constructor(const Reader& reader)
 {
-    return std::make_unique<T>(reader.connectToCard());
+    return std::make_shared<T>(reader.connectToCard());
 }
 
 template <ElectronicID::Type value>
-constexpr auto constructor(const Reader& /*reader*/)
+ElectronicID::ptr constructor(const Reader& /*reader*/)
 {
-    return std::make_unique<Pkcs11ElectronicID>(value);
+    return std::make_shared<Pkcs11ElectronicID>(value);
 }
 
+struct ATREntry
+{
+    std::span<const byte_type> atr;
+    ElectronicID::ptr (*constructor)(const pcsc_cpp::Reader&);
+
+    constexpr bool operator==(const pcsc_cpp::byte_vector& other) const
+    {
+        return std::ranges::equal(atr, other);
+    }
+};
+
 // Supported cards.
-const std::map<byte_vector, ElectronicIDConstructor, VectorComparator> SUPPORTED_ATRS {
-    // EstEID Idemia Cosmo 8.1/8.2
-    {{0x3b, 0xdb, 0x96, 0x00, 0x80, 0xb1, 0xfe, 0x45, 0x1f, 0x83, 0x00,
-      0x12, 0x23, 0x3f, 0x53, 0x65, 0x49, 0x44, 0x0f, 0x90, 0x00, 0xf1},
-     constructor<EstEIDIDEMIAV1>},
-    // EstEID Idemia Cosmo X
-    {{0x3b, 0xdc, 0x96, 0x00, 0x80, 0xb1, 0xfe, 0x45, 0x1f, 0x83, 0x00, 0x12,
-      0x23, 0x3f, 0x54, 0x65, 0x49, 0x44, 0x32, 0x0f, 0x90, 0x00, 0xc3},
-     constructor<EstEIDIDEMIAV1>},
-    // EstEID Thales v1.0
-    {{0x3b, 0xff, 0x96, 0x00, 0x00, 0x80, 0x31, 0xfe, 0x43, 0x80, 0x31, 0xb8, 0x53,
-      0x65, 0x49, 0x44, 0x64, 0xb0, 0x85, 0x05, 0x10, 0x12, 0x23, 0x3f, 0x1d},
-     constructor<EstEIDThales>},
-    // FinEID v3.1
-    {{0x3B, 0x7F, 0x96, 0x00, 0x00, 0x80, 0x31, 0xB8, 0x65, 0xB0,
-      0x85, 0x04, 0x02, 0x1B, 0x12, 0x00, 0xF6, 0x82, 0x90, 0x00},
-     constructor<FinEIDv3>},
-    // LatEID Idemia Cosmo 8.1/8.2
-    {{0x3b, 0xdb, 0x96, 0x00, 0x80, 0xb1, 0xfe, 0x45, 0x1f, 0x83, 0x00,
-      0x12, 0x42, 0x8f, 0x53, 0x65, 0x49, 0x44, 0x0f, 0x90, 0x00, 0x20},
-     constructor<LatEIDIDEMIAV2>},
-    // LatEID Idemia Cosmo X
-    {{0x3b, 0xdc, 0x96, 0x00, 0x80, 0xb1, 0xfe, 0x45, 0x1f, 0x83, 0x00, 0x12,
-      0x42, 0x8f, 0x54, 0x65, 0x49, 0x44, 0x32, 0x0f, 0x90, 0x00, 0x12},
-     constructor<LatEIDIDEMIAV2>},
-    // HrvEID
-    {{0x3b, 0xff, 0x13, 0x00, 0x00, 0x81, 0x31, 0xfe, 0x45, 0x00, 0x31, 0xb9, 0x64,
-      0x04, 0x44, 0xec, 0xc1, 0x73, 0x94, 0x01, 0x80, 0x82, 0x90, 0x00, 0x12},
-     constructor<ElectronicID::Type::HrvEID>},
-    // BelEID - https://github.com/Fedict/eid-mw/wiki/Applet-1.8
-    {{0x3b, 0x7f, 0x96, 0x00, 0x00, 0x80, 0x31, 0x80, 0x65, 0xb0,
-      0x85, 0x04, 0x01, 0x20, 0x12, 0x0f, 0xff, 0x82, 0x90, 0x00},
-     constructor<ElectronicID::Type::BelEID>},
-    // CzeEID
-    {{0x3b, 0x7e, 0x94, 0x00, 0x00, 0x80, 0x25, 0xd2, 0x03, 0x10, 0x01, 0x00, 0x56, 0x00, 0x00,
-      0x00, 0x02, 0x02, 0x00},
-     constructor<ElectronicID::Type::CzeEID>},
+constexpr ATREntry SUPPORTED_ATRS[] {
+    {EstEIDIDEMIAV1::ATR_COSMO_8, constructor<EstEIDIDEMIAV1>},
+    {EstEIDIDEMIAV1::ATR_COSMO_X, constructor<EstEIDIDEMIAV1>},
+    {EstEIDThales::ATR, constructor<EstEIDThales>},
+    {FinEIDv3::ATR, constructor<FinEIDv3>},
+    {LatEIDIDEMIAV2::ATR_COSMO_8, constructor<LatEIDIDEMIAV2>},
+    {LatEIDIDEMIAV2::ATR_COSMO_X, constructor<LatEIDIDEMIAV2>},
+    {Pkcs11ElectronicID::HrvEID_ATR, constructor<Pkcs11ElectronicID::Type::HrvEID>},
+    {Pkcs11ElectronicID::BelEID_ATR, constructor<Pkcs11ElectronicID::Type::BelEID>},
+    {Pkcs11ElectronicID::CzeEID_ATR, constructor<Pkcs11ElectronicID::Type::CzeEID>},
 };
 
 // Holds ATR pattern, mask, and constructor for variable ATR cards.
@@ -120,11 +107,7 @@ struct MaskedATREntry
 
 const std::vector<MaskedATREntry> MASKED_ATRS = {
     // FinEID Thales v4.0/v4.1
-    {{0x3B, 0x7F, 0x96, 0x00, 0x00, 0x80, 0x31, 0xB8, 0x65, 0xB0,
-      0x85, 0x05, 0x00, 0x11, 0x12, 0x24, 0x60, 0x82, 0x90, 0x00},
-     {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-      0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-     constructor<FinEIDv4>},
+    {FinEIDv4::ATR, FinEIDv4::MASK, constructor<FinEIDv4>},
     // BelEID v1.7
     {{0x3b, 0x98, 0x13, 0x40, 0x0a, 0xa5, 0x03, 0x01, 0x01, 0x01, 0xad, 0x13, 0x11},
      {0xff, 0xff, 0x00, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00},
@@ -209,7 +192,7 @@ const std::vector<MaskedATREntry> MASKED_ATRS = {
      constructor<ElectronicID::Type::LuxEID>},
 };
 
-const auto SUPPORTED_ALGORITHMS = std::map<std::string_view, HashAlgorithm> {
+const std::map<std::string_view, HashAlgorithm> SUPPORTED_ALGORITHMS {
     {"SHA-224", HashAlgorithm::SHA224},    {"SHA-256", HashAlgorithm::SHA256},
     {"SHA-384", HashAlgorithm::SHA384},    {"SHA-512", HashAlgorithm::SHA512},
     {"SHA3-224", HashAlgorithm::SHA3_224}, {"SHA3-256", HashAlgorithm::SHA3_256},
@@ -221,39 +204,20 @@ const auto SUPPORTED_ALGORITHMS = std::map<std::string_view, HashAlgorithm> {
 namespace electronic_id
 {
 
-std::optional<ElectronicIDConstructor> findMaskedATR(const byte_vector& atr)
-{
-    if (auto i = std::find(MASKED_ATRS.cbegin(), MASKED_ATRS.cend(), atr);
-        i != MASKED_ATRS.cend()) {
-        return i->constructor;
-    }
-    return std::nullopt;
-}
-
-bool isCardSupported(const pcsc_cpp::byte_vector& atr)
-{
-    if (SUPPORTED_ATRS.contains(atr)) {
-        return true;
-    }
-
-    // If exact ATR match is not found, fall back to masked ATR lookup.
-    return findMaskedATR(atr).has_value();
-}
-
 ElectronicID::ptr getElectronicID(const pcsc_cpp::Reader& reader)
 {
-    if (auto it = SUPPORTED_ATRS.find(reader.cardAtr); it != SUPPORTED_ATRS.end()) {
-        return it->second(reader);
+    if (auto it = std::find(std::begin(SUPPORTED_ATRS), std::end(SUPPORTED_ATRS), reader.cardAtr);
+        it != std::end(SUPPORTED_ATRS)) {
+        return it->constructor(reader);
     }
 
     // If exact ATR match is not found, fall back to masked ATR lookup.
-    if (auto eIDConstructor = findMaskedATR(reader.cardAtr)) {
-        return (*eIDConstructor)(reader);
+    if (auto i = std::find(MASKED_ATRS.cbegin(), MASKED_ATRS.cend(), reader.cardAtr);
+        i != MASKED_ATRS.cend()) {
+        return i->constructor(reader);
     }
 
-    // It should be verified that the card is supported with isCardSupported() before
-    // calling getElectronicID(), so it is a programming error to reach this point.
-    THROW(ProgrammingError, "Card with ATR '" + reader.cardAtr + "' is not supported");
+    return nullptr;
 }
 
 bool ElectronicID::isSupportedSigningHashAlgorithm(const HashAlgorithm hashAlgo) const
