@@ -2,6 +2,13 @@ name: CMake (macOS)
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   BUILD_TYPE: RelWithDebInfo
   CMAKE_BUILD_PARALLEL_LEVEL: 3
@@ -9,16 +16,29 @@ env:
 jobs:
   build:
     runs-on: macos-latest
+    timeout-minutes: 120
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
-    - name: Install libraries
-      run: brew install web-eid/gtest/gtest
+    - name: Cache vcpkg
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ github.workspace }}/vcpkg_cache
+        key: ${{ runner.os }}-${{ runner.arch }}-vcpkg-${{ hashFiles('vcpkg.json') }}
 
     - name: Configure CMake
-      run: cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -B build -S .
+      env:
+        VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg_cache,readwrite
+      run: |
+        export VCPKG_ROOT="${VCPKG_INSTALLATION_ROOT}"
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+          -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+          -DVCPKG_TARGET_TRIPLET=arm64-osx
 
     - name: Build
       run: cmake --build build --config ${BUILD_TYPE}
