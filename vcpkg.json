@@ -1,14 +1,14 @@
 {
     "name": "web-eid-app",
     "dependencies": ["openssl", "gtest"],
-    "builtin-baseline": "7849750896c86bd7a4a02ed760812dba321a4a9b",
+    "builtin-baseline": "99e82d9c9f0b281ec11fba48cc8434574a2b6e66",
     "vcpkg-configuration": {
         "registries": [
             {
                 "kind": "git",
                 "repository": "https://github.com/open-eid/vcpkg-ports",
                 "reference": "vcpkg-registry",
-                "baseline": "230d98d5832f3bacd75e5af79adf34587d02846b",
+                "baseline": "6daff78a7188881762bb2c6aef721b3c1f35edb7",
                 "packages": ["openssl"]
             }
         ]
