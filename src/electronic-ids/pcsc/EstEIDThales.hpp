@@ -32,6 +32,10 @@ class EstEIDThales : public EIDThales
 public:
     using EIDThales::EIDThales;
 
+    static constexpr byte_type ATR[] {0x3b, 0xff, 0x96, 0x00, 0x00, 0x80, 0x31, 0xfe, 0x43,
+                                      0x80, 0x31, 0xb8, 0x53, 0x65, 0x49, 0x44, 0x64, 0xb0,
+                                      0x85, 0x05, 0x10, 0x12, 0x23, 0x3f, 0x1d};
+
 protected:
     std::string name() const override { return "EstEIDThales"; }
     Type type() const override { return EstEID; }

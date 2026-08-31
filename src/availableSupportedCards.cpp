@@ -44,8 +44,8 @@ std::vector<ElectronicID::ptr> availableSupportedCards()
                 continue;
             }
             seenCard = true;
-            if (isCardSupported(reader.cardAtr)) {
-                cards.push_back(getElectronicID(reader));
+            if (auto eid = getElectronicID(reader)) {
+                cards.push_back(std::move(eid));
             }
         }
 

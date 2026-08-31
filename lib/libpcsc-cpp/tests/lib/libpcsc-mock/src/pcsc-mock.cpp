@@ -80,7 +80,6 @@ PcscMock::byte_vector PcscMock::responseForApduCommand(const PcscMock::byte_vect
     return response;
 }
 
-const PcscMock::byte_vector PcscMock::DEFAULT_CARD_ATR {0x1, 0x2, 0x3, 0x4};
 #ifdef _WIN32
 const PcscMock::string_t PcscMock::DEFAULT_READER_NAME {L"PcscMock-reader"s};
 #else
