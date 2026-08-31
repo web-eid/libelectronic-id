@@ -148,8 +148,9 @@ public:
     {
         uint8_t PINFrameOffset = 0;
         uint8_t PINLengthOffset = 0;
-        byte_vector cmd(sizeof(PIN_VERIFY_STRUCTURE));
-        auto* data = (PIN_VERIFY_STRUCTURE*)cmd.data();
+        const byte_vector& d = commandApdu;
+        byte_vector cmd(sizeof(PIN_VERIFY_STRUCTURE) + d.size());
+        auto* data = new (cmd.data()) PIN_VERIFY_STRUCTURE {};
         data->bTimerOut = PIN_PAD_PIN_ENTRY_TIMEOUT;
         data->bTimerOut2 = PIN_PAD_PIN_ENTRY_TIMEOUT;
         data->bmFormatString =
@@ -161,9 +162,8 @@ public:
         data->bNumberMessage = CCIDDefaultInvitationMessage;
         data->wLangId = lang;
         data->bMsgIndex = NoInvitationMessage;
-        const byte_vector& d = commandApdu;
         data->ulDataLength = uint32_t(d.size());
-        cmd.insert(cmd.cend(), d.cbegin(), d.cend());
+        std::copy(d.cbegin(), d.cend(), cmd.begin() + sizeof(PIN_VERIFY_STRUCTURE));
 
         auto ioctl = feature(FEATURE_VERIFY_PIN_START);
         if (feature(FEATURE_VERIFY_PIN_START) == features.cend())
