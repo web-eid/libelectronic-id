@@ -34,6 +34,12 @@ namespace electronic_id
  * The constructor parses the tag and length from the provided byte range,
  * then adjusts its iterators so that `begin` and `end` reference only the value bytes.
  * If the TLV is empty, `operator bool()` returns false.
+ *
+ * Tag encoding: the `tag` field stores the raw BER-TLV tag bytes packed into a uint32
+ * (first byte in the most-significant position), including continuation-bit bytes for
+ * multi-byte tags. This is NOT the logical BER-TLV tag number from ISO 7816. All
+ * hardcoded tag literals used with `find()` follow the same packed-byte convention,
+ * e.g. a two-byte tag 0xBF 0x81 0x00 is stored as 0xBF8100.
  */
 struct TLV
 {
@@ -105,7 +111,7 @@ struct TLV
     PCSC_CPP_CONSTEXPR_VECTOR TLV find(uint32_t find) const
     {
         TLV tlv = *this;
-        for (; tlv && tlv.tag != find; ++tlv) {}
+        for (; tlv && tlv.tag != find; ++tlv) { }
         // Return the found TLV or an empty one if not found
         return tlv;
     }

@@ -76,23 +76,27 @@ ElectronicID::Signature MsCryptoApiElectronicID::sign(const byte_vector& hash,
 {
     bool isRSA = signatureAlgo != SignatureAlgorithm::ES;
     BCRYPT_PKCS1_PADDING_INFO padInfo {};
-    switch (hashAlgo) {
-    case HashAlgorithm::SHA224:
-        padInfo.pszAlgId = L"SHA224";
-        break;
-    case HashAlgorithm::SHA256:
-        padInfo.pszAlgId = NCRYPT_SHA256_ALGORITHM;
-        break;
-    case HashAlgorithm::SHA384:
-        padInfo.pszAlgId = NCRYPT_SHA384_ALGORITHM;
-        break;
-    case HashAlgorithm::SHA512:
-        padInfo.pszAlgId = NCRYPT_SHA512_ALGORITHM;
-        break;
-    default:
-        // FIXME: what about HashAlgorithm::SHA3_*?
-        THROW(ArgumentFatalError,
-              "Hash algorithm " + std::to_string(hashAlgo) + " is not supported");
+    if (isRSA) {
+        // EC signing passes raw hash bytes to NCryptSignHash without a padding descriptor,
+        // so any hash including SHA3 works. RSA requires a padding descriptor with a hash
+        // algorithm ID; SHA3+RSA is not supported by NCrypt (SHA3 is BCrypt-only).
+        switch (hashAlgo) {
+        case HashAlgorithm::SHA224:
+            padInfo.pszAlgId = L"SHA224";
+            break;
+        case HashAlgorithm::SHA256:
+            padInfo.pszAlgId = NCRYPT_SHA256_ALGORITHM;
+            break;
+        case HashAlgorithm::SHA384:
+            padInfo.pszAlgId = NCRYPT_SHA384_ALGORITHM;
+            break;
+        case HashAlgorithm::SHA512:
+            padInfo.pszAlgId = NCRYPT_SHA512_ALGORITHM;
+            break;
+        default:
+            THROW(ArgumentFatalError,
+                  "Hash algorithm " + std::to_string(hashAlgo) + " is not supported for RSA");
+        }
     }
 
     DWORD size = 0;
@@ -125,7 +129,7 @@ ElectronicID::Signature MsCryptoApiElectronicID::sign(const byte_vector& hash,
         THROW(MsCryptoApiError, "Signing failed with error: " + std::to_string(err));
     }
 
-    return {signature, {signatureAlgo, hashAlgo}};
+    return {std::move(signature), {signatureAlgo, hashAlgo}};
 }
 
 } // namespace electronic_id

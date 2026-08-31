@@ -127,6 +127,11 @@ public:
         if (id_vendor == VENDOR_HID_GLOBAL
             && (id_product == OMNIKEY_3x21 || id_product == OMNIKEY_6121))
             return false;
+        // Debug/workaround override: forces host-side PIN entry instead of the secure
+        // PIN-pad keypad. Moving PIN entry to the host process means the PIN passes
+        // through host memory and is no longer isolated on the reader hardware. Use only
+        // for testing or when a reader falsely reports PIN-pad capability but does not
+        // implement it correctly.
         if (getenv("SMARTCARDPP_NOPINPAD"))
             return false;
         return feature(FEATURE_VERIFY_PIN_START) != features.cend()
