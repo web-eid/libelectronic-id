@@ -232,25 +232,7 @@ private:
         responseBytes.resize(responseLength - 2);
         PCSC_CPP_WARNING_POP
 
-        ResponseApdu response {sw1, sw2, std::move(responseBytes)};
-
-        // Let expected errors through for handling in upper layers or in if blocks below.
-        switch (response.sw1) {
-            using enum ResponseApdu::Status;
-        case OK:
-        case MORE_DATA_AVAILABLE:
-        case WRONG_LE_LENGTH:
-        case VERIFICATION_FAILED:
-        case VERIFICATION_CANCELLED:
-        case WRONG_LENGTH:
-        case COMMAND_NOT_ALLOWED:
-        case WRONG_PARAMETERS:
-            return response;
-        default:
-            THROW(Error,
-                  "Error response: '" + response + "', protocol "
-                      + std::to_string(_protocol.dwProtocol));
-        }
+        return {sw1, sw2, std::move(responseBytes)};
     }
 };
 
@@ -272,14 +254,34 @@ ResponseApdu SmartCard::Session::transmit(const CommandApdu& command) const
     if (response.sw1 == ResponseApdu::WRONG_LE_LENGTH) {
         response = card.transmitBytes(CommandApdu(command, response.sw2));
     }
-    while (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
-        auto newResponse = card.transmitBytes(CommandApdu::getResponse(response.sw2));
-        response.sw1 = newResponse.sw1;
-        response.sw2 = newResponse.sw2;
-        response.data.insert(response.data.end(), newResponse.data.cbegin(),
-                                newResponse.data.cend());
+    // Let expected errors through for handling in upper layers or in if blocks below.
+    switch (response.sw1) {
+        using enum ResponseApdu::Status;
+    case MORE_DATA_AVAILABLE:
+        while (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
+            auto newResponse = transmit(CommandApdu::getResponse(response.sw2));
+            response.sw1 = newResponse.sw1;
+            response.sw2 = newResponse.sw2;
+            response.data.insert(response.data.end(), newResponse.data.cbegin(),
+                                 newResponse.data.cend());
+            if (response.data.size() > (std::numeric_limits<uint16_t>::max)()) {
+                THROW(Error, "Command chaining and extended lenght not supported");
+            }
+        }
+        return response;
+    case OK:
+    case WRONG_LE_LENGTH:
+    case VERIFICATION_FAILED:
+    case VERIFICATION_CANCELLED:
+    case WRONG_LENGTH:
+    case COMMAND_NOT_ALLOWED:
+    case WRONG_PARAMETERS:
+        return response;
+    default:
+        THROW(Error,
+              "Error response: '" + response + "', protocol "
+                  + std::to_string(uint8_t(card.protocol())));
     }
-    return response;
 }
 
 ResponseApdu SmartCard::Session::transmitCTL(const CommandApdu& command, uint16_t lang,
