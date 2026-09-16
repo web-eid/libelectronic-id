@@ -40,6 +40,7 @@ public:
         CzeEID,
         LuxtrustV2,
         LuxEID,
+        RoEID,
 #ifdef _WIN32
         MsCryptoApiEID,
 #endif
@@ -74,8 +75,14 @@ public:
                                          const HashAlgorithm hashAlgo) const = 0;
 
     // General functions.
-    virtual bool allowsUsingLettersAndSpecialCharactersInPin() const { return false; }
-    virtual bool providesExternalPinDialog() const { return false; }
+    virtual bool allowsUsingLettersAndSpecialCharactersInPin() const
+    {
+        return false;
+    }
+    virtual bool providesExternalPinDialog() const
+    {
+        return false;
+    }
 
     /** Extension point for releasing the resources held by the ElectronicID object.
      * By default, this function does nothing. It serves as an extension point for
@@ -86,7 +93,10 @@ public:
     virtual std::string name() const = 0;
     virtual Type type() const = 0;
 
-    virtual pcsc_cpp::SmartCard const& smartcard() const { return card; }
+    virtual pcsc_cpp::SmartCard const& smartcard() const
+    {
+        return card;
+    }
 
 protected:
     ElectronicID(pcsc_cpp::SmartCard&& _card) noexcept : card(std::move(_card)) {}
