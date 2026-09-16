@@ -133,19 +133,22 @@ struct CommandApdu
 
     // ISO 7816 part 4, Annex B.1, Case 1
     PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1,
-                                          byte_type p2) : d {cls, ins, p1, p2}
+                                          byte_type p2) :
+        d {cls, ins, p1, p2}
     {
     }
 
     // ISO 7816 part 4, Annex B.1, Case 2
     PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
-                                          byte_type le) : d {cls, ins, p1, p2, le}
+                                          byte_type le) :
+        d {cls, ins, p1, p2, le}
     {
     }
 
     // ISO 7816 part 4, Annex B.1, Case 3
     PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
-                                          byte_vector data) : d {std::move(data)}
+                                          byte_vector data) :
+        d {std::move(data)}
     {
         if (d.size() > MAX_DATA_SIZE) {
             throw std::invalid_argument("Command chaining and extended lenght not supported");
@@ -178,7 +181,10 @@ struct CommandApdu
         d.clear();
     }
 
-    constexpr operator const byte_vector&() const { return d; }
+    constexpr operator const byte_vector&() const
+    {
+        return d;
+    }
 
     /**
      * A helper function to create a SELECT FILE command APDU.
@@ -219,10 +225,9 @@ struct CommandApdu
      * The ISO 7816-4 Section 6.1 READ BINARY command has the form:
      *   CLA = 0x00
      *   INS = 0xB0
-     *   P1, P2 = if bit8=0 in P1, then P1||P2 is the offset of the first byte to be read in data units from the
-     * beginning of the file.
-     *   Lc and Data field = Empty
-     *   Le  = Number of bytes to be read
+     *   P1, P2 = if bit8=0 in P1, then P1||P2 is the offset of the first byte to be read in data
+     * units from the beginning of the file. Lc and Data field = Empty Le  = Number of bytes to be
+     * read
      */
     static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu readBinary(uint16_t pos, byte_type le)
     {

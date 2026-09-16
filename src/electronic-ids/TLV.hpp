@@ -49,7 +49,9 @@ struct TLV
     }
 
     PCSC_CPP_CONSTEXPR_VECTOR TLV(byte_vector::const_iterator _begin,
-                                  byte_vector::const_iterator _end) : begin(_begin), end(_end)
+                                  byte_vector::const_iterator _end) :
+        begin(_begin),
+        end(_end)
     {
         if (!*this) {
             return;

@@ -132,6 +132,17 @@ inline fs::path luxembourgPkcs11ModulePath()
 #endif
 }
 
+inline fs::path romanianPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return programFilesPath() / L"IDEMIA/IDPlugClassic/DLLs/idplug-pkcs11.dll";
+#elif defined __APPLE__
+    return "/Library/Application Support/com.idemia.idplug/lib/libidplug-pkcs11.dylib";
+#else // Linux
+    return "/usr/lib/idplugclassic/libidplug-pkcs11.so";
+#endif
+}
+
 const std::map<ElectronicID::Type, Pkcs11ElectronicIDModule> SUPPORTED_PKCS11_MODULES {
     // EstEID configuration is here only for testing,
     // it is not enabled in getElectronicID().
@@ -204,6 +215,16 @@ const std::map<ElectronicID::Type, Pkcs11ElectronicIDModule> SUPPORTED_PKCS11_MO
          3,
          true,
          true,
+     }},
+    {ElectronicID::Type::RoEID,
+     {
+         "Romanian eID (PKCS#11)"s, // name
+         ElectronicID::Type::RoEID, // type
+         romanianPkcs11ModulePath().make_preferred(), // path
+
+         3,
+         false,
+         false,
      }},
 };
 

@@ -277,7 +277,7 @@ ResponseApdu SmartCard::Session::transmit(const CommandApdu& command) const
         response.sw1 = newResponse.sw1;
         response.sw2 = newResponse.sw2;
         response.data.insert(response.data.end(), newResponse.data.cbegin(),
-                                newResponse.data.cend());
+                             newResponse.data.cend());
     }
     return response;
 }

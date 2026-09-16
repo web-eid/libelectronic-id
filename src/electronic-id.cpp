@@ -89,6 +89,10 @@ const std::map<byte_vector, ElectronicIDConstructor, VectorComparator> SUPPORTED
     {{0x3b, 0x7e, 0x94, 0x00, 0x00, 0x80, 0x25, 0xd2, 0x03, 0x10, 0x01, 0x00, 0x56, 0x00, 0x00,
       0x00, 0x02, 0x02, 0x00},
      constructor<ElectronicID::Type::CzeEID>},
+    // RoEID
+    {{0x3b, 0xdf, 0x96, 0x00, 0x81, 0x31, 0xfe, 0x45, 0x80, 0x73, 0x84, 0x21,
+      0xe0, 0x55, 0x69, 0x78, 0x00, 0x00, 0x80, 0x83, 0x07, 0x90, 0x00, 0x24},
+     constructor<ElectronicID::Type::RoEID>},
 };
 
 // Holds ATR pattern, mask, and constructor for variable ATR cards.
@@ -98,8 +102,8 @@ struct MaskedATREntry
     template <size_t N>
     constexpr MaskedATREntry(const byte_type (&_pat)[N], const byte_type (&_mask)[N],
                              ElectronicIDConstructor&& _constructor) :
-        pattern(std::begin(_pat), std::end(_pat)), mask(std::begin(_mask), std::end(_mask)),
-        constructor(std::move(_constructor))
+        pattern(std::begin(_pat), std::end(_pat)),
+        mask(std::begin(_mask), std::end(_mask)), constructor(std::move(_constructor))
     {
     }
 

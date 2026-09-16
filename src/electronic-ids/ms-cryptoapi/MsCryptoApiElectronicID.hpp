@@ -36,10 +36,11 @@ class MsCryptoApiElectronicID : public ElectronicID
 public:
     MsCryptoApiElectronicID(PCCERT_CONTEXT certCtx, byte_vector&& cert, CertificateType cType,
                             bool isRsa, HCRYPTPROV_OR_NCRYPT_KEY_HANDLE k, bool freeK) :
-        ElectronicID {{}}, certContext {certCtx}, certData {cert}, certType {cType},
+        ElectronicID {{}},
+        certContext {certCtx}, certData {cert}, certType {cType},
         // TODO: SignatureAlgorithm::PS?
-        signatureAlgo {isRsa ? SignatureAlgorithm::RS : SignatureAlgorithm::ES}, key {k},
-        freeKey {freeK}
+        signatureAlgo {isRsa ? SignatureAlgorithm::RS : SignatureAlgorithm::ES}, key {k}, freeKey {
+                                                                                              freeK}
     {
     }
 

@@ -160,6 +160,10 @@ public:
             C(OpenSession, slotID, CKF_SERIAL_SESSION, nullptr, nullptr, &session);
 
             for (CK_OBJECT_HANDLE obj : findObject(session, CKO_CERTIFICATE)) {
+                auto certValue = attribute(session, obj, CKA_VALUE);
+                if (certValue.empty()) {
+                    continue; // skip empty certificate slots (e.g. QSCD application)
+                }
                 result.push_back({
                     {std::begin(tokenInfo.label), std::end(tokenInfo.label)},
                     {std::begin(tokenInfo.serialNumber), std::end(tokenInfo.serialNumber)},

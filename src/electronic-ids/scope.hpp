@@ -27,8 +27,7 @@
 #include <memory>
 
 template <class U, typename T>
-[[nodiscard]]
-constexpr auto make_unique_ptr(U* t, T d) noexcept
+[[nodiscard]] constexpr auto make_unique_ptr(U* t, T d) noexcept
 {
     return std::unique_ptr<U, T>(t, d);
 }
@@ -54,8 +53,8 @@ public:
 
     // Move.
     scope_exit(scope_exit&& rhs) noexcept :
-        exit_function(std::move(rhs.exit_function)),
-        execute_on_destruction {rhs.execute_on_destruction}
+        exit_function(std::move(rhs.exit_function)), execute_on_destruction {
+                                                         rhs.execute_on_destruction}
     {
         rhs.release();
     }
