@@ -8,4 +8,4 @@ permissions:
 jobs:
   copyright:
     name: Check copyright headers
-    uses: web-eid/.github/.github/workflows/copyright.yml@copyright
+    uses: web-eid/.github/.github/workflows/copyright.yml@9ea5bd0c816309493524bce9f96024ed3cc6ff1d # main
