@@ -149,7 +149,7 @@ public:
                     {std::begin(tokenInfo.label), std::end(tokenInfo.label)},
                     {std::begin(tokenInfo.serialNumber), std::end(tokenInfo.serialNumber)},
                     slotID,
-                    attribute(session, obj, CKA_VALUE),
+                    std::move(certValue),
                     attribute(session, obj, CKA_ID),
                     pinRetryCount(tokenInfo.flags),
                     (tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) > 0,
