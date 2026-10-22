@@ -24,13 +24,10 @@ struct TLV
     byte_vector::const_iterator begin;
     byte_vector::const_iterator end;
 
-    PCSC_CPP_CONSTEXPR_VECTOR explicit TLV(const byte_vector& data) :
-        TLV(data.cbegin(), data.cend())
-    {
-    }
+    constexpr explicit TLV(const byte_vector& data) : TLV(data.cbegin(), data.cend()) { }
 
-    PCSC_CPP_CONSTEXPR_VECTOR TLV(byte_vector::const_iterator _begin,
-                                  byte_vector::const_iterator _end) : begin(_begin), end(_end)
+    constexpr TLV(byte_vector::const_iterator _begin, byte_vector::const_iterator _end) :
+        begin(_begin), end(_end)
     {
         if (!*this) {
             return;
@@ -77,16 +74,13 @@ struct TLV
         }
     }
 
-    PCSC_CPP_CONSTEXPR_VECTOR TLV operator[](uint32_t find) const
-    {
-        return TLV(begin, begin + length).find(find);
-    }
-    PCSC_CPP_CONSTEXPR_VECTOR TLV& operator++() { return *this = {begin + length, end}; }
+    constexpr TLV operator[](uint32_t find) const { return TLV(begin, begin + length).find(find); }
+    constexpr TLV& operator++() { return *this = {begin + length, end}; }
 
-    PCSC_CPP_CONSTEXPR_VECTOR TLV find(uint32_t find) const
+    constexpr TLV find(uint32_t find) const
     {
         TLV tlv = *this;
-        for (; tlv && tlv.tag != find; ++tlv) {}
+        for (; tlv && tlv.tag != find; ++tlv) { }
         // Return the found TLV or an empty one if not found
         return tlv;
     }

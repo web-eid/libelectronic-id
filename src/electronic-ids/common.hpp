@@ -56,8 +56,8 @@ inline pcsc_cpp::byte_vector addRSAOID(const HashAlgorithm hashAlgo,
 // Workaround gcc 14.2 bug
 struct VectorComparator
 {
-    PCSC_CPP_CONSTEXPR_VECTOR bool operator()(const std::vector<unsigned char>& a,
-                                              const std::vector<unsigned char>& b) const
+    constexpr bool operator()(const std::vector<unsigned char>& a,
+                              const std::vector<unsigned char>& b) const
     {
         return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
     }
