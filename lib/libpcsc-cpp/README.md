@@ -11,10 +11,10 @@ reader and transmit an APDU:
 
     auto readers = listReaders();
     auto card = readers[0].connectToCard();
-    auto command = CommandApdu::fromBytes({0x2, 0x1, 0x3, 0x4});
+    auto command = CommandApdu(0x2, 0x1, 0x3, 0x4);
 
-    auto transactionGuard = card->beginTransaction();
-    auto response = card->transmit(command);
+    auto session = card.beginSession();
+    auto response = session.transmit(command);
 
 See more examples in [tests](tests).
 
