@@ -39,12 +39,6 @@
 #define PCSC_CPP_WARNING_DISABLE_MSVC(text)
 #endif
 
-#ifdef __cpp_lib_constexpr_vector
-#define PCSC_CPP_CONSTEXPR_VECTOR constexpr
-#else
-#define PCSC_CPP_CONSTEXPR_VECTOR
-#endif
-
 namespace pcsc_cpp
 {
 
@@ -113,30 +107,36 @@ struct CommandApdu
     static constexpr size_t MAX_DATA_SIZE = 255;
 
     // ISO 7816 part 4, Annex B.1, Case 1
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1,
-                                          byte_type p2) : d {cls, ins, p1, p2}
+    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2) :
+        d {cls, ins, p1, p2}
     {
     }
 
     // ISO 7816 part 4, Annex B.1, Case 2
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
-                                          byte_type le) : d {cls, ins, p1, p2, le}
+    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2, byte_type le) :
+        d {cls, ins, p1, p2, le}
     {
     }
 
     // ISO 7816 part 4, Annex B.1, Case 3
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
-                                          byte_vector data) : d {std::move(data)}
+    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                          byte_vector data) : d {std::move(data)}
     {
+        if (d.empty()) {
+            throw std::invalid_argument("Command data must not be empty, Lc=0 is not allowed");
+        }
         if (d.size() > MAX_DATA_SIZE) {
             throw std::invalid_argument("Command chaining and extended lenght not supported");
         }
+#if defined(__GNUC__) && (__GNUC__ == 15 || __GNUC__ == 16) // Apply workaround for GCC 15, 16
+        d.reserve(d.size() + APDU_HEADER_AND_LC_SIZE);
+#endif
         d.insert(d.begin(), {cls, ins, p1, p2, static_cast<byte_type>(d.size())});
     }
 
     // ISO 7816 part 4, Annex B.1, Case 4
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
-                                          byte_vector data, byte_type le) :
+    constexpr CommandApdu(byte_type cls, byte_type ins, byte_type p1, byte_type p2,
+                          byte_vector data, byte_type le) :
         CommandApdu {cls, ins, p1, p2, std::move(data)}
     {
         // https://gcc.gnu.org/pipermail/gcc-patches/2025-February/676226.html
@@ -146,14 +146,14 @@ struct CommandApdu
         d.push_back(le);
     }
 
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu(const CommandApdu& other, byte_type le) : d(other.d)
+    constexpr CommandApdu(const CommandApdu& other, byte_type le) : d(other.d)
     {
         size_t pos = d.size() <= 5 ? 4 : 5 + d[4]; // Case 1/2 or 3/4
         d.resize(pos + 1);
         d[pos] = le;
     }
 
-    PCSC_CPP_CONSTEXPR_VECTOR void clear() && noexcept
+    constexpr void clear() && noexcept
     {
         std::fill(d.begin(), d.end(), byte_type(0));
         d.clear();
@@ -179,7 +179,7 @@ struct CommandApdu
      *   0x08 = Select from MF (master file, root directory).
      *   0x09 = Select from current DF.
      */
-    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu select(byte_type p1, byte_vector file)
+    static constexpr CommandApdu select(byte_type p1, byte_vector file)
     {
         return {0x00, 0xA4, p1, 0x0C, std::move(file)};
     }
@@ -189,11 +189,12 @@ struct CommandApdu
      *
      * Same as select() but with P2 set to 0x04 and returns the file identifier as data.
      */
-    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu selectEF(byte_type p1, byte_vector file)
+    static constexpr CommandApdu selectEF(byte_type p1, byte_vector file)
     {
         return {0x00, 0xA4, p1, 0x04, std::move(file), 0x00};
     }
 
+    // clang-format off
     /**
      * A helper function to create a READ BINARY command APDU.
      *
@@ -205,7 +206,8 @@ struct CommandApdu
      *   Lc and Data field = Empty
      *   Le  = Number of bytes to be read
      */
-    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu readBinary(uint16_t pos, byte_type le)
+    // clang-format on
+    static constexpr CommandApdu readBinary(uint16_t pos, byte_type le)
     {
         return {0x00, 0xb0, byte_type(pos >> 8), byte_type(pos), le};
     }
@@ -220,9 +222,8 @@ struct CommandApdu
      *   Lc and Data field = Empty or verification data
      *   Le  = Empty
      */
-    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu verify(byte_type p2, byte_vector&& pin,
-                                                        size_t paddingLength,
-                                                        pcsc_cpp::byte_type paddingChar)
+    static constexpr CommandApdu verify(byte_type p2, byte_vector&& pin, size_t paddingLength,
+                                        pcsc_cpp::byte_type paddingChar)
     {
         if (!pin.empty() && pin.capacity() < paddingLength + APDU_HEADER_AND_LC_SIZE) {
             throw std::invalid_argument(
@@ -240,8 +241,8 @@ struct CommandApdu
     /**
      * A helper function to create a VERIFY command APDU with empty data field and only padding.
      */
-    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu verify(byte_type p2, size_t paddingLength,
-                                                        pcsc_cpp::byte_type paddingChar)
+    static constexpr CommandApdu verify(byte_type p2, size_t paddingLength,
+                                        pcsc_cpp::byte_type paddingChar)
     {
         byte_vector emptyPin;
         emptyPin.reserve(paddingLength + APDU_HEADER_AND_LC_SIZE);
@@ -258,7 +259,7 @@ struct CommandApdu
      *   Lc and Data field = Empty
      *   Le  = Maximum length of data expected in response
      */
-    static PCSC_CPP_CONSTEXPR_VECTOR CommandApdu getResponse(byte_type le = 0x00)
+    static constexpr CommandApdu getResponse(byte_type le = 0x00)
     {
         return {0x00, 0xc0, 0x00, 0x00, le};
     }
