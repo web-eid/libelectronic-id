@@ -16,10 +16,10 @@ public:
 protected:
     using CommandApdu = pcsc_cpp::CommandApdu;
 
-    virtual PCSC_CPP_CONSTEXPR_VECTOR CommandApdu authCertFile() const = 0;
+    virtual constexpr CommandApdu authCertFile() const = 0;
     virtual constexpr byte_type authPinReference() const = 0;
     virtual constexpr int8_t maximumPinRetries() const = 0;
-    virtual PCSC_CPP_CONSTEXPR_VECTOR CommandApdu signCertFile() const = 0;
+    virtual constexpr CommandApdu signCertFile() const = 0;
     virtual constexpr byte_type signingKeyReference() const = 0;
 
     byte_vector getCertificateImpl(const SmartCard::Session& session,

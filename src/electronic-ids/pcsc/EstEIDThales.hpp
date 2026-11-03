@@ -16,7 +16,7 @@ public:
 protected:
     std::string name() const override { return "EstEIDThales"; }
     Type type() const override { return EstEID; }
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu authCertFile() const override
+    constexpr CommandApdu authCertFile() const override
     {
         return CommandApdu::selectEF(0x08, {0xAD, 0xF1, 0x34, 0x11});
     }
@@ -27,7 +27,7 @@ protected:
         return pinRetriesLeft(session, authPinReference(), false);
     }
     constexpr int8_t maximumPinRetries() const override { return 3; }
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu signCertFile() const override
+    constexpr CommandApdu signCertFile() const override
     {
         return CommandApdu::selectEF(0x08, {0xAD, 0xF2, 0x34, 0x21});
     }
