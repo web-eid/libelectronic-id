@@ -70,7 +70,11 @@ inline fs::path croatianPkcs11ModulePath()
     //
     // This workaround is required until the driver provider addresses the issue.
     // NB! This is not tested.
-    return "/Library/AKD/pkcs11/libEidPkcs11.dylib";
+    // Certilia Middleware 3.9 ships the library inside its app bundle under a new name.
+    fs::path certiliaPath =
+        "/Applications/CertiliaMiddleware.app/Contents/pkcs11/libCertiliaPkcs11.dylib";
+    fs::path eidPath = "/Library/AKD/pkcs11/libEidPkcs11.dylib";
+    return fs::exists(certiliaPath) ? certiliaPath : eidPath;
 #else // Linux
     fs::path certiliaPath = "/usr/lib/akd/certiliamiddleware/pkcs11/libEidPkcs11.so";
     fs::path eidPath = "/usr/lib/akd/eidmiddleware/pkcs11/libEidPkcs11.so";
