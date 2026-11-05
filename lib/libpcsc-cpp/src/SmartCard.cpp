@@ -241,10 +241,14 @@ SmartCard::Session::Session(const CardImpl& card) : card(card)
 }
 
 SmartCard::Session::~Session() noexcept
-try {
-    card.endTransaction();
-} catch (...) {
-    // Ignore exceptions in destructor.
+{
+    // Not a function-try-block: its handler would rethrow at the end, and a throw out of a
+    // noexcept destructor is std::terminate (MSVC 14.40 rejects it with C4297).
+    try {
+        card.endTransaction();
+    } catch (...) {
+        // Ignore exceptions in destructor.
+    }
 }
 
 ResponseApdu SmartCard::Session::transmit(const CommandApdu& command) const
