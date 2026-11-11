@@ -16,13 +16,13 @@ public:
 protected:
     std::string name() const override { return "FinEID v4"; }
     Type type() const override { return FinEID; }
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu authCertFile() const override
+    constexpr CommandApdu authCertFile() const override
     {
         return CommandApdu::selectEF(0x08, {0x43, 0x31});
     }
     constexpr byte_type authPinReference() const override { return 0x11; }
     constexpr int8_t maximumPinRetries() const override { return 5; }
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu signCertFile() const override
+    constexpr CommandApdu signCertFile() const override
     {
         return CommandApdu::selectEF(0x08, {0x50, 0x16, 0x43, 0x32});
     }
@@ -41,7 +41,7 @@ protected:
     {
         return JsonWebSignatureAlgorithm::PS256;
     }
-    PCSC_CPP_CONSTEXPR_VECTOR CommandApdu signCertFile() const override
+    constexpr CommandApdu signCertFile() const override
     {
         return CommandApdu::selectEF(0x08, {0x50, 0x16, 0x43, 0x35});
     }

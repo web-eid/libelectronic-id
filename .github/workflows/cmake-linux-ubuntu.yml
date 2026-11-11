@@ -18,6 +18,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ubuntu:${{matrix.container}}
+    strategy:
+      matrix:
+        container: ['22.04', '24.04', '26.04']
     timeout-minutes: 120
 
     steps:
@@ -26,7 +30,21 @@ jobs:
         persist-credentials: false
 
     - name: Install dependencies
-      run: sudo apt update -qq && sudo apt install --no-install-recommends -y cmake libgtest-dev libpcsclite-dev
+      run: |
+        for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+          [ -f "$f" ] && sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|g; s|http://security.ubuntu.com|http://azure.archive.ubuntu.com|g' "$f"
+        done
+        echo 'path-exclude=/usr/share/man/*'      >  /etc/dpkg/dpkg.cfg.d/99-nodocs
+        echo 'path-exclude=/usr/share/doc/*'      >> /etc/dpkg/dpkg.cfg.d/99-nodocs
+        echo 'path-exclude=/usr/share/doc-base/*' >> /etc/dpkg/dpkg.cfg.d/99-nodocs
+        apt update -qq && apt install --no-install-recommends -y g++ make cmake libgtest-dev libpcsclite-dev libssl-dev pkgconf
+
+    - name: Install gcc 12
+      if: matrix.container == '22.04'
+      run: |
+        apt install -y gcc-12 g++-12
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 60 --slave /usr/bin/g++ g++ /usr/bin/g++-12
+        update-alternatives --set gcc /usr/bin/gcc-12
 
     - name: Configure CMake
       run: cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -S . -B build
