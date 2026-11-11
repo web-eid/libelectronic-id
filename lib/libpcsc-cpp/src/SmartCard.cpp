@@ -288,11 +288,6 @@ ResponseApdu SmartCard::Session::transmitCTL(const CommandApdu& command, uint16_
     return card.transmitBytesCTL(command, lang, minlen);
 }
 
-bool SmartCard::Session::readerHasPinPad() const
-{
-    return card.readerHasPinPad();
-}
-
 SmartCard::SmartCard(Reader _reader) :
     reader(std::move(_reader)), card(std::make_unique<CardImpl>(reader))
 {

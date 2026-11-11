@@ -1,23 +1,18 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
 // SPDX-License-Identifier: MIT
 
-#pragma once
+#include "PcscElectronicID.hpp"
 
-#include "electronic-id/electronic-id.hpp"
 #include "../TLV.hpp"
 #include "../scope.hpp"
-
-#include "pcsc-cpp/pcsc-cpp-utils.hpp"
 
 #include <algorithm>
 
 using namespace std::string_literals;
+using namespace pcsc_cpp;
+using namespace electronic_id;
 
-namespace electronic_id
-{
-
-inline void selectFile(const pcsc_cpp::SmartCard::Session& session,
-                       const pcsc_cpp::CommandApdu& command)
+void PcscElectronicID::selectFile(const SmartCard::Session& session, const CommandApdu& command)
 {
     const auto response = session.transmit(command);
     if (!response.isOK()) {
@@ -25,34 +20,8 @@ inline void selectFile(const pcsc_cpp::SmartCard::Session& session,
     }
 }
 
-inline pcsc_cpp::byte_vector readBinary(const pcsc_cpp::SmartCard::Session& session,
-                                        const uint16_t length, pcsc_cpp::byte_type blockLength)
-{
-    pcsc_cpp::byte_vector resultBytes;
-    resultBytes.reserve(length);
-    while (resultBytes.size() < length) {
-        pcsc_cpp::byte_type chunk =
-            pcsc_cpp::byte_type(std::min<size_t>(length - resultBytes.size(), blockLength));
-        auto response = session.transmit(
-            pcsc_cpp::CommandApdu::readBinary(uint16_t(resultBytes.size()), chunk));
-        if (chunk > 0 && response.data.size() != chunk) {
-            THROW(SmartCardError,
-                  "Length mismatch, expected "s + std::to_string(chunk) + ", received "
-                      + std::to_string(response.data.size()) + " bytes");
-        }
-        resultBytes.insert(resultBytes.end(), response.data.cbegin(), response.data.cend());
-    }
-    if (resultBytes.size() != length) {
-        THROW(SmartCardError,
-              "Length mismatch, expected "s + std::to_string(length) + ", received "
-                  + std::to_string(resultBytes.size()) + " bytes");
-    }
-    return resultBytes;
-}
-
-inline pcsc_cpp::byte_vector readFile(const pcsc_cpp::SmartCard::Session& session,
-                                      const pcsc_cpp::CommandApdu& select,
-                                      pcsc_cpp::byte_type blockLength = 0x00)
+byte_vector PcscElectronicID::readFile(const SmartCard::Session& session, const CommandApdu& select,
+                                       byte_type blockLength)
 {
     auto response = session.transmit(select);
     if (!response.isOK()) {
@@ -66,21 +35,40 @@ inline pcsc_cpp::byte_vector readFile(const pcsc_cpp::SmartCard::Session& sessio
     if (!size || size.length != 2) {
         THROW(SmartCardError, "Failed to read EF file length");
     }
-    return readBinary(session, pcsc_cpp::toSW(*size.begin, *(size.begin + 1)), blockLength);
+
+    uint16_t length = toSW(*size.begin, *(size.begin + 1));
+    byte_vector resultBytes;
+    resultBytes.reserve(length);
+    while (resultBytes.size() < length) {
+        byte_type chunk = byte_type(std::min<size_t>(length - resultBytes.size(), blockLength));
+        auto chunkResponse =
+            session.transmit(CommandApdu::readBinary(uint16_t(resultBytes.size()), chunk));
+        if (chunk > 0 && chunkResponse.data.size() != chunk) {
+            THROW(SmartCardError,
+                  "Length mismatch, expected "s + std::to_string(chunk) + ", received "
+                      + std::to_string(chunkResponse.data.size()) + " bytes");
+        }
+        resultBytes.insert(resultBytes.end(), chunkResponse.data.cbegin(),
+                           chunkResponse.data.cend());
+    }
+    if (resultBytes.size() != length) {
+        THROW(SmartCardError,
+              "Length mismatch, expected "s + std::to_string(length) + ", received "
+                  + std::to_string(resultBytes.size()) + " bytes");
+    }
+    return resultBytes;
 }
 
-inline void verifyPin(const pcsc_cpp::SmartCard::Session& session, pcsc_cpp::byte_type p2,
-                      pcsc_cpp::byte_vector&& pin, ElectronicID::PinMinMaxLength pinMinMax,
-                      pcsc_cpp::byte_type paddingChar)
+void PcscElectronicID::verifyPin(const SmartCard::Session& session, byte_type p2, byte_vector&& pin,
+                                 PinMinMaxLength pinMinMax, byte_type paddingChar) const
 {
-    pcsc_cpp::ResponseApdu response;
+    ResponseApdu response;
 
-    if (session.readerHasPinPad()) {
-        response = session.transmitCTL(
-            pcsc_cpp::CommandApdu::verify(p2, pinMinMax.second, paddingChar), 0, pinMinMax.first);
+    if (card.readerHasPinPad()) {
+        response = session.transmitCTL(CommandApdu::verify(p2, pinMinMax.second, paddingChar), 0,
+                                       pinMinMax.first);
     } else {
-        auto verifyCommand =
-            pcsc_cpp::CommandApdu::verify(p2, std::move(pin), pinMinMax.second, paddingChar);
+        auto verifyCommand = CommandApdu::verify(p2, std::move(pin), pinMinMax.second, paddingChar);
         auto clearPinCommand = stdext::make_scope_exit(
             [&verifyCommand]() noexcept { std::move(verifyCommand).clear(); });
         response = session.transmit(verifyCommand);
@@ -90,7 +78,7 @@ inline void verifyPin(const pcsc_cpp::SmartCard::Session& session, pcsc_cpp::byt
     // move response error handling to ElectronicID.getVerifyPinError().
     switch (response.toSW()) {
         using pcsc_cpp::toSW;
-        using enum pcsc_cpp::ResponseApdu::Status;
+        using enum ResponseApdu::Status;
         using enum VerifyPinFailed::Status;
     case toSW(OK, 0x00):
         return;
@@ -128,16 +116,13 @@ inline void verifyPin(const pcsc_cpp::SmartCard::Session& session, pcsc_cpp::byt
     }
 }
 
-inline void selectSecurityEnv(const pcsc_cpp::SmartCard::Session& session, pcsc_cpp::byte_type env,
-                              pcsc_cpp::byte_type signatureAlgo, pcsc_cpp::byte_type keyReference,
-                              const std::string& cardType)
+void PcscElectronicID::selectSecurityEnv(const SmartCard::Session& session, byte_type env,
+                                         byte_type signatureAlgo, byte_type keyReference) const
 {
     const auto response = session.transmit(
         {0x00, 0x22, 0x41, env, {0x80, 0x01, signatureAlgo, 0x84, 0x01, keyReference}});
 
     if (!response.isOK()) {
-        THROW(SmartCardError, cardType + ": Command SET ENV failed with error " + response);
+        THROW(SmartCardError, name() + ": Command SET ENV failed with error " + response);
     }
 }
-
-} // namespace electronic_id

@@ -30,8 +30,8 @@ add_library(${PROJECT_NAME}
   src/electronic-ids/pcsc/FinEID.hpp
   src/electronic-ids/pcsc/LatEIDIDEMIAv2.cpp
   src/electronic-ids/pcsc/LatEIDIDEMIAv2.hpp
+  src/electronic-ids/pcsc/PcscElectronicID.cpp
   src/electronic-ids/pcsc/PcscElectronicID.hpp
-  src/electronic-ids/pcsc/pcsc-common.hpp
   src/electronic-ids/pkcs11/PKCS11CardManager.hpp
   src/electronic-ids/pkcs11/pkcs11.h
   src/electronic-ids/pkcs11/Pkcs11ElectronicID.cpp
