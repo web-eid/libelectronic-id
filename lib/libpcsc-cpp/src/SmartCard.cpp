@@ -252,11 +252,20 @@ ResponseApdu SmartCard::Session::transmit(const CommandApdu& command) const
     };
 
     auto response = transmitOnce(command);
-    while (response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE) {
+    for (size_t retransmitCount = 0; response.sw1 == ResponseApdu::MORE_DATA_AVAILABLE;
+         ++retransmitCount) {
+        constexpr size_t maxRetransmitCount =
+            (std::numeric_limits<uint16_t>::max)() / ResponseApdu::MAX_DATA_SIZE + 1;
+        if (retransmitCount >= maxRetransmitCount) {
+            THROW(Error, "Retransmission count limit exceeded");
+        }
         auto newResponse = transmitOnce(CommandApdu::getResponse(response.sw2));
+        if (newResponse.data.empty()) {
+            THROW(Error, "GET RESPONSE returned empty data");
+        }
         if (constexpr size_t maxResponseSize = (std::numeric_limits<uint16_t>::max)();
             newResponse.data.size() > maxResponseSize - response.data.size()) {
-            THROW(Error, "Command chaining and extended lenght not supported");
+            THROW(Error, "Command chaining and extended length not supported");
         }
         response.data.insert(response.data.end(), newResponse.data.cbegin(),
                              newResponse.data.cend());

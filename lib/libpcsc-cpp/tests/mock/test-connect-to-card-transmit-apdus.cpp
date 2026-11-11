@@ -46,7 +46,7 @@ TEST(pcsc_cpp_test, transmitApduSuccess)
     EXPECT_TRUE(response.isOK());
 }
 
-TEST(pcsc_cpp_test, transmitStopsMoreDataAtSizeLimit)
+TEST(pcsc_cpp_test, transmitStopsMoreDataAtCountLimit)
 {
     PcscMock::reset();
 
@@ -55,7 +55,7 @@ TEST(pcsc_cpp_test, transmitStopsMoreDataAtSizeLimit)
     chunk[ResponseApdu::MAX_DATA_SIZE] = ResponseApdu::MORE_DATA_AVAILABLE;
     chunk[ResponseApdu::MAX_DATA_SIZE + 1] = 0x00;
 
-    // The 256th chunk brings the total to 65 536 bytes, exceeding the 65 535-byte limit.
+    // 256 full chunks hit the GET RESPONSE iteration count limit.
     const size_t chunkCount =
         (std::numeric_limits<uint16_t>::max)() / ResponseApdu::MAX_DATA_SIZE + 1;
     PcscMock::ApduScript script(chunkCount, {getResponse, chunk});
@@ -75,6 +75,24 @@ TEST(pcsc_cpp_test, transmitStopsMoreDataAtSizeLimit)
     const auto response = session.transmit(nextCommand);
     EXPECT_TRUE(response.isOK());
     EXPECT_EQ(response.data, (byte_vector {0x42}));
+
+    PcscMock::reset();
+}
+
+TEST(pcsc_cpp_test, transmitThrowsOnEmptyGetResponse)
+{
+    PcscMock::reset();
+
+    const auto getResponse = CommandApdu::getResponse();
+    byte_vector firstChunk {0x41, ResponseApdu::MORE_DATA_AVAILABLE, 0x00};
+    byte_vector emptyChunk {ResponseApdu::MORE_DATA_AVAILABLE, 0x00};
+
+    PcscMock::setApduScript({{getResponse, firstChunk}, {getResponse, emptyChunk}});
+
+    auto card = connectToCard();
+    auto session = card.beginSession();
+
+    EXPECT_THROW(session.transmit(getResponse), Error);
 
     PcscMock::reset();
 }
