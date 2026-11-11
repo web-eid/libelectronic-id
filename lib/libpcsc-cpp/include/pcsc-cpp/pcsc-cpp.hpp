@@ -301,7 +301,6 @@ public:
 
         ResponseApdu transmit(const CommandApdu& command) const;
         ResponseApdu transmitCTL(const CommandApdu& command, uint16_t lang, uint8_t minlen) const;
-        bool readerHasPinPad() const;
 
     private:
         const CardImpl& card;

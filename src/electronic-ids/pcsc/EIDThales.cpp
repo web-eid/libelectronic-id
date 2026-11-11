@@ -3,8 +3,6 @@
 
 #include "EIDThales.hpp"
 
-#include "pcsc-common.hpp"
-
 #include "../TLV.hpp"
 
 // FINEID specification:
@@ -98,7 +96,7 @@ byte_vector EIDThales::sign(const SmartCard::Session& session, const HashAlgorit
 
     verifyPin(session, pinReference, std::move(pin), pinMinMaxLength, PIN_PADDING_CHAR);
     // Select security environment for COMPUTE SIGNATURE.
-    selectSecurityEnv(session, 0xB6, signatureAlgo, keyReference, name());
+    selectSecurityEnv(session, 0xB6, signatureAlgo, keyReference);
 
     byte_vector tlv {0x90, byte_type(hash.size())};
     tlv.insert(tlv.cend(), hash.cbegin(), hash.cend());

@@ -5,8 +5,6 @@
 
 #include "../TLV.hpp"
 
-#include "pcsc-common.hpp"
-
 #include <optional>
 
 using namespace pcsc_cpp;

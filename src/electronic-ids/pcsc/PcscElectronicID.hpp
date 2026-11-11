@@ -15,7 +15,7 @@ class PcscElectronicID : public ElectronicID
 public:
     using SmartCard = pcsc_cpp::SmartCard;
 
-    explicit PcscElectronicID(SmartCard&& _card) : ElectronicID(std::move(_card)) {}
+    explicit PcscElectronicID(SmartCard&& _card) : ElectronicID(std::move(_card)) { }
 
     constexpr PinMinMaxLength authPinMinMaxLength() const override { return {4, 12}; }
     constexpr JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
@@ -49,6 +49,17 @@ protected:
     PinInfo signingPinInfo() const override { return signingPinInfoImpl(card.beginSession()); }
 
     PinInfo authPinInfo() const override { return authPinInfoImpl(card.beginSession()); }
+
+    static void selectFile(const SmartCard::Session& session, const pcsc_cpp::CommandApdu& command);
+
+    static byte_vector readFile(const SmartCard::Session& session,
+                                const pcsc_cpp::CommandApdu& select, byte_type blockLength = 0x00);
+
+    void verifyPin(const SmartCard::Session& session, byte_type p2, byte_vector&& pin,
+                   PinMinMaxLength pinMinMax, byte_type paddingChar) const;
+
+    void selectSecurityEnv(const SmartCard::Session& session, byte_type env,
+                           byte_type signatureAlgo, byte_type keyReference) const;
 
     // The following pure virtual *Impl functions are the interface of all
     // PC/SC electronic ID implementations,

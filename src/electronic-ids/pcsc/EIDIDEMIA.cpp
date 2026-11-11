@@ -3,8 +3,6 @@
 
 #include "EIDIDEMIA.hpp"
 
-#include "pcsc-common.hpp"
-
 #include "../TLV.hpp"
 
 using namespace pcsc_cpp;
@@ -65,7 +63,7 @@ byte_vector EIDIDEMIA::signWithAuthKeyImpl(const SmartCard::Session& session, by
 {
     selectADF1(session);
     auto [keyId, isECC] = authKeyRef(session);
-    selectSecurityEnv(session, 0xA4, isECC ? 0x04 : 0x02, keyId, name());
+    selectSecurityEnv(session, 0xA4, isECC ? 0x04 : 0x02, keyId);
 
     verifyPin(session, AUTH_PIN_REFERENCE, std::move(pin), authPinMinMaxLength(), PIN_PADDING_CHAR);
 
@@ -106,7 +104,7 @@ ElectronicID::Signature EIDIDEMIA::signWithSigningKeyImpl(const SmartCard::Sessi
 {
     selectADF2(session);
     auto [keyRef, isECC] = signKeyRef(session);
-    selectSecurityEnv(session, 0xB6, isECC ? 0x54 : 0x42, keyRef, name());
+    selectSecurityEnv(session, 0xB6, isECC ? 0x54 : 0x42, keyRef);
     verifyPin(session, SIGN_PIN_REFERENCE, std::move(pin), signingPinMinMaxLength(),
               PIN_PADDING_CHAR);
     auto tmp = hash;
