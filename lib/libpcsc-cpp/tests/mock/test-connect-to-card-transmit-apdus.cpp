@@ -78,3 +78,50 @@ TEST(pcsc_cpp_test, transmitStopsMoreDataAtSizeLimit)
 
     PcscMock::reset();
 }
+
+TEST(pcsc_cpp_test, transmitStopsMoreDataAtCountLimit)
+{
+    PcscMock::reset();
+
+    const auto getResponse = CommandApdu::getResponse();
+    // 1-byte data chunks stay well under the 65 535-byte size limit,
+    // so only the retransmission count guard (256) can stop the loop.
+    byte_vector oneByteChunk {0x41, ResponseApdu::MORE_DATA_AVAILABLE, 0x00};
+
+    constexpr size_t maxRetransmitCount =
+        (std::numeric_limits<uint16_t>::max)() / ResponseApdu::MAX_DATA_SIZE + 1;
+    // +1 for the initial transmit before the loop.
+    PcscMock::ApduScript script(maxRetransmitCount + 1, {getResponse, oneByteChunk});
+
+    const auto nextCommand = CommandApdu::readBinary(0, 1);
+    script.emplace_back(nextCommand, byte_vector {0x42, ResponseApdu::OK, 0x00});
+    PcscMock::setApduScript(script);
+
+    auto card = connectToCard();
+    auto session = card.beginSession();
+
+    EXPECT_THROW(session.transmit(getResponse), Error);
+    const auto response = session.transmit(nextCommand);
+    EXPECT_TRUE(response.isOK());
+    EXPECT_EQ(response.data, (byte_vector {0x42}));
+
+    PcscMock::reset();
+}
+
+TEST(pcsc_cpp_test, transmitThrowsOnEmptyGetResponse)
+{
+    PcscMock::reset();
+
+    const auto getResponse = CommandApdu::getResponse();
+    byte_vector firstChunk {0x41, ResponseApdu::MORE_DATA_AVAILABLE, 0x00};
+    byte_vector emptyChunk {ResponseApdu::MORE_DATA_AVAILABLE, 0x00};
+
+    PcscMock::setApduScript({{getResponse, firstChunk}, {getResponse, emptyChunk}});
+
+    auto card = connectToCard();
+    auto session = card.beginSession();
+
+    EXPECT_THROW(session.transmit(getResponse), Error);
+
+    PcscMock::reset();
+}
