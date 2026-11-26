@@ -3,7 +3,11 @@
 
 #include "../common/selectcard.hpp"
 
-#include "atrs.hpp"
+#include "electronic-ids/pcsc/EstEIDIDEMIA.hpp"
+#include "electronic-ids/pcsc/FinEID.hpp"
+#include "electronic-ids/pcsc/LatEIDIDEMIAv2.hpp"
+
+#include "pcsc-mock/pcsc-mock.hpp"
 
 #include <gtest/gtest.h>
 
@@ -16,7 +20,7 @@ TEST(electronic_id_test, autoSelectFailureWithUnsupportedCard)
 
 TEST(electronic_id_test, autoSelectSuccessWithSupportedCardEstIDEMIA)
 {
-    PcscMock::setAtr(ESTEID_IDEMIA_V1_ATR);
+    PcscMock::setAtr(EstEIDIDEMIAV1::ATR_COSMO_8);
     auto result = autoSelectSupportedCard();
     EXPECT_TRUE(result);
     EXPECT_EQ(result->name(), "EstEID IDEMIA v1");
@@ -25,7 +29,7 @@ TEST(electronic_id_test, autoSelectSuccessWithSupportedCardEstIDEMIA)
 
 TEST(electronic_id_test, autoSelectSuccessWithSupportedCardLatV2)
 {
-    PcscMock::setAtr(LATEID_IDEMIA_V2_ATR);
+    PcscMock::setAtr(LatEIDIDEMIAV2::ATR_COSMO_8);
     auto result = autoSelectSupportedCard();
     EXPECT_TRUE(result);
     EXPECT_EQ(result->name(), "LatEID IDEMIA v2");
@@ -34,7 +38,7 @@ TEST(electronic_id_test, autoSelectSuccessWithSupportedCardLatV2)
 
 TEST(electronic_id_test, autoSelectSuccessWithSupportedCardFinV3)
 {
-    PcscMock::setAtr(FINEID_V3_ATR);
+    PcscMock::setAtr(FinEIDv3::ATR);
     auto result = autoSelectSupportedCard();
     EXPECT_TRUE(result);
     EXPECT_EQ(result->name(), "FinEID v3");
@@ -43,7 +47,7 @@ TEST(electronic_id_test, autoSelectSuccessWithSupportedCardFinV3)
 
 TEST(electronic_id_test, autoSelectSuccessWithSupportedCardFinV4)
 {
-    PcscMock::setAtr(FINEID_V4_ATR);
+    PcscMock::setAtr(FinEIDv4::ATR);
     auto result = autoSelectSupportedCard();
     EXPECT_TRUE(result);
     EXPECT_EQ(result->name(), "FinEID v4");
